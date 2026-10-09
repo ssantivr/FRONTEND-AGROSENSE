@@ -54,8 +54,29 @@
                 <h2 id="mapTitle">Mapa de parcelas</h2>
                 <div th:if="${dashboard.hasMapData}" id="estateMap" class="map skeleton" role="application"
                      aria-label="Mapa con la ubicación de las parcelas"></div>
-                <th:block th:unless="${dashboard.hasMapData}"><div th:replace="~{fragments/empty-state :: empty-state('bi-geo-alt', 'Sin ubicaciones',
-                     'Ninguna parcela tiene coordenadas registradas todavía.')}"></div></th:block>
+                <!-- Schematic view shown when no estate has coordinates, or when the map cannot be drawn. -->
+                <div id="estateMapFallback" class="map-fallback" th:hidden="${dashboard.hasMapData}">
+                    <p class="map-fallback-notice" role="status">
+                        <i class="bi bi-geo-alt" aria-hidden="true"></i>
+                        <span id="estateMapFallbackNotice"
+                              th:text="${demoMode} ? 'Vista de demostración / Sin coordenadas registradas' : 'Sin coordenadas registradas'">
+                            Sin coordenadas registradas
+                        </span>
+                    </p>
+                    <ul class="map-fallback-grid" th:if="${!dashboard.estates.isEmpty()}">
+                        <li th:each="estate : ${dashboard.estates}">
+                            <button type="button" class="map-fallback-tile" data-estate-tile
+                                    th:data-name="${estate.name}" th:data-location="${estate.location}"
+                                    th:data-area="${estate.areaHa}"
+                                    th:data-crops="${#strings.listJoin(estate.crops.?[active].![name], ', ')}">
+                                <i class="bi bi-geo" aria-hidden="true"></i>
+                                <span class="map-fallback-name" th:text="${estate.name}">Finca</span>
+                                <span class="text-muted" th:text="${estate.location ?: 'Sin ubicación'}">Pasto</span>
+                            </button>
+                        </li>
+                    </ul>
+                    <p class="text-muted" th:if="${dashboard.estates.isEmpty()}">Aún no tienes parcelas registradas.</p>
+                </div>
             </section>
         </div>
         <div class="col-12 col-lg-4">

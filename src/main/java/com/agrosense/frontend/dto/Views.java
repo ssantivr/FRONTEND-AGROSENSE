@@ -124,7 +124,7 @@ public final class Views {
     }
 
     public record DashboardView(
-            int estateCount,
+            List<EstateView> estates,
             int activeCropCount,
             BigDecimal waterLitersLast7Days,
             List<SensorSummary> sensorSummaries,
@@ -134,6 +134,10 @@ public final class Views {
             IrrigationView runningIrrigation,
             boolean hasMapData) {
 
+        public int estateCount() {
+            return estates.size();
+        }
+
         /** Summary for a sensor type name, or null when the user has no sensor of that type. */
         public SensorSummary summary(String type) {
             return sensorSummaries.stream()
@@ -141,6 +145,9 @@ public final class Views {
                     .findFirst()
                     .orElse(null);
         }
+    }
+
+    public record ProfileView(String name, String lastName, String email, LocalDateTime createdAt) {
     }
 
     public record ApiMessage(String message) {
