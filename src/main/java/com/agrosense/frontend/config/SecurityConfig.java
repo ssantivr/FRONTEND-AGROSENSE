@@ -11,13 +11,16 @@ import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWrite
 @Configuration
 public class SecurityConfig {
 
-    /** Everything is same-origin except map tiles and Google Fonts. Inline scripts and styles are blocked. */
+    /**
+     * Everything is same-origin except map tiles and Google Fonts. Inline scripts and styles are blocked.
+     * The referrer policy sends only the origin to other sites: tile providers reject requests without one.
+     */
     private static final String CONTENT_SECURITY_POLICY = String.join("; ",
             "default-src 'self'",
             "script-src 'self'",
             "style-src 'self' https://fonts.googleapis.com",
             "font-src 'self' https://fonts.gstatic.com",
-            "img-src 'self' data: https://*.tile.openstreetmap.org",
+            "img-src 'self' data: https://tile.openstreetmap.org",
             "connect-src 'self'",
             "object-src 'none'",
             "base-uri 'self'",
@@ -39,7 +42,7 @@ public class SecurityConfig {
                 .logout(logout -> logout.logoutSuccessUrl("/login?logout"))
                 .headers(headers -> headers
                         .contentSecurityPolicy(csp -> csp.policyDirectives(CONTENT_SECURITY_POLICY))
-                        .referrerPolicy(referrer -> referrer.policy(ReferrerPolicy.SAME_ORIGIN)));
+                        .referrerPolicy(referrer -> referrer.policy(ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)));
         return http.build();
     }
 

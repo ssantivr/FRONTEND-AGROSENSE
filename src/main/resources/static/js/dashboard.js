@@ -257,9 +257,11 @@ async function initMap() {
     container.classList.remove('skeleton');
 
     const map = L.map(container, { scrollWheelZoom: false });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '&copy; OpenStreetMap',
+    // OpenStreetMap answers "Access blocked" to requests without a Referer, so the page's
+    // Referrer-Policy (see SecurityConfig) must let the origin through. CARTO tiles need an API key.
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map);
 
     const markers = estates.map((estate) => {

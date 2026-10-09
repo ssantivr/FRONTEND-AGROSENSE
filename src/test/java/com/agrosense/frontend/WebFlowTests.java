@@ -98,7 +98,10 @@ class WebFlowTests {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Iniciar sesión")))
                 .andExpect(content().string(containsString("name=\"_csrf\"")))
-                .andExpect(header().string("Content-Security-Policy", containsString("script-src 'self'")));
+                .andExpect(header().string("Content-Security-Policy", containsString("script-src 'self'")))
+                .andExpect(header().string("Content-Security-Policy",
+                        containsString("img-src 'self' data: https://tile.openstreetmap.org")))
+                .andExpect(header().string("Referrer-Policy", "strict-origin-when-cross-origin"));
         mvc.perform(get("/css/styles.css")).andExpect(status().isOk());
         mvc.perform(get("/webjars/chart.js/4.4.1/dist/chart.umd.js")).andExpect(status().isOk());
         mvc.perform(get("/webjars/leaflet/1.9.4/leaflet.js")).andExpect(status().isOk());
