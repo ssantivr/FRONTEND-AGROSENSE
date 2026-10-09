@@ -300,6 +300,16 @@ class WebFlowTests {
     }
 
     @Test
+    void emailAvailabilityIsPublicAndIgnoresCaseAndSurroundingSpaces() throws Exception {
+        mvc.perform(get("/registro/disponibilidad").param("email", " Demo@AgroSense.co "))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.available").value(false));
+        mvc.perform(get("/registro/disponibilidad").param("email", "free@agrosense.test"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.available").value(true));
+    }
+
+    @Test
     void newAccountsSeeEmptyStatesAndTheSchematicMapInsteadOfErrors() throws Exception {
         createOtherUsersSensor();
         UserDetails other = userDetailsService.loadUserByUsername(OTHER_EMAIL);
