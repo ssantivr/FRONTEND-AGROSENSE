@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout('Nuevo sensor', ~{::main}, null)}">
+<body>
+<main id="main" class="app-content" tabindex="-1">
+    <header th:replace="~{fragments/page-header :: page-header('Nuevo sensor', 'Registra un sensor instalado en uno de tus cultivos.')}"></header>
+
+    <section class="card card--form">
+        <th:block th:if="${cropOptions.isEmpty()}">
+            <div th:replace="~{fragments/empty-state :: empty-state('bi-flower1', 'Primero crea un cultivo',
+                'Los sensores se asignan a un cultivo activo. Crea uno desde Parcelas.')}"></div>
+            <div class="form-actions">
+                <a class="button" th:href="@{/parcelas}">Ir a Parcelas</a>
+            </div>
+        </th:block>
+
+        <form th:if="${!cropOptions.isEmpty()}" class="stack" th:action="@{/sensores}" method="post"
+              th:object="${sensorForm}" novalidate>
+            <label class="field">
+                <span class="field-label">Cultivo</span>
+                <select th:field="*{cropId}" th:attr="aria-invalid=${#fields.hasErrors('cropId')}">
+                    <option th:each="option : ${cropOptions}" th:value="${option.id}" th:text="${option.label}">Café</option>
+                </select>
+                <span class="field-error" th:if="${#fields.hasErrors('cropId')}" th:errors="*{cropId}">Error</span>
+            </label>
+            <div class="field-row">
+                <label class="field">
+                    <span class="field-label">Código</span>
+                    <input type="text" th:field="*{sensorCode}" maxlength="40" required placeholder="AS-010"
+                           th:attr="aria-invalid=${#fields.hasErrors('sensorCode')}">
+                    <span class="field-error" th:if="${#fields.hasErrors('sensorCode')}" th:errors="*{sensorCode}">Error</span>
+                </label>
+                <label class="field">
+                    <span class="field-label">Tipo</span>
+                    <select th:field="*{sensorType}" th:attr="aria-invalid=${#fields.hasErrors('sensorType')}">
+                        <option th:each="type : ${sensorTypes}" th:value="${type}"
+                                th:text="#{${'sensorType.' + type}}">Humedad del suelo</option>
+                    </select>
+                    <span class="field-error" th:if="${#fields.hasErrors('sensorType')}" th:errors="*{sensorType}">Error</span>
+                </label>
+            </div>
+            <label class="field">
+                <span class="field-label">Ubicación dentro del cultivo (opcional)</span>
+                <input type="text" th:field="*{location}" maxlength="160" placeholder="Lote norte"
+                       th:attr="aria-invalid=${#fields.hasErrors('location')}">
+                <span class="field-error" th:if="${#fields.hasErrors('location')}" th:errors="*{location}">Error</span>
+            </label>
+            <p class="note">
+                <i class="bi bi-info-circle" aria-hidden="true"></i>
+                El sensor queda registrado, pero no mostrará lecturas hasta que exista un servicio que las reciba
+                desde el dispositivo.
+            </p>
+            <div class="form-actions">
+                <a class="button button--ghost" th:href="@{/sensores}">Cancelar</a>
+                <button type="submit" class="button">Guardar</button>
+            </div>
+        </form>
+    </section>
+</main>
+</body>
+</html>
