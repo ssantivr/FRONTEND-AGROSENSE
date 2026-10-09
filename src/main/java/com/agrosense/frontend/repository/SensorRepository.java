@@ -12,6 +12,8 @@ public interface SensorRepository extends JpaRepository<Sensor, Integer> {
     @EntityGraph(attributePaths = {"crop", "crop.estate"})
     List<Sensor> findByCropEstateUserEmailOrderBySensorCode(String email);
 
+    boolean existsBySensorCodeIgnoreCase(String sensorCode);
+
     @EntityGraph(attributePaths = "crop")
     Optional<Sensor> findByIdSensorAndCropEstateUserEmail(Integer idSensor, String email);
 }
