@@ -1,0 +1,61 @@
+/* Design tokens. Every colour, radius, shadow and timing used by styles.css is defined here. */
+:root {
+  /* Brand */
+  --forest-900: #0f2b1d;
+  --forest-700: #1b4332;
+  --green-600: #2d6a4f;
+  --green-500: #40916c;
+  --lime-400: #b7e34a;
+
+  /* Surfaces and text */
+  --bg: #f6f7f4;
+  --surface: #ffffff;
+  --border: #e6eae3;
+  --text: #1a2b22;
+  --text-muted: #5f6f66;
+  --text-on-dark: #ffffff;
+  --text-on-dark-muted: #c5d3ca;
+
+  /* Status. The base colours are used for icons and fills; the -text variants meet 4.5:1 on their -bg. */
+  --status-success: #2e9e5b;
+  --status-warning: #e9b72b;
+  --status-danger: #d64545;
+  --status-info: #3b82c4;
+  --status-success-bg: #e6f4ec;
+  --status-success-text: #1b6b3c;
+  --status-warning-bg: #fcf3d6;
+  --status-warning-text: #7a5a00;
+  --status-danger-bg: #fbe6e6;
+  --status-danger-text: #a52a2a;
+  --status-info-bg: #e4eff9;
+  --status-info-text: #22578a;
+  --status-neutral-bg: #eef1ec;
+  --status-neutral-text: #4a5a51;
+
+  /* Charts */
+  --chart-series: #2d6a4f;
+  --chart-series-soft: rgba(45, 106, 79, 0.12);
+  --chart-grid: #e6eae3;
+  --chart-threshold: #5f6f66;
+
+  /* Typography */
+  --font-heading: 'Plus Jakarta Sans', 'Sora', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Shape */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --shadow-sm: 0 1px 2px rgba(15, 43, 29, 0.06);
+  --shadow-md: 0 8px 24px rgba(15, 43, 29, 0.08);
+  --shadow-lg: 0 20px 48px rgba(15, 43, 29, 0.18);
+
+  /* Motion */
+  --transition-fast: 150ms ease-out;
+  --transition-base: 250ms ease-out;
+
+  /* Layout */
+  --sidebar-width: 264px;
+  --sidebar-width-collapsed: 76px;
+  --topbar-height: 64px;
+}
