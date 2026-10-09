@@ -1,5 +1,7 @@
 package com.agrosense.frontend.service;
 
+import com.agrosense.frontend.backend.BackendClient;
+import com.agrosense.frontend.backend.BackendUnavailableException;
 import com.agrosense.frontend.dto.CropForm;
 import com.agrosense.frontend.dto.EstateForm;
 import com.agrosense.frontend.dto.SensorForm;
@@ -35,6 +37,7 @@ public class CatalogService {
     private final SensorReadingRepository readingRepository;
     private final AlertRepository alertRepository;
     private final IrrigationRepository irrigationRepository;
+    private final BackendClient backendClient;
 
     // ---------- Estates ----------
 
@@ -128,6 +131,17 @@ public class CatalogService {
         String code = form.getSensorCode().trim().toUpperCase(Locale.ROOT);
         if (sensorRepository.existsBySensorCodeIgnoreCase(code)) {
             throw new BusinessRuleException("Ese código de sensor ya está en uso.");
+        }
+        if (backendClient.isAvailable()) {
+            // Not repeated against the database on failure: the backend may have created it already.
+            try {
+                backendClient.createSensor(email, crop.getIdCrop(), form.getSensorType(), code,
+                        blankToNull(form.getLocation()));
+            } catch (BackendUnavailableException exception) {
+                throw new BusinessRuleException(
+                        "El servidor no respondió a tiempo. Revisa la lista de sensores antes de intentarlo de nuevo.");
+            }
+            return;
         }
         sensorRepository.save(Sensor.builder()
                 .crop(crop)

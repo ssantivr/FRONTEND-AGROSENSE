@@ -25,6 +25,12 @@ La contraseña de la demo se puede cambiar con la variable `DEMO_PASSWORD`.
 | `DATABASE_PASSWORD`     | Contraseña                                              |
 | `PORT`                  | Puerto HTTP (por defecto 8080)                          |
 | `SESSION_COOKIE_SECURE` | `false` solo si se sirve sin HTTPS (por defecto `true`) |
+| `BACKEND_URL`           | Dirección de la API del backend, por ejemplo `https://backend-agrosense-oyhq.onrender.com`. Opcional |
+| `BACKEND_JWT_SECRET`    | El mismo valor que `JWT_SECRET` del backend. Opcional   |
+
+Con `BACKEND_URL` y `BACKEND_JWT_SECRET` definidas, atender alertas, registrar sensores y riegos y la
+gráfica de lecturas pasan por la API del backend; sin ellas, o mientras el backend no responda, todo se
+hace contra la base de datos.
 
 Las tablas se crean con `../database/schema.sql` (ver [`database/README.md`](../database/README.md));
 con `SQL_INIT_MODE=always` la aplicación lo ejecuta al arrancar.

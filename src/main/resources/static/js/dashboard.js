@@ -299,7 +299,11 @@ function initQuickIrrigation() {
       const response = await fetch('/api/ui/irrigations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...csrfHeaders() },
-        body: JSON.stringify({ cropId: Number(form.cropId.value), durationMin: minutes }),
+        body: JSON.stringify({
+          cropId: Number(form.cropId.value),
+          durationMin: minutes,
+          waterLiters: Number(form.waterLiters.value),
+        }),
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {

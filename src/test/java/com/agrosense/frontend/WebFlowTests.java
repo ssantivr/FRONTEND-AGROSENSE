@@ -174,17 +174,17 @@ class WebFlowTests {
     void irrigationFormValidatesInputAndRejectsOverlaps() throws Exception {
         Integer cropId = cropRepository.findByEstateUserEmailAndActiveTrueOrderByName(DEMO_EMAIL).get(0).getIdCrop();
 
-        mvc.perform(post("/riego").with(user(demoUser)).param("cropId", cropId.toString()).param("durationMin", "30"))
+        mvc.perform(post("/riego").with(user(demoUser)).param("cropId", cropId.toString()).param("durationMin", "30").param("waterLiters", "120"))
                 .andExpect(status().isForbidden());
         mvc.perform(post("/riego").with(user(demoUser)).with(csrf())
-                        .param("cropId", cropId.toString()).param("durationMin", "0"))
+                        .param("cropId", cropId.toString()).param("durationMin", "0").param("waterLiters", "120"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("La duración mínima es de 1 minuto.")));
         mvc.perform(post("/riego").with(user(demoUser)).with(csrf())
-                        .param("cropId", cropId.toString()).param("durationMin", "30"))
+                        .param("cropId", cropId.toString()).param("durationMin", "30").param("waterLiters", "120"))
                 .andExpect(redirectedUrl("/riego"));
         mvc.perform(post("/riego").with(user(demoUser)).with(csrf())
-                        .param("cropId", cropId.toString()).param("durationMin", "30"))
+                        .param("cropId", cropId.toString()).param("durationMin", "30").param("waterLiters", "120"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Ya hay un riego en curso para este cultivo.")));
         mvc.perform(get("/").with(user(demoUser)))
@@ -197,20 +197,20 @@ class WebFlowTests {
         Integer ownCropId = cropRepository.findByEstateUserEmailAndActiveTrueOrderByName(DEMO_EMAIL).get(0).getIdCrop();
 
         mvc.perform(post("/api/ui/irrigations").with(user(demoUser)).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"cropId\":" + ownCropId + ",\"durationMin\":30}"))
+                        .content("{\"cropId\":" + ownCropId + ",\"durationMin\":30,\"waterLiters\":120}"))
                 .andExpect(status().isForbidden());
         mvc.perform(post("/api/ui/irrigations").with(user(demoUser)).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"cropId\":" + ownCropId + ",\"durationMin\":999}"))
+                        .content("{\"cropId\":" + ownCropId + ",\"durationMin\":999,\"waterLiters\":120}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("La duración máxima es de 240 minutos."));
         mvc.perform(post("/api/ui/irrigations").with(user(demoUser)).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"cropId\":" + foreignCropId + ",\"durationMin\":30}"))
+                        .content("{\"cropId\":" + foreignCropId + ",\"durationMin\":30,\"waterLiters\":120}"))
                 .andExpect(status().isNotFound());
         mvc.perform(post("/api/ui/irrigations").with(user(demoUser)).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"cropId\":" + ownCropId + ",\"durationMin\":30}"))
+                        .content("{\"cropId\":" + ownCropId + ",\"durationMin\":30,\"waterLiters\":120}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.running").value(true))
                 .andExpect(jsonPath("$.type").value("MANUAL"));

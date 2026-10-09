@@ -30,6 +30,12 @@
                        th:attr="aria-invalid=${#fields.hasErrors('durationMin')}">
                 <span class="field-error" th:if="${#fields.hasErrors('durationMin')}" th:errors="*{durationMin}">Error</span>
             </label>
+            <label class="field">
+                <span class="field-label">Agua (litros)</span>
+                <input type="number" th:field="*{waterLiters}" min="0.01" step="0.01"
+                       th:attr="aria-invalid=${#fields.hasErrors('waterLiters')}">
+                <span class="field-error" th:if="${#fields.hasErrors('waterLiters')}" th:errors="*{waterLiters}">Error</span>
+            </label>
             <button type="submit" class="button">
                 <i class="bi bi-play-fill" aria-hidden="true"></i> Iniciar riego
             </button>

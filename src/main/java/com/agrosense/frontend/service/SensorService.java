@@ -1,5 +1,7 @@
 package com.agrosense.frontend.service;
 
+import com.agrosense.frontend.backend.BackendClient;
+import com.agrosense.frontend.backend.BackendClient.ReadingResponse;
 import com.agrosense.frontend.dto.Views.ReadingPoint;
 import com.agrosense.frontend.dto.Views.ReadingSeries;
 import com.agrosense.frontend.dto.Views.SensorSummary;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,9 +38,12 @@ public class SensorService {
             SensorType.CONDUCTIVITY);
 
     private static final int CHART_WINDOW_HOURS = 24;
+    /** The most readings the backend returns in one call. */
+    private static final int BACKEND_READING_LIMIT = 500;
 
     private final SensorRepository sensorRepository;
     private final SensorReadingRepository readingRepository;
+    private final BackendClient backendClient;
 
     public List<SensorView> findSensors(String email) {
         return sensorRepository.findByCropEstateUserEmailOrderBySensorCode(email).stream()
@@ -52,18 +58,28 @@ public class SensorService {
     public ReadingSeries findLast24Hours(String email, Integer sensorId) {
         Sensor sensor = sensorRepository.findByIdSensorAndCropEstateUserEmail(sensorId, email)
                 .orElseThrow(() -> new NotFoundException("Sensor not found"));
-        List<SensorReading> readings = readingRepository
-                .findBySensorIdSensorAndRecordedAtGreaterThanEqualOrderByRecordedAt(
-                        sensorId, LocalDateTime.now().minusHours(CHART_WINDOW_HOURS));
+        LocalDateTime since = LocalDateTime.now().minusHours(CHART_WINDOW_HOURS);
+        // The series comes from the backend API when it answers; the sensor and its range are read here.
+        List<ReadingResponse> readings = backendClient
+                .attempt(() -> backendClient.latestReadings(email, sensorId, BACKEND_READING_LIMIT))
+                .map(latest -> latest.stream()
+                        .filter(reading -> !reading.recordedAt().isBefore(since))
+                        .sorted(Comparator.comparing(ReadingResponse::recordedAt))
+                        .toList())
+                .orElseGet(() -> readingRepository
+                        .findBySensorIdSensorAndRecordedAtGreaterThanEqualOrderByRecordedAt(sensorId, since).stream()
+                        .map(reading -> new ReadingResponse(
+                                reading.getValue(), reading.getUnit(), reading.getRecordedAt()))
+                        .toList());
 
         BigDecimal[] range = thresholds(sensor.getSensorType(), sensor.getCrop());
         return new ReadingSeries(
                 sensor.getSensorCode(),
-                readings.isEmpty() ? null : readings.get(readings.size() - 1).getUnit(),
+                readings.isEmpty() ? null : readings.get(readings.size() - 1).unit(),
                 range[0],
                 range[1],
                 readings.stream()
-                        .map(reading -> new ReadingPoint(reading.getRecordedAt(), reading.getValue()))
+                        .map(reading -> new ReadingPoint(reading.recordedAt(), reading.value()))
                         .toList());
     }
 
