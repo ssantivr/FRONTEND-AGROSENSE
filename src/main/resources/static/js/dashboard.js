@@ -198,7 +198,7 @@ function renderEstateDetail(estate) {
   const list = document.createElement('dl');
   const rows = [
     ['Ubicación', estate.location ?? 'Sin ubicación'],
-    ['Área', estate.areaHa === null ? '—' : `${numberFormat.format(estate.areaHa)} ha`],
+    ['Área', estate.areaHa == null ? '—' : `${numberFormat.format(estate.areaHa)} ha`],
     ['Cultivos activos', estate.crops.length > 0 ? estate.crops.join(', ') : 'Ninguno'],
   ];
   rows.forEach(([term, value]) => {
@@ -211,39 +211,74 @@ function renderEstateDetail(estate) {
   detail.replaceChildren(title, list);
 }
 
+/** Coordinates are usable only when both are real numbers inside the valid ranges. */
+function hasValidCoordinates(estate) {
+  if (estate?.latitude == null || estate?.longitude == null) return false;
+  const latitude = Number(estate.latitude);
+  const longitude = Number(estate.longitude);
+  return Number.isFinite(latitude) && Number.isFinite(longitude)
+    && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180;
+}
+
+/** Replaces the map with the schematic list of estates; `notice` explains why when given. */
+function showMapFallback(notice) {
+  document.getElementById('estateMap')?.setAttribute('hidden', '');
+  document.getElementById('estateMapFallback')?.removeAttribute('hidden');
+  const label = document.getElementById('estateMapFallbackNotice');
+  if (notice && label) label.textContent = notice;
+}
+
+function initFallbackTiles() {
+  document.querySelectorAll('[data-estate-tile]').forEach((tile) => {
+    tile.addEventListener('click', () => renderEstateDetail({
+      name: tile.dataset.name ?? '',
+      location: tile.dataset.location ?? null,
+      areaHa: tile.dataset.area ?? null,
+      crops: tile.dataset.crops ? tile.dataset.crops.split(', ') : [],
+    }));
+  });
+}
+
 async function initMap() {
+  initFallbackTiles();
   const container = document.getElementById('estateMap');
+  // Without a container the server already rendered the schematic view: nothing to draw.
   if (!container) return;
-  let estates;
-  try {
-    estates = await getJson('/api/ui/estates/markers');
-  } catch {
-    container.classList.remove('skeleton');
-    container.textContent = 'No se pudo cargar el mapa.';
+  if (typeof L === 'undefined') {
+    showMapFallback('No se pudo cargar el mapa. Vista esquemática de tus parcelas.');
     return;
   }
-  container.classList.remove('skeleton');
+  try {
+    const estates = (await getJson('/api/ui/estates/markers')).filter(hasValidCoordinates);
+    if (estates.length === 0) {
+      showMapFallback('Sin coordenadas registradas');
+      return;
+    }
+    container.classList.remove('skeleton');
 
-  const map = L.map(container, { scrollWheelZoom: false });
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 18,
-    attribution: '&copy; OpenStreetMap',
-  }).addTo(map);
-
-  const markers = estates.map((estate) => {
-    const marker = L.circleMarker([Number(estate.latitude), Number(estate.longitude)], {
-      radius: 10,
-      color: token('--surface'),
-      weight: 2,
-      fillColor: token('--green-600'),
-      fillOpacity: 1,
+    const map = L.map(container, { scrollWheelZoom: false });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '&copy; OpenStreetMap',
     }).addTo(map);
-    marker.bindTooltip(estate.name);
-    marker.on('click', () => renderEstateDetail(estate));
-    return marker;
-  });
-  map.fitBounds(L.featureGroup(markers).getBounds().pad(0.3), { maxZoom: 12 });
-  if (estates.length > 0) renderEstateDetail(estates[0]);
+
+    const markers = estates.map((estate) => {
+      const marker = L.circleMarker([Number(estate.latitude), Number(estate.longitude)], {
+        radius: 10,
+        color: token('--surface'),
+        weight: 2,
+        fillColor: token('--green-600'),
+        fillOpacity: 1,
+      }).addTo(map);
+      marker.bindTooltip(estate.name);
+      marker.on('click', () => renderEstateDetail(estate));
+      return marker;
+    });
+    map.fitBounds(L.featureGroup(markers).getBounds().pad(0.3), { maxZoom: 12 });
+    renderEstateDetail(estates[0]);
+  } catch {
+    showMapFallback('No se pudo cargar el mapa. Vista esquemática de tus parcelas.');
+  }
 }
 
 function initQuickIrrigation() {

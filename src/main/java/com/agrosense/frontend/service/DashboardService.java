@@ -40,7 +40,7 @@ public class DashboardService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return new DashboardView(
-                estates.size(),
+                estates,
                 activeCrops,
                 waterLiters,
                 sensorService.summarize(sensors),
