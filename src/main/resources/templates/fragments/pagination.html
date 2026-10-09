@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<nav class="pagination" th:fragment="pagination(page, url)" th:if="${page.totalPages > 1}" aria-label="Paginación">
+    <a class="button button--ghost" th:if="${page.hasPrevious()}" th:href="@{|${url}&page=${page.number - 1}|}">
+        <i class="bi bi-chevron-left" aria-hidden="true"></i> Anterior
+    </a>
+    <span class="pagination-status" th:text="|Página ${page.number + 1} de ${page.totalPages}|">Página 1 de 2</span>
+    <a class="button button--ghost" th:if="${page.hasNext()}" th:href="@{|${url}&page=${page.number + 1}|}">
+        Siguiente <i class="bi bi-chevron-right" aria-hidden="true"></i>
+    </a>
+</nav>
+</body>
+</html>

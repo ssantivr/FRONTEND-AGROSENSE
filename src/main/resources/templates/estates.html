@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout('Parcelas', ~{::main}, null)}">
+<body>
+<main id="main" class="app-content" tabindex="-1">
+    <header th:replace="~{fragments/page-header :: page-header('Parcelas', 'Tus fincas y los cultivos sembrados en cada una.')}"></header>
+
+    <div class="card" th:if="${estates.isEmpty()}">
+        <div th:replace="~{fragments/empty-state :: empty-state('bi-map', 'Sin parcelas',
+            'Aún no tienes fincas registradas.')}"></div>
+    </div>
+
+    <section class="card" th:each="estate : ${estates}">
+        <div class="card-header">
+            <h2 th:text="${estate.name}">Finca</h2>
+            <span class="text-muted">
+                <i class="bi bi-geo-alt" aria-hidden="true"></i>
+                <span th:text="${estate.location ?: 'Sin ubicación'}">Pasto</span>
+                <span th:if="${estate.areaHa != null}"
+                      th:text="| · ${#numbers.formatDecimal(estate.areaHa, 1, 1, 'COMMA')} ha|"> · 12,5 ha</span>
+            </span>
+        </div>
+
+        <th:block th:if="${estate.crops.isEmpty()}"><div th:replace="~{fragments/empty-state :: empty-state('bi-flower1', 'Sin cultivos',
+             'Esta finca no tiene cultivos registrados.')}"></div></th:block>
+
+        <div class="table-scroll" th:if="${!estate.crops.isEmpty()}">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>Cultivo</th>
+                    <th>Variedad</th>
+                    <th>Siembra</th>
+                    <th>Etapa</th>
+                    <th>Humedad (%)</th>
+                    <th>Temperatura (°C)</th>
+                    <th>pH</th>
+                    <th>Estado</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="crop : ${estate.crops}" data-search-row>
+                    <td th:text="${crop.name}">Café</td>
+                    <td th:text="${crop.variety ?: '—'}">Castillo</td>
+                    <td th:text="${crop.sowingDate != null ? #temporals.format(crop.sowingDate, 'd MMM yyyy') : '—'}">14 mar 2025</td>
+                    <td th:text="#{${'cropStage.' + crop.stage}}">Floración</td>
+                    <td th:text="|${crop.humidityMin} – ${crop.humidityMax}|">40 – 80</td>
+                    <td th:text="|${crop.tempMin} – ${crop.tempMax}|">15 – 35</td>
+                    <td th:text="|${crop.phMin} – ${crop.phMax}|">5.5 – 7</td>
+                    <td>
+                        <th:block th:if="${crop.active}"><span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-check-circle-fill', 'Activo')}"></span></th:block>
+                        <th:block th:unless="${crop.active}"><span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-dash-circle', 'Inactivo')}"></span></th:block>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+</body>
+</html>

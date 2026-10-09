@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout('Sensores', ~{::main}, null)}">
+<body>
+<main id="main" class="app-content" tabindex="-1">
+    <header th:replace="~{fragments/page-header :: page-header('Sensores', 'Sensores instalados y su última lectura recibida.')}"></header>
+
+    <section class="card">
+        <th:block th:if="${sensors.isEmpty()}"><div th:replace="~{fragments/empty-state :: empty-state('bi-broadcast', 'Sin sensores',
+             'Aún no hay sensores registrados en tus cultivos.')}"></div></th:block>
+
+        <div class="table-scroll" th:if="${!sensors.isEmpty()}">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Tipo</th>
+                    <th>Cultivo</th>
+                    <th>Finca</th>
+                    <th>Ubicación</th>
+                    <th class="numeric">Última lectura</th>
+                    <th>Recibida</th>
+                    <th>Estado</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="sensor : ${sensors}" data-search-row>
+                    <td th:text="${sensor.code}">AS-001</td>
+                    <td th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</td>
+                    <td th:text="${sensor.cropName}">Café</td>
+                    <td th:text="${sensor.estateName}">Finca</td>
+                    <td th:text="${sensor.location ?: '—'}">Lote norte</td>
+                    <td class="numeric"
+                        th:text="${sensor.lastValue != null ? #numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA') + ' ' + sensor.unit : '—'}">52,0 %</td>
+                    <td th:text="${sensor.lastReadingAt != null ? #temporals.format(sensor.lastReadingAt, 'd MMM, HH:mm') : '—'}">8 oct, 10:00</td>
+                    <td>
+                        <th:block th:if="${sensor.active}"><span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-check-circle-fill', 'Activo')}"></span></th:block>
+                        <th:block th:unless="${sensor.active}"><span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-dash-circle', 'Inactivo')}"></span></th:block>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+</body>
+</html>

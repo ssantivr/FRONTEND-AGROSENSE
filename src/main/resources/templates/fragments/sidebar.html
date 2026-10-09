@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<aside class="sidebar" id="sidebar" th:fragment="sidebar" aria-label="Navegación principal">
+    <a class="sidebar-brand" th:href="@{/}">
+        <img th:src="@{/img/logo.svg}" alt="" width="36" height="36">
+        <span class="sidebar-brand-text">
+            <span class="sidebar-brand-name">AgroSense</span>
+            <span class="sidebar-brand-tagline">Cultiva con datos</span>
+        </span>
+    </a>
+    <nav>
+        <ul class="sidebar-nav">
+            <li th:each="item : ${navigation}">
+                <a class="sidebar-link" th:href="@{${item.path}}"
+                   th:attr="aria-current=${item.active ? 'page' : null}" th:title="${item.label}">
+                    <i class="bi" th:classappend="${item.icon}" aria-hidden="true"></i>
+                    <span class="sidebar-link-label" th:text="${item.label}">Inicio</span>
+                    <span class="sidebar-badge" th:if="${item.path == '/alertas' and openAlertCount != null and openAlertCount > 0}"
+                          th:text="${openAlertCount}"
+                          th:attr="aria-label=|${openAlertCount} alertas sin atender|">3</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <p class="sidebar-demo" th:if="${demoMode}">
+        <i class="bi bi-info-circle" aria-hidden="true"></i>
+        <span class="sidebar-link-label">Vista de demostración con datos de ejemplo</span>
+    </p>
+</aside>
+</body>
+</html>

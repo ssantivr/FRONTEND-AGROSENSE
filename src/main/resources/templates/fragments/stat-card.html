@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<article class="card stat-card" th:fragment="stat-card(label, value, unit, hint, icon)">
+    <span class="stat-icon" aria-hidden="true"><i class="bi" th:classappend="${icon}"></i></span>
+    <span class="stat-label" th:text="${label}">Indicador</span>
+    <span class="stat-value">
+        <span th:text="${value != null ? value : '—'}">0</span>
+        <span class="stat-unit" th:if="${value != null and unit != null}" th:text="${unit}">%</span>
+    </span>
+    <span class="stat-hint" th:text="${hint}">Detalle</span>
+</article>
+</body>
+</html>
