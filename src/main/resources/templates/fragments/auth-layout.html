@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<!-- Two-column shell shared by the sign-in and sign-up pages. -->
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:fragment="auth(title, content)">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="|${title} · AgroSense|">AgroSense</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/img/logo.svg}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap">
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css}">
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body class="login-page">
+<main class="login">
+    <section class="login-hero" aria-label="AgroSense">
+        <img class="login-hero-art" th:src="@{/img/field.svg}" alt="" width="800" height="600">
+        <div class="login-hero-content">
+            <div class="login-brand">
+                <img th:src="@{/img/logo.svg}" alt="" width="44" height="44">
+                <span>AgroSense</span>
+            </div>
+            <h1>Cada gota y cada dato, donde tu cultivo los necesita.</h1>
+            <p>Monitorea tus parcelas, sensores y riegos desde un solo lugar.</p>
+        </div>
+    </section>
+
+    <section class="login-panel">
+        <form th:replace="${content}"></form>
+    </section>
+</main>
+<script type="module" th:src="@{/js/login.js}"></script>
+</body>
+</html>
