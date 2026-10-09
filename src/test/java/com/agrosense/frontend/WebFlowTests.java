@@ -237,6 +237,16 @@ class WebFlowTests {
                 .andExpect(content().string(containsString("Página no encontrada")));
     }
 
+    @Test
+    void unsupportedMethodsAndMediaTypesAreClientErrorsNotServerErrors() throws Exception {
+        mvc.perform(post("/parcelas").with(user(demoUser)).with(csrf()))
+                .andExpect(status().isMethodNotAllowed());
+        mvc.perform(post("/api/ui/irrigations").with(user(demoUser)).with(csrf())
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED).content("cropId=1"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
     private Sensor createOtherUsersSensor() {
         User other = userRepository.save(User.builder()
                 .name("Other")
