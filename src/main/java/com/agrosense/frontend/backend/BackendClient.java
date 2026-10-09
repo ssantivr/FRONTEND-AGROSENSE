@@ -135,6 +135,13 @@ public class BackendClient {
                 }));
     }
 
+    /** Whether nobody has signed up with this e-mail address yet. Public: there is no user to sign for. */
+    public boolean isEmailAvailable(String email) {
+        return execute(() -> api.get().uri("/api/auth/email-available?email={email}", email)
+                .retrieve().onStatus(HttpStatusCode::isError, BackendClient::fail)
+                .body(EmailAvailabilityResponse.class)).available();
+    }
+
     private boolean checkHealth() {
         try {
             health.get().uri("/api/health").retrieve().toBodilessEntity();
@@ -188,6 +195,10 @@ public class BackendClient {
     }
 
     private record IrrigationRequest(Integer cropId, BigDecimal waterLiters, Integer durationMinutes, String reason) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record EmailAvailabilityResponse(boolean available) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
