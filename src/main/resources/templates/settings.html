@@ -1,24 +1,83 @@
 <!DOCTYPE html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
-      th:replace="~{fragments/layout :: layout('Configuración', ~{::main}, null)}">
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout('Configuración', ~{::main}, 'settings')}">
 <body>
 <main id="main" class="app-content" tabindex="-1">
-    <header th:replace="~{fragments/page-header :: page-header('Configuración', 'Datos de tu cuenta.')}"></header>
+    <header th:replace="~{fragments/page-header :: page-header('Configuración', 'Tu perfil, tus preferencias y tu cuenta.')}"></header>
 
-    <section class="card" aria-labelledby="accountTitle">
-        <h2 id="accountTitle">Cuenta</h2>
+    <section class="card" aria-labelledby="profileTitle">
+        <h2 id="profileTitle">Perfil</h2>
         <dl class="definition-list">
             <dt>Nombre</dt>
-            <dd sec:authentication="principal.displayName">Usuario Demo</dd>
+            <dd th:text="|${profile.name} ${profile.lastName}|">Usuario Demo</dd>
             <dt>Correo electrónico</dt>
-            <dd sec:authentication="name">demo@agrosense.co</dd>
+            <dd th:text="${profile.email}">demo@agrosense.co</dd>
+            <dt>Miembro desde</dt>
+            <dd th:text="${profile.createdAt != null ? #temporals.format(profile.createdAt, 'd MMM yyyy') : '—'}">8 oct 2026</dd>
         </dl>
+        <p class="note">
+            <i class="bi bi-info-circle" aria-hidden="true"></i>
+            La edición del perfil y el cambio de contraseña aún no están disponibles.
+        </p>
     </section>
 
-    <section class="card">
-        <div th:replace="~{fragments/empty-state :: empty-state('bi-gear', 'Edición no disponible',
-            'Cambiar el perfil, la contraseña y las preferencias aún no está implementado.')}"></div>
+    <section class="card" aria-labelledby="preferencesTitle">
+        <h2 id="preferencesTitle">Preferencias del sistema</h2>
+        <label class="switch-row">
+            <input type="checkbox" id="prefSidebarCollapsed">
+            <span>
+                <strong>Menú lateral contraído</strong>
+                <span class="text-muted">Muestra solo los iconos del menú en pantallas grandes.</span>
+            </span>
+        </label>
+        <p class="note">
+            <i class="bi bi-info-circle" aria-hidden="true"></i>
+            Las preferencias se guardan en este navegador, no en tu cuenta.
+        </p>
     </section>
+
+    <section class="card" aria-labelledby="sessionTitle">
+        <h2 id="sessionTitle">Sesión</h2>
+        <form class="inline-action" th:action="@{/logout}" method="post">
+            <p class="text-muted">Cierra la sesión en este dispositivo.</p>
+            <button type="submit" class="button button--ghost">
+                <i class="bi bi-box-arrow-right" aria-hidden="true"></i> Cerrar sesión
+            </button>
+        </form>
+    </section>
+
+    <section class="card card--danger" aria-labelledby="dangerTitle">
+        <h2 id="dangerTitle">Zona de peligro</h2>
+        <p class="form-alert form-alert--error" role="alert" th:if="${deleteError != null}">
+            <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+            <span th:text="${deleteError}">Error</span>
+        </p>
+        <div class="inline-action">
+            <p class="text-muted">
+                Eliminar tu cuenta borra de forma permanente tus parcelas, cultivos, sensores, lecturas, alertas y
+                riegos. Esta acción no se puede deshacer.
+            </p>
+            <button type="button" class="button button--danger" id="openDeleteAccount" aria-haspopup="dialog">
+                <i class="bi bi-trash" aria-hidden="true"></i> Eliminar cuenta
+            </button>
+        </div>
+    </section>
+
+    <dialog class="modal" id="deleteAccountModal" aria-labelledby="deleteAccountTitle">
+        <form class="modal-body" th:action="@{/configuracion/eliminar-cuenta}" method="post">
+            <h2 id="deleteAccountTitle">¿Eliminar tu cuenta?</h2>
+            <p>Se borrarán todos tus datos de forma permanente. Escribe tu contraseña para confirmar.</p>
+            <label class="field">
+                <span class="field-label">Contraseña</span>
+                <input type="password" name="password" id="deleteAccountPassword" autocomplete="current-password"
+                       maxlength="72" required>
+            </label>
+            <div class="modal-actions">
+                <button type="button" class="button button--ghost" id="cancelDeleteAccount">Cancelar</button>
+                <button type="submit" class="button button--danger">Eliminar definitivamente</button>
+            </div>
+        </form>
+    </dialog>
 </main>
 </body>
 </html>
