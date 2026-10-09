@@ -1,5 +1,8 @@
 package com.agrosense.frontend.service;
 
+import com.agrosense.frontend.backend.BackendClient;
+import com.agrosense.frontend.backend.BackendClient.IrrigationResponse;
+import com.agrosense.frontend.backend.BackendUnavailableException;
 import com.agrosense.frontend.dto.IrrigationForm;
 import com.agrosense.frontend.dto.Views.DailyWater;
 import com.agrosense.frontend.dto.Views.IrrigationView;
@@ -30,6 +33,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -45,6 +50,9 @@ class IrrigationServiceTests {
     private CropRepository cropRepository;
     @Mock
     private UserRepository userRepository;
+    /** Not stubbed: an unavailable backend, so every irrigation goes to the database. */
+    @Mock
+    private BackendClient backendClient;
     @InjectMocks
     private IrrigationService service;
 
@@ -58,6 +66,55 @@ class IrrigationServiceTests {
         form = new IrrigationForm();
         form.setCropId(7);
         form.setDurationMin(20);
+        form.setWaterLiters(new BigDecimal("80"));
+    }
+
+    @Test
+    void startGoesThroughTheBackendWhenItIsAvailableAndStoresNothingItself() {
+        LocalDateTime startedAt = LocalDateTime.now();
+        when(cropRepository.findByIdCropAndEstateUserEmail(7, EMAIL)).thenReturn(Optional.of(crop));
+        when(irrigationRepository.findByCropIdCropOrderByStartedAtDesc(7)).thenReturn(List.of());
+        when(backendClient.isAvailable()).thenReturn(true);
+        when(backendClient.startIrrigation(eq(EMAIL), eq(7), eq(new BigDecimal("80")), eq(20), anyString()))
+                .thenReturn(new IrrigationResponse(41, startedAt, startedAt.plusMinutes(20), 20, new BigDecimal("80")));
+
+        IrrigationView view = service.start(EMAIL, form);
+
+        assertThat(view.id()).isEqualTo(41);
+        assertThat(view.cropName()).isEqualTo("Coffee");
+        assertThat(view.waterLiters()).isEqualByComparingTo("80");
+        assertThat(view.running()).isTrue();
+        verify(irrigationRepository, never()).save(any());
+    }
+
+    @Test
+    void startIsNotRepeatedOnTheDatabaseWhenTheBackendStopsAnswering() {
+        when(cropRepository.findByIdCropAndEstateUserEmail(7, EMAIL)).thenReturn(Optional.of(crop));
+        when(irrigationRepository.findByCropIdCropOrderByStartedAtDesc(7)).thenReturn(List.of());
+        when(backendClient.isAvailable()).thenReturn(true);
+        when(backendClient.startIrrigation(any(), any(), any(), any(), any()))
+                .thenThrow(new BackendUnavailableException("read timed out"));
+
+        assertThatThrownBy(() -> service.start(EMAIL, form))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("no respondió");
+        verify(irrigationRepository, never()).save(any());
+    }
+
+    @Test
+    void anIrrigationWhosePlannedEndIsStillAheadCountsAsRunning() {
+        Irrigation registeredByTheBackend = Irrigation.builder()
+                .crop(crop)
+                .startedAt(LocalDateTime.now().minusMinutes(5))
+                .endedAt(LocalDateTime.now().plusMinutes(25))
+                .durationMin(30)
+                .build();
+        when(cropRepository.findByIdCropAndEstateUserEmail(7, EMAIL)).thenReturn(Optional.of(crop));
+        when(irrigationRepository.findByCropIdCropOrderByStartedAtDesc(7)).thenReturn(List.of(registeredByTheBackend));
+
+        assertThatThrownBy(() -> service.start(EMAIL, form))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("riego en curso");
     }
 
     @Test
@@ -75,6 +132,7 @@ class IrrigationServiceTests {
         assertThat(saved.getValue().getType()).isEqualTo(IrrigationType.MANUAL);
         assertThat(saved.getValue().getActivatedBy()).isSameAs(user);
         assertThat(saved.getValue().getDurationMin()).isEqualTo(20);
+        assertThat(saved.getValue().getWaterLiters()).isEqualByComparingTo("80");
         assertThat(view.running()).isTrue();
         assertThat(view.endsAt()).isEqualTo(view.startedAt().plusMinutes(20));
     }

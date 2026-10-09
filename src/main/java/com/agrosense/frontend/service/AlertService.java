@@ -1,5 +1,6 @@
 package com.agrosense.frontend.service;
 
+import com.agrosense.frontend.backend.BackendClient;
 import com.agrosense.frontend.dto.Views.AlertView;
 import com.agrosense.frontend.entity.Alert;
 import com.agrosense.frontend.exception.NotFoundException;
@@ -22,6 +23,7 @@ public class AlertService {
     public static final int PAGE_SIZE = 10;
 
     private final AlertRepository alertRepository;
+    private final BackendClient backendClient;
 
     public Page<AlertView> findAlerts(String email, boolean onlyOpen, int page) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), PAGE_SIZE, Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -46,7 +48,10 @@ public class AlertService {
     public void acknowledge(String email, Integer alertId) {
         Alert alert = alertRepository.findByIdAlertAndCropEstateUserEmail(alertId, email)
                 .orElseThrow(() -> new NotFoundException("Alert not found"));
-        alert.setAcknowledged(true);
+        // Acknowledging twice changes nothing, so the database can take over if the backend does not answer.
+        if (backendClient.attempt(() -> backendClient.acknowledgeAlert(email, alertId)).isEmpty()) {
+            alert.setAcknowledged(true);
+        }
     }
 
     private static AlertView toView(Alert alert) {
