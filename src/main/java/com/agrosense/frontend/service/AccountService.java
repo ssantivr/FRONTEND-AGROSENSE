@@ -1,5 +1,6 @@
 package com.agrosense.frontend.service;
 
+import com.agrosense.frontend.backend.BackendClient;
 import com.agrosense.frontend.dto.RegistrationForm;
 import com.agrosense.frontend.dto.Views.ProfileView;
 import com.agrosense.frontend.entity.User;
@@ -35,6 +36,7 @@ public class AccountService {
     private final AlertRepository alertRepository;
     private final IrrigationRepository irrigationRepository;
     private final PasswordEncoder passwordEncoder;
+    private final BackendClient backendClient;
 
     @Value("${agrosense.demo.email:}")
     private String demoEmail;
@@ -57,6 +59,14 @@ public class AccountService {
             // Two simultaneous sign-ups with the same e-mail: the unique constraint rejects the second.
             throw new BusinessRuleException(REGISTRATION_REJECTED);
         }
+    }
+
+    /** Asks the backend, and the database while the backend is not answering. */
+    @Transactional(readOnly = true)
+    public boolean isEmailAvailable(String email) {
+        String normalized = email.trim().toLowerCase(Locale.ROOT);
+        return backendClient.attempt(() -> backendClient.isEmailAvailable(normalized))
+                .orElseGet(() -> !userRepository.existsByEmail(normalized));
     }
 
     @Transactional(readOnly = true)

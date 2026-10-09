@@ -705,6 +705,14 @@ code {
   font-size: 0.82rem;
 }
 
+.field-hint--ok {
+  color: var(--status-success-text);
+}
+
+.field-hint--taken {
+  color: var(--status-danger-text);
+}
+
 .field-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
