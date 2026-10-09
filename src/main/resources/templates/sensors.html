@@ -3,11 +3,16 @@
       th:replace="~{fragments/layout :: layout('Sensores', ~{::main}, null)}">
 <body>
 <main id="main" class="app-content" tabindex="-1">
-    <header th:replace="~{fragments/page-header :: page-header('Sensores', 'Sensores instalados y su última lectura recibida.')}"></header>
+    <div class="page-toolbar">
+        <header th:replace="~{fragments/page-header :: page-header('Sensores', 'Sensores instalados y su última lectura recibida.')}"></header>
+        <a class="button" th:href="@{/sensores/nuevo}"><i class="bi bi-plus-lg" aria-hidden="true"></i> Nuevo sensor</a>
+    </div>
 
     <section class="card">
-        <th:block th:if="${sensors.isEmpty()}"><div th:replace="~{fragments/empty-state :: empty-state('bi-broadcast', 'Sin sensores',
-             'Aún no hay sensores registrados en tus cultivos.')}"></div></th:block>
+        <th:block th:if="${sensors.isEmpty()}">
+            <div th:replace="~{fragments/empty-state :: empty-state('bi-broadcast', 'Sin sensores',
+                'Aún no hay sensores registrados en tus cultivos.')}"></div>
+        </th:block>
 
         <div class="table-scroll" th:if="${!sensors.isEmpty()}">
             <table class="table">
@@ -21,6 +26,7 @@
                     <th class="numeric">Última lectura</th>
                     <th>Recibida</th>
                     <th>Estado</th>
+                    <th>Acciones</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -36,6 +42,12 @@
                     <td>
                         <th:block th:if="${sensor.active}"><span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-check-circle-fill', 'Activo')}"></span></th:block>
                         <th:block th:unless="${sensor.active}"><span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-dash-circle', 'Inactivo')}"></span></th:block>
+                    </td>
+                    <td>
+                        <form th:action="@{/sensores/{id}/eliminar(id=${sensor.id})}" method="post"
+                              th:attr="data-confirm=|¿Eliminar el sensor ${sensor.code} y todas sus lecturas? No se puede deshacer.|">
+                            <button type="submit" class="button button--ghost button--small button--danger-ghost">Eliminar</button>
+                        </form>
                     </td>
                 </tr>
                 </tbody>

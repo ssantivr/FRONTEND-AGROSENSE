@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(${formTitle}, ~{::main}, null)}">
+<body>
+<main id="main" class="app-content" tabindex="-1">
+    <header th:replace="~{fragments/page-header :: page-header(${formTitle}, 'Datos generales y ubicación de la parcela.')}"></header>
+
+    <section class="card card--form">
+        <form class="stack" th:action="@{${formAction}}" method="post" th:object="${estateForm}" novalidate>
+            <label class="field">
+                <span class="field-label">Nombre</span>
+                <input type="text" th:field="*{name}" maxlength="120" required autofocus
+                       th:attr="aria-invalid=${#fields.hasErrors('name')}">
+                <span class="field-error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">Error</span>
+            </label>
+            <label class="field">
+                <span class="field-label">Ubicación (opcional)</span>
+                <input type="text" th:field="*{location}" maxlength="160" placeholder="Municipio, departamento"
+                       th:attr="aria-invalid=${#fields.hasErrors('location')}">
+                <span class="field-error" th:if="${#fields.hasErrors('location')}" th:errors="*{location}">Error</span>
+            </label>
+            <label class="field">
+                <span class="field-label">Área en hectáreas (opcional)</span>
+                <input type="number" th:field="*{areaHa}" min="0.01" step="0.01"
+                       th:attr="aria-invalid=${#fields.hasErrors('areaHa')}">
+                <span class="field-error" th:if="${#fields.hasErrors('areaHa')}" th:errors="*{areaHa}">Error</span>
+            </label>
+
+            <fieldset class="fieldset">
+                <legend>Coordenadas (opcional)</legend>
+                <p class="field-hint">Con latitud y longitud, la parcela aparece en el mapa del inicio.</p>
+                <div class="field-row">
+                    <label class="field">
+                        <span class="field-label">Latitud</span>
+                        <input type="number" th:field="*{latitude}" min="-90" max="90" step="any" placeholder="1.2136"
+                               th:attr="aria-invalid=${#fields.hasErrors('latitude')}">
+                        <span class="field-error" th:if="${#fields.hasErrors('latitude')}" th:errors="*{latitude}">Error</span>
+                    </label>
+                    <label class="field">
+                        <span class="field-label">Longitud</span>
+                        <input type="number" th:field="*{longitude}" min="-180" max="180" step="any" placeholder="-77.2811"
+                               th:attr="aria-invalid=${#fields.hasErrors('longitude')}">
+                        <span class="field-error" th:if="${#fields.hasErrors('longitude')}" th:errors="*{longitude}">Error</span>
+                    </label>
+                </div>
+                <span class="field-error" th:if="${#fields.hasErrors('coordinatesComplete')}"
+                      th:errors="*{coordinatesComplete}">Error</span>
+            </fieldset>
+
+            <div class="form-actions">
+                <a class="button button--ghost" th:href="@{/parcelas}">Cancelar</a>
+                <button type="submit" class="button">Guardar</button>
+            </div>
+        </form>
+    </section>
+</main>
+</body>
+</html>

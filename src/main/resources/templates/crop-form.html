@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(${formTitle}, ~{::main}, null)}">
+<body>
+<main id="main" class="app-content" tabindex="-1">
+    <header th:replace="~{fragments/page-header :: page-header(${formTitle}, 'Datos del cultivo y rangos aceptables para las alertas.')}"></header>
+
+    <section class="card card--form">
+        <form class="stack" th:action="@{${formAction}}" method="post" th:object="${cropForm}" novalidate>
+            <div class="field-row">
+                <label class="field">
+                    <span class="field-label">Nombre</span>
+                    <input type="text" th:field="*{name}" maxlength="120" required autofocus
+                           th:attr="aria-invalid=${#fields.hasErrors('name')}">
+                    <span class="field-error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">Error</span>
+                </label>
+                <label class="field">
+                    <span class="field-label">Variedad (opcional)</span>
+                    <input type="text" th:field="*{variety}" maxlength="120"
+                           th:attr="aria-invalid=${#fields.hasErrors('variety')}">
+                    <span class="field-error" th:if="${#fields.hasErrors('variety')}" th:errors="*{variety}">Error</span>
+                </label>
+            </div>
+            <div class="field-row">
+                <label class="field">
+                    <span class="field-label">Fecha de siembra (opcional)</span>
+                    <input type="date" th:field="*{sowingDate}"
+                           th:attr="aria-invalid=${#fields.hasErrors('sowingDate')}">
+                    <span class="field-error" th:if="${#fields.hasErrors('sowingDate')}" th:errors="*{sowingDate}">Error</span>
+                </label>
+                <label class="field">
+                    <span class="field-label">Etapa</span>
+                    <select th:field="*{stage}">
+                        <option th:each="stage : ${stages}" th:value="${stage}"
+                                th:text="#{${'cropStage.' + stage}}">Germinación</option>
+                    </select>
+                    <span class="field-error" th:if="${#fields.hasErrors('stage')}" th:errors="*{stage}">Error</span>
+                </label>
+            </div>
+
+            <fieldset class="fieldset">
+                <legend>Humedad del suelo (%)</legend>
+                <div class="field-row">
+                    <label class="field">
+                        <span class="field-label">Mínima</span>
+                        <input type="number" th:field="*{humidityMin}" min="0" max="100" step="0.1" required
+                               th:attr="aria-invalid=${#fields.hasErrors('humidityMin')}">
+                        <span class="field-error" th:if="${#fields.hasErrors('humidityMin')}" th:errors="*{humidityMin}">Error</span>
+                    </label>
+                    <label class="field">
+                        <span class="field-label">Máxima</span>
+                        <input type="number" th:field="*{humidityMax}" min="0" max="100" step="0.1" required
+                               th:attr="aria-invalid=${#fields.hasErrors('humidityMax')}">
+                        <span class="field-error" th:if="${#fields.hasErrors('humidityMax')}" th:errors="*{humidityMax}">Error</span>
+                    </label>
+                </div>
+                <span class="field-error" th:if="${#fields.hasErrors('humidityRangeValid')}" th:errors="*{humidityRangeValid}">Error</span>
+            </fieldset>
+
+            <fieldset class="fieldset">
+                <legend>Temperatura (°C)</legend>
+                <div class="field-row">
+                    <label class="field">
+                        <span class="field-label">Mínima</span>
+                        <input type="number" th:field="*{tempMin}" min="-50" max="70" step="0.1" required
+                               th:attr="aria-invalid=${#fields.hasErrors('tempMin')}">
+                        <span class="field-error" th:if="${#fields.hasErrors('tempMin')}" th:errors="*{tempMin}">Error</span>
+                    </label>
+                    <label class="field">
+                        <span class="field-label">Máxima</span>
+                        <input type="number" th:field="*{tempMax}" min="-50" max="70" step="0.1" required
+                               th:attr="aria-invalid=${#fields.hasErrors('tempMax')}">
+                        <span class="field-error" th:if="${#fields.hasErrors('tempMax')}" th:errors="*{tempMax}">Error</span>
+                    </label>
+                </div>
+                <span class="field-error" th:if="${#fields.hasErrors('tempRangeValid')}" th:errors="*{tempRangeValid}">Error</span>
+            </fieldset>
+
+            <fieldset class="fieldset">
+                <legend>pH</legend>
+                <div class="field-row">
+                    <label class="field">
+                        <span class="field-label">Mínimo</span>
+                        <input type="number" th:field="*{phMin}" min="0" max="14" step="0.1" required
+                               th:attr="aria-invalid=${#fields.hasErrors('phMin')}">
+                        <span class="field-error" th:if="${#fields.hasErrors('phMin')}" th:errors="*{phMin}">Error</span>
+                    </label>
+                    <label class="field">
+                        <span class="field-label">Máximo</span>
+                        <input type="number" th:field="*{phMax}" min="0" max="14" step="0.1" required
+                               th:attr="aria-invalid=${#fields.hasErrors('phMax')}">
+                        <span class="field-error" th:if="${#fields.hasErrors('phMax')}" th:errors="*{phMax}">Error</span>
+                    </label>
+                </div>
+                <span class="field-error" th:if="${#fields.hasErrors('phRangeValid')}" th:errors="*{phRangeValid}">Error</span>
+            </fieldset>
+
+            <label class="switch-row">
+                <input type="checkbox" th:field="*{active}">
+                <span>
+                    <strong>Cultivo activo</strong>
+                    <span class="text-muted">Los cultivos inactivos no se pueden regar ni reciben sensores nuevos.</span>
+                </span>
+            </label>
+
+            <div class="form-actions">
+                <a class="button button--ghost" th:href="@{/parcelas}">Cancelar</a>
+                <button type="submit" class="button">Guardar</button>
+            </div>
+        </form>
+    </section>
+</main>
+</body>
+</html>
