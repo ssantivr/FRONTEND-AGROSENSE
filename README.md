@@ -5,7 +5,8 @@ No usa Node.js ni frameworks de JavaScript.
 
 ## Ejecutar en modo demostración
 
-No necesita base de datos: usa H2 en memoria con datos de ejemplo.
+No necesita PostgreSQL: usa H2 en memoria y crea las tablas y los datos de ejemplo a partir de
+`../database/schema.sql` y `../database/seed_demo.sql`, así que hay que ejecutarlo desde esta carpeta.
 
 ```bash
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=demo      # Linux / macOS
@@ -25,7 +26,8 @@ La contraseña de la demo se puede cambiar con la variable `DEMO_PASSWORD`.
 | `PORT`                  | Puerto HTTP (por defecto 8080)                          |
 | `SESSION_COOKIE_SECURE` | `false` solo si se sirve sin HTTPS (por defecto `true`) |
 
-Las tablas deben existir y coincidir con las entidades (`ddl-auto=validate`).
+Las tablas se crean con `../database/schema.sql` (ver [`database/README.md`](../database/README.md));
+con `SQL_INIT_MODE=always` la aplicación lo ejecuta al arrancar.
 
 ## Pruebas
 
