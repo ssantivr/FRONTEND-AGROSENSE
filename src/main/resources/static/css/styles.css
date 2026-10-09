@@ -1236,14 +1236,6 @@ code {
   font-size: 1.5rem;
 }
 
-.login-demo {
-  padding: 12px;
-  border-radius: var(--radius-sm);
-  background: var(--status-info-bg);
-  color: var(--status-info-text);
-  font-size: 0.88rem;
-}
-
 /* ---------- Error page ---------- */
 
 .error-page {

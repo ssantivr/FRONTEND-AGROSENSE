@@ -7,7 +7,6 @@ import com.agrosense.frontend.service.EstateService;
 import com.agrosense.frontend.service.IrrigationService;
 import com.agrosense.frontend.service.SensorService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,19 +24,11 @@ public class PageController {
     private final SensorService sensorService;
     private final IrrigationService irrigationService;
 
-    @Value("${agrosense.demo.email:}")
-    private String demoEmail;
-
-    @Value("${agrosense.demo.password:}")
-    private String demoPassword;
-
     @GetMapping("/login")
-    public String login(Principal principal, Model model) {
+    public String login(Principal principal) {
         if (principal != null) {
             return "redirect:/";
         }
-        model.addAttribute("demoEmail", demoEmail);
-        model.addAttribute("demoPassword", demoPassword);
         return "login";
     }
 
