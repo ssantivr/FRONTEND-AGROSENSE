@@ -1,0 +1,89 @@
+# Every pull request gets its own copy of the database (a Neon branch) and the whole test suite runs
+# against it, including the PostgreSQL tests that are skipped elsewhere. The copy is deleted when the
+# pull request is closed.
+#
+# NEON_API_KEY (secret) and NEON_PROJECT_ID (variable) are created by Neon's GitHub integration:
+# Neon Console > Integrations > GitHub.
+name: Pull request database
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test against a database branch
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the Neon integration
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+        run: |
+          if [ -z "$NEON_API_KEY" ] || [ -z "$NEON_PROJECT_ID" ]; then
+            echo "::error::NEON_API_KEY (secret) or NEON_PROJECT_ID (variable) is missing. Install Neon's GitHub integration for this repository: Neon Console > Integrations > GitHub."
+            exit 1
+          fi
+      # The application reads the schema and the sample data from ../database, which is its own repository.
+      - name: Check out the frontend
+        uses: actions/checkout@v5
+        with:
+          path: frontend
+      - name: Check out the database folder
+        uses: actions/checkout@v5
+        with:
+          repository: ssantivr/BASE-DE-DATOS-AGROSENSE
+          path: database
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: frontend/pom.xml
+      - name: Create the database branch
+        id: neon
+        uses: neondatabase/create-branch-action@v5
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch_name: preview/pr-${{ github.event.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Run the tests
+        working-directory: frontend
+        env:
+          # postgresql://user:password@host/database, on the direct (not pooled) host.
+          DB_URL: ${{ steps.neon.outputs.db_url }}
+        run: |
+          rest="${DB_URL#*://}"
+          credentials="${rest%%@*}"
+          location="${rest#*@}"
+          host="${location%%/*}"
+          database="${location#*/}"
+          database="${database%%\?*}"
+          export POSTGRES_TEST_USERNAME="${credentials%%:*}"
+          export POSTGRES_TEST_PASSWORD="${credentials#*:}"
+          echo "::add-mask::${POSTGRES_TEST_PASSWORD}"
+          export POSTGRES_TEST_URL="jdbc:postgresql://${host}/${database}?sslmode=require"
+          # The wrapper is stored without the executable bit and may carry Windows line endings.
+          sed -i 's/\r$//' mvnw
+          chmod +x mvnw
+          ./mvnw -B test
+
+  delete:
+    name: Delete the database branch
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete the database branch
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch: preview/pr-${{ github.event.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
