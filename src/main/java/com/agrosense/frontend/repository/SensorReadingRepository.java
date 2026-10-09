@@ -2,6 +2,9 @@ package com.agrosense.frontend.repository;
 
 import com.agrosense.frontend.entity.SensorReading;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -13,4 +16,9 @@ public interface SensorReadingRepository extends JpaRepository<SensorReading, Lo
 
     List<SensorReading> findBySensorIdSensorAndRecordedAtGreaterThanEqualOrderByRecordedAt(
             Integer idSensor, LocalDateTime since);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from SensorReading r where r.sensor.idSensor in "
+            + "(select s.idSensor from Sensor s where s.crop.estate.user.email = :email)")
+    void deleteByOwner(@Param("email") String email);
 }

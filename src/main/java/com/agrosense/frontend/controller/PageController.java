@@ -71,9 +71,4 @@ public class PageController {
         model.addAttribute("waterReport", irrigationService.waterReport(history));
         return "reports";
     }
-
-    @GetMapping("/configuracion")
-    public String settings() {
-        return "settings";
-    }
 }

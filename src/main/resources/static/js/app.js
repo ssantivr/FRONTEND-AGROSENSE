@@ -45,11 +45,21 @@ function scheduleDismiss(toast) {
   }, TOAST_MS);
 }
 
-function readCollapsed() {
+export function isSidebarCollapsed() {
   try {
     return localStorage.getItem(SIDEBAR_KEY) === 'true';
   } catch {
     return false;
+  }
+}
+
+/** Applies and remembers the desktop sidebar preference for this browser. */
+export function setSidebarCollapsed(collapsed) {
+  document.getElementById('appShell')?.classList.toggle('is-collapsed', collapsed);
+  try {
+    localStorage.setItem(SIDEBAR_KEY, String(collapsed));
+  } catch {
+    // The preference is optional; ignore storage failures.
   }
 }
 
@@ -58,7 +68,7 @@ function initSidebar() {
   const toggle = document.getElementById('sidebarToggle');
   if (!shell || !toggle) return;
 
-  shell.classList.toggle('is-collapsed', readCollapsed());
+  shell.classList.toggle('is-collapsed', isSidebarCollapsed());
   const syncExpanded = () => {
     const expanded = DESKTOP_QUERY.matches
       ? !shell.classList.contains('is-collapsed')
@@ -68,12 +78,7 @@ function initSidebar() {
 
   toggle.addEventListener('click', () => {
     if (DESKTOP_QUERY.matches) {
-      const collapsed = shell.classList.toggle('is-collapsed');
-      try {
-        localStorage.setItem(SIDEBAR_KEY, String(collapsed));
-      } catch {
-        // The preference is optional; ignore storage failures.
-      }
+      setSidebarCollapsed(!shell.classList.contains('is-collapsed'));
     } else {
       shell.classList.toggle('is-open');
     }
