@@ -21,6 +21,15 @@ public interface IrrigationRepository extends JpaRepository<Irrigation, Integer>
             + "(select c.idCrop from Crop c where c.estate.user.email = :email)")
     void deleteByOwner(@Param("email") String email);
 
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from Irrigation i where i.crop.idCrop in "
+            + "(select c.idCrop from Crop c where c.estate.idEstate = :idEstate)")
+    void deleteByEstate(@Param("idEstate") Integer idEstate);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from Irrigation i where i.crop.idCrop = :idCrop")
+    void deleteByCrop(@Param("idCrop") Integer idCrop);
+
     /** Keeps irrigations a user started on someone else's crop, without the reference to that user. */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update Irrigation i set i.activatedBy = null where i.activatedBy.idUser = :idUser")

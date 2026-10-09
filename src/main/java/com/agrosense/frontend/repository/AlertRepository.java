@@ -27,4 +27,18 @@ public interface AlertRepository extends JpaRepository<Alert, Integer> {
     @Query("delete from Alert a where a.crop.idCrop in "
             + "(select c.idCrop from Crop c where c.estate.user.email = :email)")
     void deleteByOwner(@Param("email") String email);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from Alert a where a.crop.idCrop in "
+            + "(select c.idCrop from Crop c where c.estate.idEstate = :idEstate)")
+    void deleteByEstate(@Param("idEstate") Integer idEstate);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from Alert a where a.crop.idCrop = :idCrop")
+    void deleteByCrop(@Param("idCrop") Integer idCrop);
+
+    /** Keeps the alerts of a sensor that is being removed, without the reference to it. */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update Alert a set a.sensor = null where a.sensor.idSensor = :idSensor")
+    void clearSensor(@Param("idSensor") Integer idSensor);
 }
