@@ -41,6 +41,7 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -55,6 +56,10 @@ class WebFlowTests {
     private static final String DEMO_EMAIL = "demo@agrosense.co";
     private static final String DEMO_PASSWORD = "agrosense";
     private static final String OTHER_EMAIL = "other@agrosense.test";
+    private static final String OTHER_PASSWORD = "other-password";
+
+    @Autowired
+    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     @Autowired
     private WebApplicationContext context;
@@ -247,12 +252,111 @@ class WebFlowTests {
                 .andExpect(jsonPath("$.message").exists());
     }
 
+    @Test
+    void registrationValidatesInputAndNeverStoresPlainPasswords() throws Exception {
+        mvc.perform(get("/registro")).andExpect(status().isOk())
+                .andExpect(content().string(containsString("Crear cuenta")));
+        mvc.perform(post("/registro").param("email", "new@agrosense.test")).andExpect(status().isForbidden());
+
+        mvc.perform(post("/registro").with(csrf())
+                        .param("name", " ").param("lastName", "Pérez").param("email", "not-an-email")
+                        .param("password", "short").param("confirmPassword", "different"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Ingresa tu nombre.")))
+                .andExpect(content().string(containsString("Ingresa un correo electrónico válido.")))
+                .andExpect(content().string(containsString("La contraseña debe tener entre 8 y 72 caracteres.")))
+                .andExpect(content().string(containsString("Las contraseñas no coinciden.")))
+                .andExpect(content().string(not(containsString("value=\"short\""))));
+        assertThat(userRepository.findByEmail("not-an-email")).isEmpty();
+
+        mvc.perform(post("/registro").with(csrf())
+                        .param("name", "Ana").param("lastName", "Pérez").param("email", "  New@AgroSense.test ")
+                        .param("password", "a-long-password").param("confirmPassword", "a-long-password"))
+                .andExpect(redirectedUrl("/login?registered"));
+
+        User created = userRepository.findByEmail("new@agrosense.test").orElseThrow();
+        assertThat(created.getPasswordHash()).startsWith("$2").doesNotContain("a-long-password");
+        assertThat(created.getRole()).isEqualTo("farmer");
+        mvc.perform(formLogin("/login").userParameter("email").user("new@agrosense.test").password("a-long-password"))
+                .andExpect(authenticated().withUsername("new@agrosense.test"));
+    }
+
+    @Test
+    void registeringAnExistingEmailGivesAGenericErrorAndKeepsTheOriginalAccount() throws Exception {
+        String originalHash = userRepository.findByEmail(DEMO_EMAIL).orElseThrow().getPasswordHash();
+
+        mvc.perform(post("/registro").with(csrf())
+                        .param("name", "Intruder").param("lastName", "User").param("email", DEMO_EMAIL)
+                        .param("password", "another-password").param("confirmPassword", "another-password"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("No pudimos crear la cuenta con esos datos.")));
+
+        assertThat(userRepository.findByEmail(DEMO_EMAIL).orElseThrow().getPasswordHash()).isEqualTo(originalHash);
+    }
+
+    @Test
+    void newAccountsSeeEmptyStatesAndTheSchematicMapInsteadOfErrors() throws Exception {
+        createOtherUsersSensor();
+        UserDetails other = userDetailsService.loadUserByUsername(OTHER_EMAIL);
+
+        mvc.perform(get("/").with(user(other)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Sin coordenadas registradas")))
+                .andExpect(content().string(containsString("data-estate-tile")))
+                .andExpect(content().string(not(containsString("id=\"estateMap\""))))
+                .andExpect(content().string(not(containsString("Finca La Esperanza"))));
+        for (String path : new String[] {"/parcelas", "/sensores", "/riego", "/alertas", "/reportes", "/configuracion"}) {
+            mvc.perform(get(path).with(user(other))).andExpect(status().isOk());
+        }
+    }
+
+    @Test
+    void deletingAnAccountRequiresThePasswordAndRemovesOnlyThatUsersData() throws Exception {
+        Sensor sensor = createOtherUsersSensor();
+        Integer estateId = sensor.getCrop().getEstate().getIdEstate();
+        alertRepository.save(Alert.builder().crop(sensor.getCrop()).alertType(AlertType.WATER_STRESS)
+                .message("To be deleted").build());
+        UserDetails other = userDetailsService.loadUserByUsername(OTHER_EMAIL);
+        long demoEstates = estateRepository.findByUserEmailOrderByName(DEMO_EMAIL).size();
+
+        mvc.perform(post("/configuracion/eliminar-cuenta").with(user(other)).param("password", OTHER_PASSWORD))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/configuracion/eliminar-cuenta").with(user(other)).with(csrf()).param("password", "wrong"))
+                .andExpect(redirectedUrl("/configuracion"))
+                .andExpect(flash().attribute("deleteError", "La contraseña no es correcta."));
+        mvc.perform(post("/configuracion/eliminar-cuenta").with(user(other)).with(csrf()))
+                .andExpect(redirectedUrl("/configuracion"));
+        assertThat(userRepository.findByEmail(OTHER_EMAIL)).isPresent();
+
+        mvc.perform(post("/configuracion/eliminar-cuenta").with(user(other)).with(csrf())
+                        .param("password", OTHER_PASSWORD))
+                .andExpect(redirectedUrl("/login?deleted"))
+                .andExpect(unauthenticated());
+
+        assertThat(userRepository.findByEmail(OTHER_EMAIL)).isEmpty();
+        assertThat(estateRepository.findById(estateId)).isEmpty();
+        assertThat(sensorRepository.findById(sensor.getIdSensor())).isEmpty();
+        assertThat(alertRepository.countByCropEstateUserEmailAndAcknowledgedFalse(OTHER_EMAIL)).isZero();
+        assertThat(estateRepository.findByUserEmailOrderByName(DEMO_EMAIL)).hasSize((int) demoEstates);
+        mvc.perform(formLogin("/login").userParameter("email").user(OTHER_EMAIL).password(OTHER_PASSWORD))
+                .andExpect(unauthenticated());
+    }
+
+    @Test
+    void theDemoAccountCannotBeDeleted() throws Exception {
+        mvc.perform(post("/configuracion/eliminar-cuenta").with(user(demoUser)).with(csrf())
+                        .param("password", DEMO_PASSWORD))
+                .andExpect(redirectedUrl("/configuracion"))
+                .andExpect(flash().attribute("deleteError", "La cuenta de demostración no se puede eliminar."));
+        assertThat(userRepository.findByEmail(DEMO_EMAIL)).isPresent();
+    }
+
     private Sensor createOtherUsersSensor() {
         User other = userRepository.save(User.builder()
                 .name("Other")
                 .lastName("Farmer")
                 .email(OTHER_EMAIL)
-                .passwordHash("{noop}unused")
+                .passwordHash(passwordEncoder.encode(OTHER_PASSWORD))
                 .role("farmer")
                 .build());
         Estate estate = estateRepository.save(Estate.builder().user(other).name("Private estate").build());
