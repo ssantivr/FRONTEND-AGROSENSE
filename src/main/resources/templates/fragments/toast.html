@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div class="toast-region" id="toastRegion" th:fragment="toast" aria-live="polite" aria-atomic="true">
+    <div class="toast" th:if="${toastMessage != null}" th:classappend="|toast--${toastType ?: 'info'}|">
+        <i class="bi" th:classappend="${toastType == 'success'} ? 'bi-check-circle' : 'bi-info-circle'"
+           aria-hidden="true"></i>
+        <span th:text="${toastMessage}">Mensaje</span>
+    </div>
+</div>
+</body>
+</html>

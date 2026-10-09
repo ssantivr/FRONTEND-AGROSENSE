@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div class="state state--empty" th:fragment="empty-state(icon, title, text)">
+    <i class="bi" th:classappend="${icon}" aria-hidden="true"></i>
+    <h2 th:text="${title}">Sin datos</h2>
+    <p th:text="${text}">Aún no hay información para mostrar.</p>
+</div>
+</body>
+</html>

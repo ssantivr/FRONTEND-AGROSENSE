@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- tone: success | warning | danger | info | neutral. The icon and the label carry the meaning, not the colour. -->
+<span class="status-pill" th:fragment="status-pill(tone, icon, label)" th:classappend="|status-pill--${tone}|">
+    <i class="bi" th:classappend="${icon}" aria-hidden="true"></i>
+    <span th:text="${label}">Estado</span>
+</span>
+
+<span class="status-pill" th:fragment="severity-pill(severity)" th:with="level=${severity.name()}"
+      th:classappend="${level == 'VERY_HIGH' or level == 'HIGH'} ? 'status-pill--danger' : (${level == 'MEDIUM'} ? 'status-pill--warning' : 'status-pill--neutral')">
+    <i class="bi" aria-hidden="true"
+       th:classappend="${level == 'VERY_HIGH'} ? 'bi-exclamation-octagon-fill' : (${level == 'HIGH'} ? 'bi-exclamation-triangle-fill' : (${level == 'MEDIUM'} ? 'bi-exclamation-circle' : 'bi-info-circle'))"></i>
+    <span th:text="#{${'severity.' + level}}">Media</span>
+</span>
+</body>
+</html>

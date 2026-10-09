@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout('Alertas', ~{::main}, null)}">
+<body>
+<main id="main" class="app-content" tabindex="-1">
+    <header th:replace="~{fragments/page-header :: page-header('Alertas', 'Avisos generados por los sensores y el sistema.')}"></header>
+
+    <section class="card">
+        <nav class="tabs" aria-label="Filtro de alertas">
+            <a class="tab" th:href="@{/alertas(estado='pendientes')}"
+               th:attr="aria-current=${onlyOpen ? 'page' : null}">Sin atender</a>
+            <a class="tab" th:href="@{/alertas(estado='todas')}"
+               th:attr="aria-current=${onlyOpen ? null : 'page'}">Todas</a>
+        </nav>
+
+        <th:block th:if="${alerts.isEmpty()}"><div th:replace="~{fragments/empty-state :: empty-state('bi-check2-circle', 'Sin alertas',
+             'No hay alertas para mostrar con este filtro.')}"></div></th:block>
+
+        <div class="table-scroll" th:if="${!alerts.isEmpty()}">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>Severidad</th>
+                    <th>Alerta</th>
+                    <th>Cultivo</th>
+                    <th class="numeric">Valor detectado</th>
+                    <th>Fecha</th>
+                    <th>Acción</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="alert : ${alerts.content}" data-search-row>
+                    <td><span th:replace="~{fragments/status-pill :: severity-pill(${alert.severity})}"></span></td>
+                    <td class="cell-wrap">
+                        <strong th:text="#{${'alertType.' + alert.type}}">Humedad baja</strong>
+                        <p class="text-muted" th:text="${alert.message}">Mensaje</p>
+                    </td>
+                    <td th:text="|${alert.cropName} · ${alert.estateName}|">Café · Finca</td>
+                    <td class="numeric"
+                        th:text="${alert.detectedValue != null ? #numbers.formatDecimal(alert.detectedValue, 1, 1, 'COMMA') : '—'}">37,4</td>
+                    <td th:text="${#temporals.format(alert.createdAt, 'd MMM, HH:mm')}">8 oct, 10:00</td>
+                    <td>
+                        <span class="text-muted" th:if="${alert.acknowledged}">Atendida</span>
+                        <form th:unless="${alert.acknowledged}" th:action="@{/alertas/{id}/atender(id=${alert.id})}"
+                              method="post" data-confirm="¿Marcar esta alerta como atendida?">
+                            <button type="submit" class="button button--ghost button--small">Marcar como atendida</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <nav th:replace="~{fragments/pagination :: pagination(${alerts}, ${pageUrl})}"></nav>
+    </section>
+</main>
+</body>
+</html>

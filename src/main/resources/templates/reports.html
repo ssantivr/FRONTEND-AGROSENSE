@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout('Reportes', ~{::main}, null)}">
+<body>
+<main id="main" class="app-content" tabindex="-1">
+    <header th:replace="~{fragments/page-header :: page-header('Reportes', 'Resumen del agua aplicada por cultivo.')}"></header>
+
+    <section class="card" aria-labelledby="waterReportTitle">
+        <h2 id="waterReportTitle">Consumo de agua por cultivo</h2>
+        <th:block th:if="${waterReport.isEmpty()}"><div th:replace="~{fragments/empty-state :: empty-state('bi-bar-chart', 'Sin datos',
+             'Aún no hay riegos registrados para generar el reporte.')}"></div></th:block>
+
+        <div class="table-scroll" th:if="${!waterReport.isEmpty()}">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>Cultivo</th>
+                    <th>Finca</th>
+                    <th class="numeric">Riegos</th>
+                    <th class="numeric">Tiempo total (min)</th>
+                    <th class="numeric">Agua total (L)</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="row : ${waterReport}" data-search-row>
+                    <td th:text="${row.cropName}">Café</td>
+                    <td th:text="${row.estateName}">Finca</td>
+                    <td class="numeric" th:text="${row.irrigationCount}">2</td>
+                    <td class="numeric" th:text="${row.totalMinutes}">55</td>
+                    <td class="numeric" th:text="${#numbers.formatDecimal(row.totalLiters, 1, 'POINT', 0, 'COMMA')}">830</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="note">
+            <i class="bi bi-info-circle" aria-hidden="true"></i>
+            Los riegos manuales no registran litros hasta que exista un medidor de caudal conectado.
+        </p>
+    </section>
+
+    <section class="card">
+        <div th:replace="~{fragments/empty-state :: empty-state('bi-file-earmark-arrow-down', 'Exportación no disponible',
+            'La descarga de reportes en PDF o Excel aún no está implementada.')}"></div>
+    </section>
+</main>
+</body>
+</html>

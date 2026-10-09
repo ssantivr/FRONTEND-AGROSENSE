@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout('Riego', ~{::main}, null)}">
+<body>
+<main id="main" class="app-content" tabindex="-1">
+    <header th:replace="~{fragments/page-header :: page-header('Riego', 'Registra un riego manual y consulta el historial.')}"></header>
+
+    <section class="card" aria-labelledby="startTitle">
+        <h2 id="startTitle">Iniciar riego manual</h2>
+
+        <p class="text-muted" th:if="${cropOptions.isEmpty()}">No tienes cultivos activos para regar.</p>
+
+        <form th:if="${!cropOptions.isEmpty()}" class="form-grid form-grid--wide" th:action="@{/riego}" method="post"
+              th:object="${irrigationForm}" data-confirm="¿Registrar el inicio de este riego?" novalidate>
+            <p class="form-alert form-alert--error" role="alert" th:if="${#fields.hasGlobalErrors()}"
+               th:each="error : ${#fields.globalErrors()}">
+                <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+                <span th:text="${error}">Error</span>
+            </p>
+            <label class="field">
+                <span class="field-label">Cultivo</span>
+                <select th:field="*{cropId}" th:attr="aria-invalid=${#fields.hasErrors('cropId')}">
+                    <option th:each="option : ${cropOptions}" th:value="${option.id}" th:text="${option.label}">Café</option>
+                </select>
+                <span class="field-error" th:if="${#fields.hasErrors('cropId')}" th:errors="*{cropId}">Error</span>
+            </label>
+            <label class="field">
+                <span class="field-label">Duración (minutos)</span>
+                <input type="number" th:field="*{durationMin}" min="1" max="240"
+                       th:attr="aria-invalid=${#fields.hasErrors('durationMin')}">
+                <span class="field-error" th:if="${#fields.hasErrors('durationMin')}" th:errors="*{durationMin}">Error</span>
+            </label>
+            <button type="submit" class="button">
+                <i class="bi bi-play-fill" aria-hidden="true"></i> Iniciar riego
+            </button>
+        </form>
+        <p class="note">
+            <i class="bi bi-info-circle" aria-hidden="true"></i>
+            El riego queda registrado en el sistema. El control de la bomba física aún no está disponible.
+        </p>
+    </section>
+
+    <section class="card" aria-labelledby="historyTitle">
+        <h2 id="historyTitle">Historial</h2>
+        <th:block th:if="${irrigations.isEmpty()}"><div th:replace="~{fragments/empty-state :: empty-state('bi-droplet', 'Sin riegos',
+             'Aún no hay riegos registrados.')}"></div></th:block>
+
+        <div class="table-scroll" th:if="${!irrigations.isEmpty()}">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>Cultivo</th>
+                    <th>Finca</th>
+                    <th>Inicio</th>
+                    <th>Fin</th>
+                    <th class="numeric">Duración (min)</th>
+                    <th class="numeric">Agua (L)</th>
+                    <th>Tipo</th>
+                    <th>Estado</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="irrigation : ${irrigations}" data-search-row>
+                    <td th:text="${irrigation.cropName}">Café</td>
+                    <td th:text="${irrigation.estateName}">Finca</td>
+                    <td th:text="${irrigation.startedAt != null ? #temporals.format(irrigation.startedAt, 'd MMM, HH:mm') : '—'}">8 oct, 10:00</td>
+                    <td th:text="${irrigation.endsAt != null ? #temporals.format(irrigation.endsAt, 'd MMM, HH:mm') : '—'}">8 oct, 10:30</td>
+                    <td class="numeric" th:text="${irrigation.durationMin ?: '—'}">30</td>
+                    <td class="numeric"
+                        th:text="${irrigation.waterLiters != null ? #numbers.formatDecimal(irrigation.waterLiters, 1, 'POINT', 0, 'COMMA') : '—'}">450</td>
+                    <td th:text="#{${'irrigationType.' + irrigation.type}}">Manual</td>
+                    <td>
+                        <th:block th:if="${irrigation.running}"><span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-play-circle-fill', 'En curso')}"></span></th:block>
+                        <th:block th:unless="${irrigation.running}"><span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-check2', 'Finalizado')}"></span></th:block>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:fragment="layout(title, content, script)">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
+    <title th:text="|${title} · AgroSense|">AgroSense</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/img/logo.svg}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap">
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.3/css/bootstrap-grid.min.css}">
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css}">
+    <link th:if="${script == 'dashboard'}" rel="stylesheet" th:href="@{/webjars/leaflet/1.9.4/leaflet.css}">
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+<a class="skip-link" href="#main">Saltar al contenido</a>
+<div class="app-shell" id="appShell">
+    <aside th:replace="~{fragments/sidebar :: sidebar}"></aside>
+    <div class="app-main">
+        <header th:replace="~{fragments/navbar :: navbar}"></header>
+        <main th:replace="${content}"></main>
+    </div>
+</div>
+<dialog th:replace="~{fragments/confirm-modal :: confirm-modal}"></dialog>
+<div th:replace="~{fragments/toast :: toast}"></div>
+
+<th:block th:if="${script == 'dashboard'}">
+    <script th:src="@{/webjars/chart.js/4.4.1/dist/chart.umd.js}"></script>
+    <script th:src="@{/webjars/leaflet/1.9.4/leaflet.js}"></script>
+</th:block>
+<script type="module" th:src="@{/js/app.js}"></script>
+<script th:if="${script != null}" type="module" th:src="@{|/js/${script}.js|}"></script>
+</body>
+</html>
