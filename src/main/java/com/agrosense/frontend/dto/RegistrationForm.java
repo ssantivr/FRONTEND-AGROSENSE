@@ -16,16 +16,16 @@ public class RegistrationForm {
     public static final int MAX_PASSWORD_LENGTH = 72;
 
     @NotBlank(message = "Ingresa tu nombre.")
-    @Size(max = 80, message = "El nombre no puede superar los 80 caracteres.")
+    @Size(min = 2, max = 80, message = "El nombre debe tener entre 2 y 80 caracteres.")
     private String name;
 
     @NotBlank(message = "Ingresa tu apellido.")
-    @Size(max = 80, message = "El apellido no puede superar los 80 caracteres.")
+    @Size(min = 2, max = 80, message = "El apellido debe tener entre 2 y 80 caracteres.")
     private String lastName;
 
     @NotBlank(message = "Ingresa tu correo electrónico.")
     @Email(message = "Ingresa un correo electrónico válido.")
-    @Size(max = 160, message = "El correo no puede superar los 160 caracteres.")
+    @Size(min = 6, max = 160, message = "El correo debe tener entre 6 y 160 caracteres.")
     private String email;
 
     @NotNull(message = "Ingresa una contraseña.")
