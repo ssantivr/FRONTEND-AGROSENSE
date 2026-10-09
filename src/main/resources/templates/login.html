@@ -1,72 +1,53 @@
 <!DOCTYPE html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Iniciar sesión · AgroSense</title>
-    <link rel="icon" type="image/svg+xml" th:href="@{/img/logo.svg}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap">
-    <link rel="stylesheet" th:href="@{/webjars/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css}">
-    <link rel="stylesheet" th:href="@{/css/tokens.css}">
-    <link rel="stylesheet" th:href="@{/css/styles.css}">
-</head>
-<body class="login-page">
-<main class="login">
-    <section class="login-hero" aria-label="AgroSense">
-        <img class="login-hero-art" th:src="@{/img/field.svg}" alt="" width="800" height="600">
-        <div class="login-hero-content">
-            <div class="login-brand">
-                <img th:src="@{/img/logo.svg}" alt="" width="44" height="44">
-                <span>AgroSense</span>
-            </div>
-            <h1>Cada gota y cada dato, donde tu cultivo los necesita.</h1>
-            <p>Monitorea tus parcelas, sensores y riegos desde un solo lugar.</p>
-        </div>
-    </section>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/auth-layout :: auth('Iniciar sesión', ~{::form})}">
+<body>
+<form class="login-card" th:action="@{/login}" method="post" novalidate>
+    <h2>Iniciar sesión</h2>
+    <p class="text-muted">Ingresa con tu cuenta de AgroSense.</p>
 
-    <section class="login-panel">
-        <form class="login-card" th:action="@{/login}" method="post" novalidate>
-            <h2>Iniciar sesión</h2>
-            <p class="text-muted">Ingresa con tu cuenta de AgroSense.</p>
+    <p class="form-alert form-alert--error" role="alert" th:if="${param.error}">
+        <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+        No pudimos iniciar sesión. Revisa tus datos e inténtalo de nuevo.
+    </p>
+    <p class="form-alert form-alert--info" role="status" th:if="${param.logout}">
+        <i class="bi bi-check-circle" aria-hidden="true"></i>
+        Cerraste sesión correctamente.
+    </p>
+    <p class="form-alert form-alert--info" role="status" th:if="${param.registered}">
+        <i class="bi bi-check-circle" aria-hidden="true"></i>
+        Tu cuenta fue creada. Ya puedes iniciar sesión.
+    </p>
+    <p class="form-alert form-alert--info" role="status" th:if="${param.deleted}">
+        <i class="bi bi-check-circle" aria-hidden="true"></i>
+        Tu cuenta y sus datos fueron eliminados.
+    </p>
 
-            <p class="form-alert form-alert--error" role="alert" th:if="${param.error}">
-                <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
-                No pudimos iniciar sesión. Revisa tus datos e inténtalo de nuevo.
-            </p>
-            <p class="form-alert form-alert--info" role="status" th:if="${param.logout}">
-                <i class="bi bi-check-circle" aria-hidden="true"></i>
-                Cerraste sesión correctamente.
-            </p>
+    <label class="field">
+        <span class="field-label">Correo electrónico</span>
+        <input type="email" name="email" autocomplete="username" required autofocus>
+    </label>
 
-            <label class="field">
-                <span class="field-label">Correo electrónico</span>
-                <input type="email" name="email" autocomplete="username" required autofocus>
-            </label>
+    <label class="field">
+        <span class="field-label">Contraseña</span>
+        <span class="field-with-action">
+            <input type="password" name="password" id="password" autocomplete="current-password" required>
+            <button type="button" class="icon-button" data-toggle-password="password" aria-pressed="false"
+                    aria-label="Mostrar contraseña">
+                <i class="bi bi-eye" aria-hidden="true"></i>
+            </button>
+        </span>
+    </label>
 
-            <label class="field">
-                <span class="field-label">Contraseña</span>
-                <span class="field-with-action">
-                    <input type="password" name="password" id="password" autocomplete="current-password" required>
-                    <button type="button" class="icon-button" id="togglePassword" aria-controls="password"
-                            aria-pressed="false" aria-label="Mostrar contraseña">
-                        <i class="bi bi-eye" aria-hidden="true"></i>
-                    </button>
-                </span>
-            </label>
+    <button type="submit" class="button button--block">Entrar</button>
 
-            <button type="submit" class="button button--block">Entrar</button>
+    <p class="auth-switch">¿No tienes cuenta? <a class="link" th:href="@{/registro}">Crear cuenta</a></p>
 
-            <p class="login-demo" th:if="${demoMode and !#strings.isEmpty(demoEmail)}">
-                <strong>Vista de demostración.</strong>
-                Usa <code th:text="${demoEmail}">demo@agrosense.co</code> y la contraseña
-                <code th:text="${demoPassword}">agrosense</code>.
-            </p>
-        </form>
-    </section>
-</main>
-<script type="module" th:src="@{/js/login.js}"></script>
+    <p class="login-demo" th:if="${demoMode and !#strings.isEmpty(demoEmail)}">
+        <strong>Vista de demostración.</strong>
+        Usa <code th:text="${demoEmail}">demo@agrosense.co</code> y la contraseña
+        <code th:text="${demoPassword}">agrosense</code>.
+    </p>
+</form>
 </body>
 </html>
