@@ -14,13 +14,14 @@
     <div class="field-row">
         <label class="field">
             <span class="field-label">Nombre</span>
-            <input type="text" th:field="*{name}" autocomplete="given-name" maxlength="80" required autofocus
+            <input type="text" th:field="*{name}" autocomplete="given-name" minlength="2" maxlength="80" required
+                   autofocus
                    th:attr="aria-invalid=${#fields.hasErrors('name')}">
             <span class="field-error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">Error</span>
         </label>
         <label class="field">
             <span class="field-label">Apellido</span>
-            <input type="text" th:field="*{lastName}" autocomplete="family-name" maxlength="80" required
+            <input type="text" th:field="*{lastName}" autocomplete="family-name" minlength="2" maxlength="80" required
                    th:attr="aria-invalid=${#fields.hasErrors('lastName')}">
             <span class="field-error" th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}">Error</span>
         </label>
@@ -28,8 +29,9 @@
 
     <label class="field">
         <span class="field-label">Correo electrónico</span>
-        <input type="email" th:field="*{email}" autocomplete="username" maxlength="160" required
-               th:attr="aria-invalid=${#fields.hasErrors('email')}">
+        <input type="email" th:field="*{email}" autocomplete="username" minlength="6" maxlength="160" required
+               th:attr="aria-invalid=${#fields.hasErrors('email')},data-email-availability=@{/registro/disponibilidad}">
+        <span class="field-hint" id="emailAvailability" role="status" aria-live="polite" hidden></span>
         <span class="field-error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">Error</span>
     </label>
 
@@ -50,7 +52,7 @@
 
     <label class="field">
         <span class="field-label">Confirmar contraseña</span>
-        <input type="password" name="confirmPassword" autocomplete="new-password" maxlength="72" required
+        <input type="password" name="confirmPassword" autocomplete="new-password" minlength="8" maxlength="72" required
                th:attr="aria-invalid=${#fields.hasErrors('passwordConfirmed')}">
         <span class="field-error" th:if="${#fields.hasErrors('passwordConfirmed')}"
               th:errors="*{passwordConfirmed}">Error</span>
