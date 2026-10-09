@@ -9,6 +9,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -52,6 +53,11 @@ public class GlobalExceptionHandler {
         // Spring Security turns its own exceptions into redirects and 403 responses.
         if (exception instanceof AccessDeniedException || exception instanceof AuthenticationException) {
             throw exception;
+        }
+        // Spring MVC's own client errors (405, 415, missing parameters...) carry their status code.
+        if (exception instanceof ErrorResponse response && response.getStatusCode().is4xxClientError()) {
+            return respond(request, HttpStatus.valueOf(response.getStatusCode().value()),
+                    "La solicitud no es válida.");
         }
         log.error("Unexpected error handling {} {}", request.getMethod(), request.getRequestURI(), exception);
         return respond(request, HttpStatus.INTERNAL_SERVER_ERROR,
