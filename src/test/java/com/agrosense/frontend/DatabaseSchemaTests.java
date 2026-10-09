@@ -29,4 +29,15 @@ class DatabaseSchemaTests {
                 .contains("users", "estates", "crops", "sensors", "sensor_readings", "alerts", "irrigations");
         assertThat(jdbc.queryForObject("select count(*) from users", Integer.class)).isZero();
     }
+
+    @Test
+    void sessionTablesComeFromTheSchemaScript() {
+        assertThat(jdbc.queryForList(
+                "select table_name from information_schema.tables where table_schema = 'public'", String.class))
+                .contains("spring_session", "spring_session_attributes");
+        assertThat(jdbc.queryForList(
+                "select column_name from information_schema.columns where table_name = 'spring_session'", String.class))
+                .containsExactlyInAnyOrder("primary_id", "session_id", "creation_time", "last_access_time",
+                        "max_inactive_interval", "expiry_time", "principal_name");
+    }
 }
