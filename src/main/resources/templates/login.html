@@ -42,12 +42,6 @@
     <button type="submit" class="button button--block">Entrar</button>
 
     <p class="auth-switch">¿No tienes cuenta? <a class="link" th:href="@{/registro}">Crear cuenta</a></p>
-
-    <p class="login-demo" th:if="${demoMode and !#strings.isEmpty(demoEmail)}">
-        <strong>Vista de demostración.</strong>
-        Usa <code th:text="${demoEmail}">demo@agrosense.co</code> y la contraseña
-        <code th:text="${demoPassword}">agrosense</code>.
-    </p>
 </form>
 </body>
 </html>
