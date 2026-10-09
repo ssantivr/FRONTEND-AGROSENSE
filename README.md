@@ -41,6 +41,13 @@ con `SQL_INIT_MODE=always` la aplicación lo ejecuta al arrancar.
 ./mvnw clean verify
 ```
 
+### En cada pull request
+
+`.github/workflows/neon-pull-request.yml` crea una copia de la base de datos en Neon para el pull
+request (`preview/pr-<número>`), ejecuta todas las pruebas contra ella, incluidas las de PostgreSQL, y la
+borra cuando el pull request se cierra. Necesita el secreto `NEON_API_KEY` y la variable
+`NEON_PROJECT_ID`, que crea la integración de GitHub de Neon (consola de Neon → Integrations → GitHub).
+
 ## Más información
 
 La arquitectura, las decisiones y la tabla de qué es real y qué es demostración están en
