@@ -22,10 +22,14 @@ export function LoginPage({ dataSource, demoMode, onLogin }: Props) {
       setError('Ingresa tu correo y tu contraseña.');
       return;
     }
+    await signIn(email.trim(), password);
+  }
+
+  async function signIn(loginEmail: string, loginPassword: string) {
     setSubmitting(true);
     setError(null);
     try {
-      onLogin(await dataSource.login(email.trim(), password));
+      onLogin(await dataSource.login(loginEmail, loginPassword));
     } catch (reason) {
       setError(errorMessage(reason));
     } finally {
@@ -68,10 +72,20 @@ export function LoginPage({ dataSource, demoMode, onLogin }: Props) {
         </button>
 
         {demoMode && (
-          <p className="muted demo-hint">
-            Modo demostración, con datos de ejemplo. Usa <code>{DEMO_EMAIL}</code> y la contraseña{' '}
-            <code>{DEMO_PASSWORD}</code>.
-          </p>
+          <>
+            <button
+              type="button"
+              className="button secondary"
+              disabled={submitting}
+              onClick={() => signIn(DEMO_EMAIL, DEMO_PASSWORD)}
+            >
+              Entrar con la cuenta de demostración
+            </button>
+            <p className="muted demo-hint">
+              Modo demostración, con datos de ejemplo: aún no hay cuentas reales. También puedes escribir{' '}
+              <code>{DEMO_EMAIL}</code> y la contraseña <code>{DEMO_PASSWORD}</code>.
+            </p>
+          </>
         )}
       </form>
     </main>

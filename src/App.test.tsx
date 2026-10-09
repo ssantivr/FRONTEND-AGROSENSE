@@ -30,6 +30,12 @@ describe('App', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Correo o contraseña incorrectos.');
   });
 
+  it('signs in with the demo account button', async () => {
+    const user = renderApp();
+    await user.click(screen.getByRole('button', { name: 'Entrar con la cuenta de demostración' }));
+    expect(await screen.findByRole('heading', { name: 'Panel' })).toBeInTheDocument();
+  });
+
   it('shows the dashboard after signing in and returns to login on sign out', async () => {
     const user = renderApp();
     await signIn(user);
