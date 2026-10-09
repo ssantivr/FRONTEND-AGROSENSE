@@ -27,6 +27,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
@@ -247,7 +249,7 @@ class WebFlowTests {
 
     @Test
     void unsupportedMethodsAndMediaTypesAreClientErrorsNotServerErrors() throws Exception {
-        mvc.perform(post("/parcelas").with(user(demoUser)).with(csrf()))
+        mvc.perform(post("/reportes").with(user(demoUser)).with(csrf()))
                 .andExpect(status().isMethodNotAllowed());
         mvc.perform(post("/api/ui/irrigations").with(user(demoUser)).with(csrf())
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED).content("cropId=1"))
@@ -352,6 +354,127 @@ class WebFlowTests {
                 .andExpect(redirectedUrl("/configuracion"))
                 .andExpect(flash().attribute("deleteError", "La cuenta de demostración no se puede eliminar."));
         assertThat(userRepository.findByEmail(DEMO_EMAIL)).isPresent();
+    }
+
+    @Test
+    void estatesCanBeCreatedEditedAndAreValidated() throws Exception {
+        mvc.perform(post("/parcelas").with(user(demoUser)).param("name", "No CSRF")).andExpect(status().isForbidden());
+        mvc.perform(post("/parcelas").with(user(demoUser)).with(csrf())
+                        .param("name", " ").param("latitude", "95").param("areaHa", "abc"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Ingresa el nombre de la parcela.")))
+                .andExpect(content().string(containsString("La latitud debe estar entre -90 y 90.")))
+                .andExpect(content().string(containsString("Indica latitud y longitud, o deja ambas vacías.")))
+                .andExpect(content().string(containsString("Ingresa un número válido.")));
+
+        mvc.perform(post("/parcelas").with(user(demoUser)).with(csrf())
+                        .param("name", "Finca Nueva").param("location", "Ipiales").param("areaHa", "3.5")
+                        .param("latitude", "0.8303").param("longitude", "-77.6444"))
+                .andExpect(redirectedUrl("/parcelas"));
+        Estate created = estateRepository.findByUserEmailOrderByName(DEMO_EMAIL).stream()
+                .filter(estate -> estate.getName().equals("Finca Nueva")).findFirst().orElseThrow();
+        assertThat(created.getLatitude()).isEqualByComparingTo("0.8303");
+
+        mvc.perform(get("/parcelas/{id}/editar", created.getIdEstate()).with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("value=\"Finca Nueva\"")));
+        mvc.perform(post("/parcelas/{id}", created.getIdEstate()).with(user(demoUser)).with(csrf())
+                        .param("name", "Finca Renombrada"))
+                .andExpect(redirectedUrl("/parcelas"));
+        Estate updated = estateRepository.findById(created.getIdEstate()).orElseThrow();
+        assertThat(updated.getName()).isEqualTo("Finca Renombrada");
+        assertThat(updated.getLatitude()).isNull();
+        mvc.perform(get("/api/ui/estates/markers").with(user(demoUser))).andExpect(jsonPath("$", hasSize(2)));
+    }
+
+    @Test
+    void cropsAndSensorsCanBeCreatedWithValidation() throws Exception {
+        Integer estateId = estateRepository.findByUserEmailOrderByName(DEMO_EMAIL).get(0).getIdEstate();
+
+        mvc.perform(post("/parcelas/{id}/cultivos", estateId).with(user(demoUser)).with(csrf())
+                        .param("name", "Maíz").param("stage", "GROWTH")
+                        .param("humidityMin", "80").param("humidityMax", "40")
+                        .param("tempMin", "10").param("tempMax", "30").param("phMin", "5").param("phMax", "15"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("La humedad mínima debe ser menor que la máxima.")))
+                .andExpect(content().string(containsString("El pH debe estar entre 0 y 14.")));
+        mvc.perform(post("/parcelas/{id}/cultivos", estateId).with(user(demoUser)).with(csrf())
+                        .param("name", "Maíz").param("stage", "GROWTH").param("active", "true")
+                        .param("humidityMin", "40").param("humidityMax", "80")
+                        .param("tempMin", "10").param("tempMax", "30").param("phMin", "5.5").param("phMax", "7"))
+                .andExpect(redirectedUrl("/parcelas"));
+        Crop corn = cropRepository.findByEstateUserEmailAndActiveTrueOrderByName(DEMO_EMAIL).stream()
+                .filter(crop -> crop.getName().equals("Maíz")).findFirst().orElseThrow();
+
+        mvc.perform(post("/sensores").with(user(demoUser)).with(csrf())
+                        .param("cropId", corn.getIdCrop().toString()).param("sensorCode", "as-001")
+                        .param("sensorType", "PH"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Ese código de sensor ya está en uso.")));
+        mvc.perform(post("/sensores").with(user(demoUser)).with(csrf())
+                        .param("cropId", corn.getIdCrop().toString()).param("sensorCode", "bad code!")
+                        .param("sensorType", "PH"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("El código solo admite letras")));
+        mvc.perform(post("/sensores").with(user(demoUser)).with(csrf())
+                        .param("cropId", corn.getIdCrop().toString()).param("sensorCode", "as-900")
+                        .param("sensorType", "PH").param("location", "Lote 3"))
+                .andExpect(redirectedUrl("/sensores"));
+        mvc.perform(get("/sensores").with(user(demoUser)))
+                .andExpect(content().string(containsString("AS-900")));
+    }
+
+    @Test
+    void catalogChangesAreLimitedToTheOwner() throws Exception {
+        Sensor foreign = createOtherUsersSensor();
+        Integer foreignCrop = foreign.getCrop().getIdCrop();
+        Integer foreignEstate = foreign.getCrop().getEstate().getIdEstate();
+
+        mvc.perform(get("/parcelas/{id}/editar", foreignEstate).with(user(demoUser))).andExpect(status().isNotFound());
+        mvc.perform(post("/parcelas/{id}", foreignEstate).with(user(demoUser)).with(csrf()).param("name", "Hacked"))
+                .andExpect(status().isNotFound());
+        mvc.perform(post("/parcelas/{id}/eliminar", foreignEstate).with(user(demoUser)).with(csrf()))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/cultivos/{id}/editar", foreignCrop).with(user(demoUser))).andExpect(status().isNotFound());
+        mvc.perform(post("/cultivos/{id}/eliminar", foreignCrop).with(user(demoUser)).with(csrf()))
+                .andExpect(status().isNotFound());
+        mvc.perform(post("/sensores/{id}/eliminar", foreign.getIdSensor()).with(user(demoUser)).with(csrf()))
+                .andExpect(status().isNotFound());
+        mvc.perform(post("/sensores").with(user(demoUser)).with(csrf())
+                        .param("cropId", foreignCrop.toString()).param("sensorCode", "X-1").param("sensorType", "PH"))
+                .andExpect(status().isNotFound());
+
+        assertThat(estateRepository.findById(foreignEstate).orElseThrow().getName()).isEqualTo("Private estate");
+        assertThat(sensorRepository.findById(foreign.getIdSensor())).isPresent();
+    }
+
+    @Test
+    void deletingRemovesDependentRecordsAndNothingElse() throws Exception {
+        List<Estate> estates = estateRepository.findByUserEmailOrderByName(DEMO_EMAIL);
+        Estate mirador = estates.get(0);
+        Estate esperanza = estates.get(1);
+        Sensor coffeeSensor = sensorRepository.findByCropEstateUserEmailOrderBySensorCode(DEMO_EMAIL).get(0);
+        Crop plantain = cropRepository.findByEstateUserEmailAndActiveTrueOrderByName(DEMO_EMAIL).stream()
+                .filter(crop -> crop.getName().equals("Plátano")).findFirst().orElseThrow();
+
+        mvc.perform(post("/sensores/{id}/eliminar", coffeeSensor.getIdSensor()).with(user(demoUser)).with(csrf()))
+                .andExpect(redirectedUrl("/sensores"));
+        assertThat(sensorRepository.findById(coffeeSensor.getIdSensor())).isEmpty();
+        assertThat(sensorRepository.findByCropEstateUserEmailOrderBySensorCode(DEMO_EMAIL)).hasSize(5);
+
+        mvc.perform(post("/cultivos/{id}/eliminar", plantain.getIdCrop()).with(user(demoUser)).with(csrf()))
+                .andExpect(redirectedUrl("/parcelas"));
+        assertThat(cropRepository.findById(plantain.getIdCrop())).isEmpty();
+        assertThat(sensorRepository.findByCropEstateUserEmailOrderBySensorCode(DEMO_EMAIL)).hasSize(3);
+
+        mvc.perform(post("/parcelas/{id}/eliminar", esperanza.getIdEstate()).with(user(demoUser)).with(csrf()))
+                .andExpect(redirectedUrl("/parcelas"));
+        assertThat(estateRepository.findByUserEmailOrderByName(DEMO_EMAIL)).extracting(Estate::getName)
+                .containsExactly(mirador.getName());
+        assertThat(sensorRepository.findByCropEstateUserEmailOrderBySensorCode(DEMO_EMAIL)).hasSize(1);
+        assertThat(alertRepository.countByCropEstateUserEmailAndAcknowledgedFalse(DEMO_EMAIL)).isEqualTo(1);
+        mvc.perform(get("/").with(user(demoUser))).andExpect(status().isOk());
+        mvc.perform(get("/riego").with(user(demoUser))).andExpect(status().isOk());
     }
 
     private Sensor createOtherUsersSensor() {
