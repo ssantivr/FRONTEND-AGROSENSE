@@ -209,12 +209,14 @@ class BackendClientTests {
 
     @Test
     void theAssistantIsAskedThroughTheBackendInWritingAndByVoice() {
-        responseBody = "{\"reply\":\"Riega hoy.\"}";
+        responseBody = "{\"reply\":\"Riega hoy.\",\"source\":\"local\"}";
         AiReply written = client.askAssistant(EMAIL,
                 new AiChatForm("¿Riego hoy?", List.of(new AiChatForm.Turn("assistant", "Hola"))));
 
         assertThat(written.reply()).isEqualTo("Riega hoy.");
         assertThat(written.transcript()).isNull();
+        // Who wrote the answer reaches the chat window, which says so under an answer given without the model.
+        assertThat(written.source()).isEqualTo("local");
         assertThat(requests).containsExactly("POST /api/ai/chat");
         assertThat(authorizations.get(0)).startsWith("Bearer ");
         assertThat(bodies.get(0)).contains("\"message\":\"¿Riego hoy?\"")
