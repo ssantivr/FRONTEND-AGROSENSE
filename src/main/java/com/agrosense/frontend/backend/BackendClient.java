@@ -11,6 +11,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -137,9 +139,35 @@ public class BackendClient {
 
     /** Whether nobody has signed up with this e-mail address yet. Public: there is no user to sign for. */
     public boolean isEmailAvailable(String email) {
-        return execute(() -> api.get().uri("/api/auth/email-available?email={email}", email)
-                .retrieve().onStatus(HttpStatusCode::isError, BackendClient::fail)
+        return execute(() -> api.get().uri("/api/auth/check-user?email={email}", email)
+                .retrieve().onStatus(HttpStatusCode::isError, BackendClient::failAccount)
                 .body(EmailAvailabilityResponse.class)).available();
+    }
+
+    /**
+     * Creates the account through the backend.
+     *
+     * @throws BusinessRuleException with the backend's message when it refuses the data (400) or the
+     *         e-mail already has an account (409)
+     */
+    public boolean register(String name, String lastName, String email, String password) {
+        execute(() -> api.post().uri("/api/auth/register")
+                .body(new RegisterRequest(name, lastName, email, password))
+                .retrieve().onStatus(HttpStatusCode::isError, BackendClient::failAccount).toBodilessEntity());
+        return true;
+    }
+
+    /**
+     * Checks the credentials with the backend, which also counts failed attempts.
+     *
+     * @throws BadCredentialsException when they are wrong (401)
+     * @throws LockedException while sign-in is locked after too many failures (429)
+     */
+    public boolean signIn(String email, String password) {
+        execute(() -> api.post().uri("/api/auth/login")
+                .body(new LoginRequest(email, password))
+                .retrieve().onStatus(HttpStatusCode::isError, BackendClient::failAccount).toBodilessEntity());
+        return true;
     }
 
     private boolean checkHealth() {
@@ -176,6 +204,25 @@ public class BackendClient {
         }
     }
 
+    /**
+     * Answers of the public account endpoints. A missing endpoint (an older backend) counts as the backend
+     * being unusable, so the caller falls back to the database instead of failing.
+     */
+    private static void failAccount(org.springframework.http.HttpRequest request, ClientHttpResponse response)
+            throws IOException {
+        int status = response.getStatusCode().value();
+        String message = messageOf(response);
+        switch (status) {
+            case 401 -> throw new BadCredentialsException("Backend API: wrong credentials");
+            case 429 -> throw new LockedException(
+                    message == null ? "Demasiados intentos fallidos. Inténtalo de nuevo más tarde." : message);
+            case 400, 409 -> throw new BusinessRuleException(
+                    message == null ? "El servidor rechazó los datos enviados." : message);
+            default -> throw new BackendUnavailableException(
+                    "HTTP " + status + " from " + request.getMethod() + " " + request.getURI().getPath());
+        }
+    }
+
     private static String messageOf(ClientHttpResponse response) throws IOException {
         Matcher matcher = MESSAGE.matcher(new String(response.getBody().readAllBytes(), StandardCharsets.UTF_8));
         return matcher.find() ? matcher.group(1).replace("\\\"", "\"").replace("\\\\", "\\") : null;
@@ -195,6 +242,12 @@ public class BackendClient {
     }
 
     private record IrrigationRequest(Integer cropId, BigDecimal waterLiters, Integer durationMinutes, String reason) {
+    }
+
+    private record RegisterRequest(String name, String lastName, String email, String password) {
+    }
+
+    private record LoginRequest(String email, String password) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
