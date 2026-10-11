@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{fragments/layout :: layout(${formTitle}, ~{::main}, null)}">
+      th:replace="~{fragments/layout :: layout(${formTitle}, ~{::main}, 'estate-map')}">
 <body>
-<main id="main" class="app-content" tabindex="-1">
+<main id="main" class="app-content" tabindex="-1" data-motion-stagger>
     <header th:replace="~{fragments/page-header :: page-header(${formTitle}, 'Datos generales y ubicación de la parcela.')}"></header>
+
+    <th:block th:if="${guideStep != null}"><ol th:replace="~{fragments/stepper :: stepper(${guideStep})}"></ol></th:block>
 
     <section class="card card--form">
         <form class="stack" th:action="@{${formAction}}" method="post" th:object="${estateForm}" novalidate>
+            <input type="hidden" name="guia" value="1" th:if="${guideStep != null}">
             <label class="field">
                 <span class="field-label">Nombre</span>
                 <input type="text" th:field="*{name}" maxlength="120" required autofocus
@@ -45,6 +48,32 @@
                 </div>
                 <span class="field-error" th:if="${#fields.hasErrors('coordinatesComplete')}"
                       th:errors="*{coordinatesComplete}">Error</span>
+            </fieldset>
+
+            <!-- The estate's real outline, drawn corner by corner (estate-map.ts). It is sent as JSON in the
+                 hidden field; without JavaScript the form still works, just without an outline. -->
+            <fieldset class="fieldset" id="boundaryEditor">
+                <legend>Contorno de la parcela (opcional)</legend>
+                <p class="field-hint">
+                    Haz clic en el mapa en cada esquina de la parcela, en orden. Arrastra un punto para corregirlo.
+                    Con el contorno dibujado se calculan el área y el centro; solo se rellenan si están vacíos.
+                </p>
+                <div class="row-actions">
+                    <button type="button" class="button button--ghost button--small" id="boundaryLocate">
+                        <i class="bi bi-crosshair" aria-hidden="true"></i> Ir a mi ubicación
+                    </button>
+                    <button type="button" class="button button--ghost button--small" id="boundaryUndo" disabled>
+                        <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> Deshacer último punto
+                    </button>
+                    <button type="button" class="button button--ghost button--small button--danger-ghost" id="boundaryClear" disabled>
+                        <i class="bi bi-trash" aria-hidden="true"></i> Borrar contorno
+                    </button>
+                </div>
+                <div class="map picker-map" id="boundaryMap" role="application"
+                     aria-label="Mapa para dibujar el contorno de la parcela" hidden></div>
+                <p class="picker-summary text-muted" id="boundarySummary" aria-live="polite"></p>
+                <input type="hidden" th:field="*{boundary}">
+                <span class="field-error" th:if="${#fields.hasErrors('boundaryValid')}" th:errors="*{boundaryValid}">Error</span>
             </fieldset>
 
             <div class="form-actions">
