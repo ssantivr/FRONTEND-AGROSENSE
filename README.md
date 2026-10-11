@@ -33,6 +33,10 @@ Con `BACKEND_URL` y `BACKEND_JWT_SECRET` definidas, iniciar sesión, crear cuent
 gráfica de lecturas pasan por la API del backend; sin ellas, o mientras el backend no responda, todo se
 hace contra la base de datos.
 
+El asistente de IA (la ventana de chat de las páginas con sesión, por texto y por voz) solo funciona con
+el backend: sus scripts están en `src/main/ts/ai`, llaman a `/api/ui/ai/chat` y `/api/ui/ai/voice`, y el
+servidor reenvía la pregunta al backend, que es quien guarda la llave de Gemini (`GEMINI_API_KEY`).
+
 Las tablas se crean con `../database/schema.sql` (ver [`database/README.md`](../database/README.md));
 con `SQL_INIT_MODE=always` la aplicación lo ejecuta al arrancar.
 

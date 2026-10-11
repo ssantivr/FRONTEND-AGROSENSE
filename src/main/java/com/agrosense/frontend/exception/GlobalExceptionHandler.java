@@ -1,5 +1,6 @@
 package com.agrosense.frontend.exception;
 
+import com.agrosense.frontend.ai.AiAssistantException;
 import com.agrosense.frontend.dto.Views.ApiMessage;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +33,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessRuleException.class)
     public Object handleBusinessRule(BusinessRuleException exception, HttpServletRequest request) {
         return respond(request, HttpStatus.CONFLICT, exception.getMessage());
+    }
+
+    /** The assistant could not answer; the exception carries the status and a message for the user. */
+    @ExceptionHandler(AiAssistantException.class)
+    public Object handleAssistant(AiAssistantException exception, HttpServletRequest request) {
+        return respond(request, exception.getStatus(), exception.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
