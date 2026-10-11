@@ -56,3 +56,5 @@ application-local.properties
 # Logs
 *.log
 logs/
+# Node is only used to compile the TypeScript sources
+node_modules/
