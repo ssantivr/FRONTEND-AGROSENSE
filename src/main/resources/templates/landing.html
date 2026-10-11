@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="AgroSense: monitoreo de sensores, riego y alertas para tus parcelas, en un solo lugar.">
+    <title>AgroSense · Tecnología que cultiva un mejor futuro</title>
+    <th:block th:replace="~{fragments/brand :: head-assets}"></th:block>
+</head>
+<body class="landing">
+<a class="skip-link" href="#main">Saltar al contenido</a>
+<header class="landing-nav on-panel">
+    <a class="brand-logo" th:href="@{/}" aria-label="AgroSense">
+        <svg th:replace="~{fragments/brand :: mark(34, true)}"></svg>
+        <span class="brand-logo-name">Agro<span class="brand-logo-accent">Sense</span></span>
+    </a>
+    <nav class="landing-nav-actions" aria-label="Cuenta">
+        <div th:replace="~{fragments/brand :: theme-toggle}"></div>
+        <a class="button button--on-photo" th:href="@{/login}">Iniciar sesión</a>
+        <a class="button" th:href="@{/registro}">Crear cuenta</a>
+    </nav>
+</header>
+
+<main id="main">
+    <section class="landing-hero on-panel">
+        <img class="hero-photo" alt="" width="1600" height="1062" fetchpriority="high" decoding="async"
+             th:src="@{/img/photos/narino-fields-960.jpg}"
+             th:srcset="@{/img/photos/narino-fields-960.jpg} + ' 960w, ' + @{/img/photos/narino-fields-1600.jpg} + ' 1600w'"
+             sizes="100vw">
+        <div class="landing-hero-body" data-motion="fade-up">
+            <p class="eyebrow">Agricultura de precisión</p>
+            <h1>Tecnología que cultiva un mejor futuro.</h1>
+            <p class="landing-lead">
+                Sigue la humedad, la temperatura y el pH de tus cultivos, registra cada riego y recibe una alerta
+                cuando algo se sale de rango. Todo sobre el mapa de tu parcela.
+            </p>
+            <div class="row-actions">
+                <a class="button button--large" th:href="@{/registro}">Crear cuenta gratis</a>
+                <a class="button button--large button--on-photo" th:href="@{/login}">Ya tengo cuenta</a>
+            </div>
+        </div>
+        <p class="landing-credit">Fotografía: Jeyson Diaz · CC BY-SA 4.0 · Tajumbina, Nariño</p>
+    </section>
+
+    <section class="landing-section" aria-labelledby="featuresTitle">
+        <h2 id="featuresTitle">Lo que hace por tu finca</h2>
+        <ul class="landing-features">
+            <li class="card">
+                <span class="stat-icon mini-icon" aria-hidden="true"><i class="bi bi-broadcast"></i></span>
+                <h3>Lecturas de tus sensores</h3>
+                <p>Humedad del suelo, temperatura, pH, conductividad y luz de cada cultivo, con su tendencia de las últimas 24 horas.</p>
+            </li>
+            <li class="card">
+                <span class="stat-icon mini-icon" aria-hidden="true"><i class="bi bi-droplet"></i></span>
+                <h3>Riego bajo control</h3>
+                <p>Registra cada riego con su duración y sus litros, y consulta cuánta agua recibió cada cultivo y cada parcela.</p>
+            </li>
+            <li class="card">
+                <span class="stat-icon mini-icon" aria-hidden="true"><i class="bi bi-bell"></i></span>
+                <h3>Alertas a tiempo</h3>
+                <p>Define el rango aceptable de cada cultivo y entérate cuando una lectura se sale de él.</p>
+            </li>
+        </ul>
+    </section>
+
+    <section class="landing-section landing-section--tinted" aria-labelledby="screensTitle">
+        <h2 id="screensTitle">Así se ve por dentro</h2>
+        <p class="landing-sub">Capturas de la aplicación con los datos de la cuenta de demostración.</p>
+        <ul class="landing-screens">
+            <li>
+                <img th:src="@{/img/screens/inicio.jpg}" width="1280" height="800" loading="lazy" decoding="async"
+                     alt="Pantalla de inicio con indicadores, mapa de parcelas y alertas">
+                <p><strong>Inicio.</strong> Los indicadores, el mapa y las alertas de un vistazo.</p>
+            </li>
+            <li>
+                <img th:src="@{/img/screens/parcela.jpg}" width="1280" height="800" loading="lazy" decoding="async"
+                     alt="Página de una parcela con su contorno, sus sensores y su cobertura en el mapa">
+                <p><strong>Tu parcela.</strong> Su contorno, sus cultivos y lo que cubre cada sensor.</p>
+            </li>
+            <li>
+                <img th:src="@{/img/screens/sensores.jpg}" width="1280" height="800" loading="lazy" decoding="async"
+                     alt="Lista de sensores en tarjetas con su última lectura">
+                <p><strong>Sensores.</strong> La última lectura de cada uno y hace cuánto llegó.</p>
+            </li>
+        </ul>
+    </section>
+
+    <section class="landing-section" aria-labelledby="stepsTitle">
+        <h2 id="stepsTitle">Empieza en tres pasos</h2>
+        <ol class="landing-steps">
+            <li><span class="stepper-number" aria-hidden="true">1</span><h3>Dibuja tu parcela</h3><p>Marca sus esquinas en el mapa; el área se calcula sola.</p></li>
+            <li><span class="stepper-number" aria-hidden="true">2</span><h3>Registra tus cultivos</h3><p>Con los rangos de humedad, temperatura y pH que les convienen.</p></li>
+            <li><span class="stepper-number" aria-hidden="true">3</span><h3>Ubica tus sensores</h3><p>Colócalos en el mapa e indica cuánto terreno cubre cada uno.</p></li>
+        </ol>
+        <a class="button button--large" th:href="@{/registro}">Crear cuenta</a>
+    </section>
+</main>
+
+<footer class="landing-footer">
+    <span th:replace="~{fragments/brand :: logo(26, false)}"></span>
+    <p>Proyecto universitario de Ingeniería de Software. Mapas © colaboradores de OpenStreetMap.</p>
+</footer>
+<script type="module" th:src="@{/js/login.js}"></script>
+</body>
+</html>
