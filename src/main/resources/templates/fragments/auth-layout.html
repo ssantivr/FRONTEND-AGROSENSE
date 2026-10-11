@@ -1,34 +1,50 @@
 <!DOCTYPE html>
-<!-- Two-column shell shared by the sign-in and sign-up pages. -->
-<html lang="es" xmlns:th="http://www.thymeleaf.org" th:fragment="auth(title, content)">
+<!-- Two-panel shell shared by the sign-in and sign-up pages: brand and photograph on one side, the form on the other.
+     photo: file name in /img/photos without size or extension. credit: its author and licence, shown under it. -->
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:fragment="auth(title, content, photo, credit)">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="|${title} · AgroSense|">AgroSense</title>
-    <link rel="icon" type="image/svg+xml" th:href="@{/img/logo.svg}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap">
-    <link rel="stylesheet" th:href="@{/webjars/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css}">
-    <link rel="stylesheet" th:href="@{/css/tokens.css}">
-    <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <th:block th:replace="~{fragments/brand :: head-assets}"></th:block>
 </head>
-<body class="login-page">
-<main class="login">
-    <section class="login-hero" aria-label="AgroSense">
-        <img class="login-hero-art" th:src="@{/img/field.svg}" alt="" width="800" height="600">
-        <div class="login-hero-content">
-            <div class="login-brand">
-                <img th:src="@{/img/logo.svg}" alt="" width="44" height="44">
-                <span>AgroSense</span>
-            </div>
-            <h1>Cada gota y cada dato, donde tu cultivo los necesita.</h1>
-            <p>Monitorea tus parcelas, sensores y riegos desde un solo lugar.</p>
+<body class="auth-page">
+<main class="auth">
+    <!-- data-state: loading until the photograph has decoded, then loaded; error keeps the brand background. -->
+    <section class="auth-hero on-panel" id="authHero" data-state="loading" aria-label="AgroSense">
+        <div class="auth-hero-placeholder" aria-hidden="true"></div>
+        <img class="auth-hero-photo" id="authHeroPhoto" alt="" width="1600" height="1200"
+             fetchpriority="high" decoding="async"
+             th:src="@{|/img/photos/${photo}-960.jpg|}"
+             th:srcset="@{|/img/photos/${photo}-960.jpg|} + ' 960w, ' + @{|/img/photos/${photo}-1600.jpg|} + ' 1600w'"
+             sizes="(min-width: 1024px) 55vw, 100vw">
+        <div class="auth-hero-content">
+            <span th:replace="~{fragments/brand :: logo(44, true)}"></span>
+        </div>
+        <div class="auth-hero-content auth-hero-content--bottom">
+            <p class="auth-hero-title">Tecnología que cultiva un mejor futuro.</p>
+            <p class="auth-hero-lead">Monitoreo inteligente para una agricultura más productiva, sostenible y rentable.</p>
+            <!-- Signing up: what comes next. Signing in: what the application does. -->
+            <ol class="auth-next" th:if="${title == 'Crear cuenta'}">
+                <li><span class="stepper-number" aria-hidden="true">1</span> Dibuja tu parcela en el mapa</li>
+                <li><span class="stepper-number" aria-hidden="true">2</span> Registra sus cultivos y sus rangos</li>
+                <li><span class="stepper-number" aria-hidden="true">3</span> Ubica tus sensores y lo que cubren</li>
+            </ol>
+            <ul class="auth-capabilities" th:unless="${title == 'Crear cuenta'}">
+                <li><i class="bi bi-broadcast" aria-hidden="true"></i> Lecturas de sensores por cultivo</li>
+                <li><i class="bi bi-droplet" aria-hidden="true"></i> Registro de riegos y consumo de agua</li>
+                <li><i class="bi bi-bell" aria-hidden="true"></i> Alertas según los rangos de cada cultivo</li>
+                <li><i class="bi bi-map" aria-hidden="true"></i> Mapa de tus parcelas</li>
+            </ul>
+            <p class="auth-hero-foot" th:text="|Fotografía: ${credit}|">Fotografía: autor · licencia</p>
         </div>
     </section>
 
-    <section class="login-panel">
+    <section class="auth-panel">
+        <div class="auth-panel-top">
+            <span th:replace="~{fragments/brand :: logo(32, false)}"></span>
+            <div th:replace="~{fragments/brand :: theme-toggle}"></div>
+        </div>
         <form th:replace="${content}"></form>
     </section>
 </main>

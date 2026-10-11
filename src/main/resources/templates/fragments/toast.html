@@ -1,11 +1,17 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <body>
+<!-- Same structure as the toasts app.js builds: icon, text, close button and the timer bar that ends it. -->
 <div class="toast-region" id="toastRegion" th:fragment="toast" aria-live="polite" aria-atomic="true">
-    <div class="toast" th:if="${toastMessage != null}" th:classappend="|toast--${toastType ?: 'info'}|">
-        <i class="bi" th:classappend="${toastType == 'success'} ? 'bi-check-circle' : 'bi-info-circle'"
-           aria-hidden="true"></i>
+    <div class="toast" th:if="${toastMessage != null}" th:classappend="|toast--${toastType ?: 'info'}|"
+         th:role="${toastType == 'error'} ? 'alert' : 'status'">
+        <i class="bi" aria-hidden="true"
+           th:classappend="${toastType == 'success'} ? 'bi-check-circle' : (${toastType == 'error'} ? 'bi-exclamation-octagon' : 'bi-info-circle')"></i>
         <span th:text="${toastMessage}">Mensaje</span>
+        <button type="button" class="icon-button toast-close" aria-label="Cerrar aviso">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+        <span class="toast-timer" aria-hidden="true"></span>
     </div>
 </div>
 </body>

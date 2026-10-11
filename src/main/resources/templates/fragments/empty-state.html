@@ -2,9 +2,38 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <body>
 <div class="state state--empty" th:fragment="empty-state(icon, title, text)">
-    <i class="bi" th:classappend="${icon}" aria-hidden="true"></i>
+    <span th:replace="~{fragments/empty-state :: art(${icon})}"></span>
     <h2 th:text="${title}">Sin datos</h2>
     <p th:text="${text}">Aún no hay información para mostrar.</p>
 </div>
+
+<!-- The same, with the one action that gets the user out of the empty state. -->
+<div class="state state--empty" th:fragment="empty-state-action(icon, title, text, url, label)">
+    <span th:replace="~{fragments/empty-state :: art(${icon})}"></span>
+    <h2 th:text="${title}">Sin datos</h2>
+    <p th:text="${text}">Aún no hay información para mostrar.</p>
+    <a class="button" th:href="@{${url}}"><i class="bi bi-plus-lg" aria-hidden="true"></i> <span th:text="${label}">Crear</span></a>
+</div>
+
+<!-- Brand illustration: a seedling on a furrow, its leaves traced like the logo's circuit, with the
+     section's icon as a badge. Drawn with the theme's colours. -->
+<span class="state-art" th:fragment="art(icon)" aria-hidden="true">
+    <svg viewBox="0 0 160 120" focusable="false">
+        <ellipse class="state-art-ground" cx="80" cy="102" rx="62" ry="9"/>
+        <path class="state-art-furrow" d="M30 102h100M44 108h72"/>
+        <path class="state-art-stem" d="M80 102V52"/>
+        <path class="state-art-leaf" d="M80 74C62 74 50 62 48 44c18 0 30 10 32 30Z"/>
+        <path class="state-art-leaf" d="M80 60c0-20 12-32 32-34 0 20-12 32-32 34Z"/>
+        <path class="state-art-vein" d="M80 74 58 52M80 60l22-22M66 60h-9M92 48v-9"/>
+        <circle class="state-art-node" cx="58" cy="52" r="2.6"/>
+        <circle class="state-art-node" cx="102" cy="38" r="2.6"/>
+        <circle class="state-art-node" cx="57" cy="60" r="2.2"/>
+        <circle class="state-art-node" cx="92" cy="39" r="2.2"/>
+        <circle class="state-art-dot" cx="22" cy="40" r="2"/>
+        <circle class="state-art-dot" cx="136" cy="62" r="2"/>
+        <circle class="state-art-dot" cx="128" cy="22" r="1.5"/>
+    </svg>
+    <span class="state-art-badge"><i class="bi" th:classappend="${icon}"></i></span>
+</span>
 </body>
 </html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Favicon, theme, font and stylesheets shared by every page. theme-init.js must stay a blocking script. -->
+    <th:block th:fragment="head-assets">
+        <meta name="theme-color" content="#10291f">
+        <link rel="icon" type="image/svg+xml" th:href="@{/img/brand/favicon.svg}">
+        <script th:src="@{/js/theme-init.js}"></script>
+        <link rel="preload" as="font" type="font/woff2" crossorigin th:href="@{/fonts/PlusJakartaSans.woff2}">
+        <link rel="stylesheet" th:href="@{/webjars/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css}">
+        <link rel="stylesheet" th:href="@{/css/tokens.css}">
+        <link rel="stylesheet" th:href="@{/css/styles.css}">
+    </th:block>
+</head>
+<body>
+<!-- The symbol: a leaf in two tones, split by a midrib that branches like a circuit and ends in three
+     sensor nodes. It is drawn inline so CSS can colour it per theme and animate it. `draw` traces the
+     circuit on load (sign-in and front page only). -->
+<svg th:fragment="mark(size, draw)" class="brand-mark" th:classappend="${draw} ? 'brand-mark--draw'"
+     th:width="${size}" th:height="${size}" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+    <path class="brand-mark-stem" d="M9 39l-4 4"/>
+    <path class="brand-mark-leaf-2" d="M9 39C9 21 21 9 39 9L9 39Z"/>
+    <path class="brand-mark-leaf" d="M9 39C27 39 39 27 39 9L9 39Z"/>
+    <path class="brand-mark-vein" pathLength="1" d="M14 34L30 18M20 28v-8M25 23h8"/>
+    <g>
+        <circle class="brand-mark-node" cx="30" cy="18" r="2.6"/>
+        <circle class="brand-mark-node" cx="20" cy="20" r="2.2"/>
+        <circle class="brand-mark-node" cx="33" cy="23" r="2.2"/>
+    </g>
+</svg>
+
+<!-- Symbol plus wordmark. The name is real text in the display face; "Sense" takes the accent colour. -->
+<span th:fragment="logo(size, draw)" class="brand-logo">
+    <svg th:replace="~{fragments/brand :: mark(${size}, ${draw})}"></svg>
+    <span class="brand-logo-name">Agro<span class="brand-logo-accent">Sense</span></span>
+</span>
+
+<div th:fragment="theme-toggle" class="theme-toggle" role="radiogroup" aria-label="Tema de la interfaz"
+     data-theme-toggle>
+    <button type="button" class="theme-toggle-option" role="radio" aria-checked="true" data-theme-value="premium"
+            aria-label="Tema Premium, a color" title="Tema Premium">
+        <i class="bi bi-brightness-high" aria-hidden="true"></i>
+    </button>
+    <button type="button" class="theme-toggle-option" role="radio" aria-checked="false" data-theme-value="dark"
+            aria-label="Tema oscuro" title="Tema oscuro">
+        <i class="bi bi-moon-stars" aria-hidden="true"></i>
+    </button>
+    <button type="button" class="theme-toggle-option" role="radio" aria-checked="false" data-theme-value="mono"
+            aria-label="Tema blanco y negro" title="Tema blanco y negro">
+        <i class="bi bi-circle-half" aria-hidden="true"></i>
+    </button>
+    <span class="theme-toggle-thumb" aria-hidden="true"></span>
+</div>
+</body>
+</html>
