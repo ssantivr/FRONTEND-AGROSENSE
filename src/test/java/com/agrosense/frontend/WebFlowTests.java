@@ -47,6 +47,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** End-to-end checks of the web layer against the seeded demo database. */
@@ -88,7 +89,7 @@ class WebFlowTests {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"/", "/parcelas", "/sensores", "/riego", "/dispositivos", "/alertas", "/reportes",
+    @ValueSource(strings = {"/parcelas", "/parcelas/1", "/sensores", "/riego", "/alertas", "/reportes",
             "/configuracion", "/api/ui/water-usage"})
     void anonymousUsersAreSentToLogin(String path) throws Exception {
         mvc.perform(get(path)).andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/login"));
@@ -129,7 +130,7 @@ class WebFlowTests {
 
     @ParameterizedTest
     @ValueSource(strings = {"/parcelas|Finca La Esperanza", "/sensores|AS-001", "/riego|Iniciar riego manual",
-            "/dispositivos|No disponible", "/alertas|Humedad baja", "/reportes|Consumo de agua por cultivo",
+            "/alertas|Humedad baja", "/reportes|Consumo de agua por cultivo",
             "/configuracion|demo@agrosense.co"})
     void everyMenuPageRendersForTheSignedInUser(String pathAndText) throws Exception {
         String[] parts = pathAndText.split("\\|");
@@ -269,7 +270,7 @@ class WebFlowTests {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Ingresa tu nombre.")))
                 .andExpect(content().string(containsString("Ingresa un correo electrónico válido.")))
-                .andExpect(content().string(containsString("La contraseña debe tener entre 8 y 72 caracteres.")))
+                .andExpect(content().string(containsString("La contraseña debe tener entre 8 y 32 caracteres.")))
                 .andExpect(content().string(containsString("Las contraseñas no coinciden.")))
                 .andExpect(content().string(not(containsString("value=\"short\""))));
         assertThat(userRepository.findByEmail("not-an-email")).isEmpty();
@@ -284,6 +285,240 @@ class WebFlowTests {
         assertThat(created.getRole()).isEqualTo("farmer");
         mvc.perform(formLogin("/login").userParameter("email").user("new@agrosense.test").password("a-long-password"))
                 .andExpect(authenticated().withUsername("new@agrosense.test"));
+    }
+
+    @Test
+    void registrationLimitsCountSpacesAndAreShownInTheForm() throws Exception {
+        mvc.perform(get("/registro")).andExpect(status().isOk())
+                .andExpect(content().string(containsString("maxlength=\"18\"")))
+                .andExpect(content().string(containsString("maxlength=\"32\"")))
+                .andExpect(content().string(containsString("id=\"nameCounter\"")))
+                .andExpect(content().string(containsString("data-strength-for=\"password\"")));
+
+        // "Maximiliano Andres" is 18 characters with its space; one more is over the limit.
+        mvc.perform(post("/registro").with(csrf())
+                        .param("name", "Maximiliano Andres1").param("lastName", "P").param("email", "limits@agrosense.test")
+                        .param("password", "p".repeat(33)).param("confirmPassword", "p".repeat(33)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("El nombre debe tener entre 2 y 18 caracteres.")))
+                .andExpect(content().string(containsString("El apellido debe tener entre 2 y 18 caracteres.")))
+                .andExpect(content().string(containsString("La contraseña debe tener entre 8 y 32 caracteres.")))
+                .andExpect(content().string(containsString(">19/18<")));
+        assertThat(userRepository.findByEmail("limits@agrosense.test")).isEmpty();
+
+        mvc.perform(post("/registro").with(csrf())
+                        .param("name", "Maximiliano Andres").param("lastName", "De La Cruz Paz Ruiz")
+                        .param("email", "limits@agrosense.test")
+                        .param("password", "p".repeat(32)).param("confirmPassword", "p".repeat(32)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("El apellido debe tener entre 2 y 18 caracteres.")));
+        mvc.perform(post("/registro").with(csrf())
+                        .param("name", "Maximiliano Andres").param("lastName", "De La Cruz Paz Rui")
+                        .param("email", "limits@agrosense.test")
+                        .param("password", "p".repeat(32)).param("confirmPassword", "p".repeat(32)))
+                .andExpect(redirectedUrl("/login?registered"));
+        assertThat(userRepository.findByEmail("limits@agrosense.test").orElseThrow().getName())
+                .isEqualTo("Maximiliano Andres");
+    }
+
+    @Test
+    void sensorsCanBePlacedOnTheMapWithTheirCoverageAndTakenOffIt() throws Exception {
+        Sensor sensor = sensorRepository.findByCropEstateUserEmailOrderBySensorCode(DEMO_EMAIL).get(0);
+        Sensor foreign = createOtherUsersSensor();
+        String url = "/sensores/" + sensor.getIdSensor() + "/ubicacion";
+
+        mvc.perform(get(url).with(user(demoUser))).andExpect(status().isOk())
+                .andExpect(content().string(containsString("Ubicar el sensor AS-001")))
+                .andExpect(content().string(containsString("id=\"pickerMap\"")));
+        mvc.perform(get("/sensores/{id}/ubicacion", foreign.getIdSensor()).with(user(demoUser)))
+                .andExpect(status().isNotFound());
+        mvc.perform(post("/sensores/{id}/ubicacion", foreign.getIdSensor()).with(user(demoUser)).with(csrf())
+                        .param("latitude", "1").param("longitude", "1").param("coverageM", "10"))
+                .andExpect(status().isNotFound());
+
+        // A point without a radius, and a radius beyond the limit, are refused.
+        mvc.perform(post(url).with(user(demoUser)).with(csrf()).param("latitude", "1.2150").param("longitude", "-77.2800"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Indica latitud, longitud y radio de cobertura")));
+        mvc.perform(post(url).with(user(demoUser)).with(csrf())
+                        .param("latitude", "1.2150").param("longitude", "-77.2800").param("coverageM", "5000"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("no puede superar los 2000 metros")));
+
+        mvc.perform(post(url).with(user(demoUser)).with(csrf())
+                        .param("latitude", "1.2150").param("longitude", "-77.2800").param("coverageM", "75"))
+                .andExpect(redirectedUrl("/sensores"));
+        Sensor placed = sensorRepository.findById(sensor.getIdSensor()).orElseThrow();
+        assertThat(placed.getLatitude()).isEqualByComparingTo("1.2150");
+        assertThat(placed.getCoverageM()).isEqualTo(75);
+        mvc.perform(get("/api/ui/estates/markers").with(user(demoUser)))
+                .andExpect(jsonPath("$[?(@.name == 'Finca La Esperanza')].sensors[?(@.code == 'AS-001')].coverageM").value(75));
+        mvc.perform(get("/sensores").with(user(demoUser)))
+                .andExpect(content().string(containsString("Cubre 75 m a la redonda")));
+
+        mvc.perform(post(url).with(user(demoUser)).with(csrf()))
+                .andExpect(redirectedUrl("/sensores"));
+        assertThat(sensorRepository.findById(sensor.getIdSensor()).orElseThrow().getLatitude()).isNull();
+
+        // A new sensor can be registered already placed.
+        Integer cropId = cropRepository.findByEstateUserEmailAndActiveTrueOrderByName(DEMO_EMAIL).get(0).getIdCrop();
+        mvc.perform(post("/sensores").with(user(demoUser)).with(csrf())
+                        .param("cropId", cropId.toString()).param("sensorCode", "as-777").param("sensorType", "PH")
+                        .param("position.latitude", "1.2140").param("position.longitude", "-77.2810")
+                        .param("position.coverageM", "25"))
+                .andExpect(redirectedUrl("/sensores"));
+        assertThat(sensorRepository.findBySensorCodeIgnoreCase("AS-777").orElseThrow().getCoverageM()).isEqualTo(25);
+    }
+
+    @Test
+    void anEstateOutlineIsValidatedStoredAndFillsTheAreaAndTheCentreLeftEmpty() throws Exception {
+        // About 222 m by 222 m at the equator: close to 4.94 hectares.
+        String square = "[[0.001,0.001],[0.001,0.003],[0.003,0.003],[0.003,0.001]]";
+
+        mvc.perform(get("/parcelas/nueva").with(user(demoUser)))
+                .andExpect(content().string(containsString("id=\"boundaryMap\"")));
+        for (String invalid : new String[] {"[[1,2],[3,4]]", "[[95,0],[1,1],[2,2]]", "not json", "[[1,2,3],[1,1],[2,2]]",
+                "[[\"a\",1],[1,1],[2,2]]"}) {
+            mvc.perform(post("/parcelas").with(user(demoUser)).with(csrf())
+                            .param("name", "Finca Contorno").param("boundary", invalid))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString("El contorno debe tener entre 3 y 200 puntos válidos.")));
+        }
+
+        mvc.perform(post("/parcelas").with(user(demoUser)).with(csrf())
+                        .param("name", "Finca Contorno").param("boundary", square))
+                .andExpect(redirectedUrl("/parcelas"));
+        Estate drawn = estateRepository.findByUserEmailOrderByName(DEMO_EMAIL).stream()
+                .filter(estate -> estate.getName().equals("Finca Contorno")).findFirst().orElseThrow();
+        assertThat(drawn.getBoundary()).startsWith("[[0.0010000,0.0010000],").endsWith(",[0.0030000,0.0010000]]");
+        assertThat(drawn.getAreaHa()).isBetween(new java.math.BigDecimal("4.90"), new java.math.BigDecimal("4.98"));
+        assertThat(drawn.getLatitude()).isEqualByComparingTo("0.002");
+        assertThat(drawn.getLongitude()).isEqualByComparingTo("0.002");
+        mvc.perform(get("/api/ui/estates/markers").with(user(demoUser)))
+                .andExpect(jsonPath("$[?(@.name == 'Finca Contorno')].boundary[0][1]").value(0.001))
+                .andExpect(jsonPath("$[?(@.name == 'Finca Contorno')].boundary.length()").value(4));
+        mvc.perform(get("/parcelas/{id}/editar", drawn.getIdEstate()).with(user(demoUser)))
+                .andExpect(content().string(containsString("value=\"[[0.0010000,0.0010000],")));
+
+        // Values the user typed are kept; removing the outline leaves the rest as it is.
+        mvc.perform(post("/parcelas/{id}", drawn.getIdEstate()).with(user(demoUser)).with(csrf())
+                        .param("name", "Finca Contorno").param("areaHa", "7.5")
+                        .param("latitude", "0.0015").param("longitude", "0.0015"))
+                .andExpect(redirectedUrl("/parcelas"));
+        Estate edited = estateRepository.findById(drawn.getIdEstate()).orElseThrow();
+        assertThat(edited.getBoundary()).isNull();
+        assertThat(edited.getAreaHa()).isEqualByComparingTo("7.5");
+        assertThat(edited.getLatitude()).isEqualByComparingTo("0.0015");
+    }
+
+    @Test
+    void visitorsSeeThePublicFrontPageAndSignedInUsersTheirDashboard() throws Exception {
+        mvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Tecnología que cultiva un mejor futuro.")))
+                .andExpect(content().string(containsString("href=\"/registro\"")))
+                .andExpect(content().string(not(containsString("Usuario Demo"))));
+        mvc.perform(get("/").with(user(demoUser)))
+                .andExpect(content().string(containsString("Hola, <span>Usuario Demo</span>")));
+    }
+
+    @Test
+    void anEstateHasItsOwnPageWithItsCropsSensorsAlertsAndIrrigations() throws Exception {
+        Estate esperanza = estateRepository.findByUserEmailOrderByName(DEMO_EMAIL).stream()
+                .filter(estate -> estate.getName().equals("Finca La Esperanza")).findFirst().orElseThrow();
+        Sensor foreign = createOtherUsersSensor();
+
+        mvc.perform(get("/parcelas/{id}", esperanza.getIdEstate()).with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Finca La Esperanza")))
+                .andExpect(content().string(containsString("id=\"detailMap\"")))
+                .andExpect(content().string(containsString("Plátano")))
+                .andExpect(content().string(containsString("AS-001")))
+                .andExpect(content().string(containsString("Humedad baja")))
+                // Sensors and alerts of the user's other estate stay out.
+                .andExpect(content().string(not(containsString("AS-006"))))
+                .andExpect(content().string(not(containsString("Plaga detectada"))))
+                .andExpect(content().string(containsString("aria-current=\"page\"")));
+        mvc.perform(get("/parcelas/{id}", foreign.getCrop().getEstate().getIdEstate()).with(user(demoUser)))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/parcelas").with(user(demoUser)))
+                .andExpect(content().string(containsString("href=\"/parcelas/" + esperanza.getIdEstate() + "\"")));
+    }
+
+    @Test
+    void theGuidedSetUpLeadsFromTheEstateToItsCropAndThenToItsSensor() throws Exception {
+        createOtherUsersSensor();
+        UserDetails other = userDetailsService.loadUserByUsername(OTHER_EMAIL);
+
+        mvc.perform(get("/parcelas/nueva?guia=1").with(user(other)))
+                .andExpect(content().string(containsString("class=\"stepper\"")))
+                .andExpect(content().string(containsString("name=\"guia\"")));
+        mvc.perform(get("/parcelas/nueva").with(user(other)))
+                .andExpect(content().string(not(containsString("class=\"stepper\""))));
+        // A rejected form keeps the guide going.
+        mvc.perform(post("/parcelas").with(user(other)).with(csrf()).param("guia", "1").param("name", " "))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("class=\"stepper\"")));
+
+        mvc.perform(post("/parcelas").with(user(other)).with(csrf()).param("guia", "1").param("name", "Finca Guiada"))
+                .andExpect(redirectedUrlPattern("/parcelas/*/cultivos/nuevo?guia=1"));
+        Estate estate = estateRepository.findByUserEmailOrderByName(OTHER_EMAIL).stream()
+                .filter(candidate -> candidate.getName().equals("Finca Guiada")).findFirst().orElseThrow();
+        mvc.perform(post("/parcelas/{id}/cultivos", estate.getIdEstate()).with(user(other)).with(csrf())
+                        .param("guia", "1").param("name", "Arveja").param("stage", "GROWTH").param("active", "true")
+                        .param("humidityMin", "40").param("humidityMax", "80")
+                        .param("tempMin", "10").param("tempMax", "30").param("phMin", "5.5").param("phMax", "7"))
+                .andExpect(redirectedUrlPattern("/sensores/nuevo?guia=1&cultivo=*"));
+        Crop crop = cropRepository.findByEstateUserEmailAndActiveTrueOrderByName(OTHER_EMAIL).stream()
+                .filter(candidate -> candidate.getName().equals("Arveja")).findFirst().orElseThrow();
+        mvc.perform(get("/sensores/nuevo?guia=1&cultivo=" + crop.getIdCrop()).with(user(other)))
+                .andExpect(content().string(containsString("Terminar sin sensor")))
+                .andExpect(content().string(containsString("value=\"" + crop.getIdCrop() + "\" selected=\"selected\"")));
+        mvc.perform(post("/sensores").with(user(other)).with(csrf()).param("guia", "1")
+                        .param("cropId", crop.getIdCrop().toString()).param("sensorCode", "guia-1")
+                        .param("sensorType", "SOIL_MOISTURE"))
+                .andExpect(redirectedUrl("/"));
+        // Without the guide the same forms end where they always did.
+        mvc.perform(post("/parcelas").with(user(other)).with(csrf()).param("name", "Finca Suelta"))
+                .andExpect(redirectedUrl("/parcelas"));
+    }
+
+    @Test
+    void reportsCoverAChosenPeriodWithWaterSensorsAndAlerts() throws Exception {
+        mvc.perform(get("/reportes").with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Periodo: últimos 30 días")))
+                .andExpect(content().string(containsString("Consumo de agua por cultivo")))
+                .andExpect(content().string(containsString("Lo que midió cada sensor")))
+                .andExpect(content().string(containsString("AS-001")))
+                .andExpect(content().string(containsString("Dentro del rango")))
+                .andExpect(content().string(containsString("Alertas por tipo")))
+                .andExpect(content().string(containsString("Humedad baja")))
+                .andExpect(content().string(containsString("data-charts=\"{&quot;byCrop&quot;:")))
+                // The inactive sensor has no readings, so it has nothing to report.
+                .andExpect(content().string(not(containsString("AS-006"))));
+        mvc.perform(get("/reportes?dias=7").with(user(demoUser)))
+                .andExpect(content().string(containsString("Periodo: últimos 7 días")));
+        mvc.perform(get("/reportes?dias=0").with(user(demoUser)))
+                .andExpect(content().string(containsString("Periodo: todo el registro")));
+        // A period that is not offered falls back to the default one.
+        mvc.perform(get("/reportes?dias=999").with(user(demoUser)))
+                .andExpect(content().string(containsString("Periodo: últimos 30 días")));
+
+        createOtherUsersSensor();
+        mvc.perform(get("/reportes").with(user(userDetailsService.loadUserByUsername(OTHER_EMAIL))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Sin riegos en el periodo")))
+                .andExpect(content().string(containsString("Sin lecturas en el periodo")))
+                .andExpect(content().string(not(containsString("AS-001"))));
+    }
+
+    @Test
+    void theRemovedDevicesPageNoLongerExists() throws Exception {
+        mvc.perform(get("/dispositivos").with(user(demoUser))).andExpect(status().isNotFound());
+        mvc.perform(get("/").with(user(demoUser)))
+                .andExpect(content().string(not(containsString("Dispositivos"))))
+                .andExpect(content().string(containsString("id=\"commandPalette\"")));
     }
 
     @Test
