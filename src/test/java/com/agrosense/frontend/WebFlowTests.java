@@ -204,6 +204,10 @@ class WebFlowTests {
                 .andExpect(content().string(containsString("/css/ai-chat.css")));
         mvc.perform(get("/login")).andExpect(content().string(not(containsString("id=\"aiChat\""))));
         mvc.perform(get("/js/ai/chat-widget.js")).andExpect(status().isOk());
+        // The sign-in page loads the piece that erases the stored conversation.
+        mvc.perform(get("/js/ai/storage.js")).andExpect(status().isOk())
+                .andExpect(content().string(containsString("removeItem")));
+        mvc.perform(get("/js/login.js")).andExpect(content().string(containsString("forgetConversation()")));
         mvc.perform(get("/css/ai-chat.css")).andExpect(status().isOk());
 
         String question = "{\"message\":\"¿Cuándo riego?\"}";
