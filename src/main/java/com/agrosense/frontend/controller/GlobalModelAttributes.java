@@ -24,7 +24,6 @@ public class GlobalModelAttributes {
             new NavItem("/parcelas", "Parcelas", "bi-map", false),
             new NavItem("/sensores", "Sensores", "bi-broadcast", false),
             new NavItem("/riego", "Riego", "bi-droplet", false),
-            new NavItem("/dispositivos", "Dispositivos", "bi-cpu", false),
             new NavItem("/alertas", "Alertas", "bi-bell", false),
             new NavItem("/reportes", "Reportes", "bi-bar-chart", false),
             new NavItem("/configuracion", "Configuración", "bi-gear", false));
@@ -35,6 +34,10 @@ public class GlobalModelAttributes {
     @ModelAttribute
     public void addLayoutAttributes(Model model, HttpServletRequest request, Principal principal) {
         String path = request.getRequestURI().substring(request.getContextPath().length());
+        // JSON endpoints render no layout: skip the navigation and, above all, the alert count query.
+        if (path.startsWith("/api/")) {
+            return;
+        }
         model.addAttribute("navigation", NAVIGATION.stream()
                 .map(item -> new NavItem(item.path(), item.label(), item.icon(), isActive(item.path(), path)))
                 .toList());
