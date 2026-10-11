@@ -2,58 +2,121 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{fragments/layout :: layout('Sensores', ~{::main}, null)}">
 <body>
-<main id="main" class="app-content" tabindex="-1">
+<main id="main" class="app-content" tabindex="-1" data-motion-stagger>
     <div class="page-toolbar">
         <header th:replace="~{fragments/page-header :: page-header('Sensores', 'Sensores instalados y su última lectura recibida.')}"></header>
-        <a class="button" th:href="@{/sensores/nuevo}"><i class="bi bi-plus-lg" aria-hidden="true"></i> Nuevo sensor</a>
+        <div class="row-actions">
+            <!-- Cards or table; tables.ts remembers the choice in this browser. -->
+            <div class="segmented" role="group" aria-label="Vista" th:if="${!sensors.isEmpty()}" data-view-toggle="sensorsView">
+                <button type="button" class="segmented-option" data-view="cards" aria-pressed="true">
+                    <i class="bi bi-grid" aria-hidden="true"></i> Tarjetas
+                </button>
+                <button type="button" class="segmented-option" data-view="table" aria-pressed="false">
+                    <i class="bi bi-table" aria-hidden="true"></i> Tabla
+                </button>
+            </div>
+            <button type="button" class="button button--ghost" data-export-csv="sensorsTable" data-filename="sensores">
+                <i class="bi bi-download" aria-hidden="true"></i> Exportar CSV
+            </button>
+            <a class="button" th:href="@{/sensores/nuevo}"><i class="bi bi-plus-lg" aria-hidden="true"></i> Nuevo sensor</a>
+        </div>
     </div>
 
-    <section class="card">
-        <th:block th:if="${sensors.isEmpty()}">
-            <div th:replace="~{fragments/empty-state :: empty-state('bi-broadcast', 'Sin sensores',
-                'Aún no hay sensores registrados en tus cultivos.')}"></div>
-        </th:block>
-
-        <div class="table-scroll" th:if="${!sensors.isEmpty()}">
-            <table class="table">
-                <thead>
-                <tr>
-                    <th>Código</th>
-                    <th>Tipo</th>
-                    <th>Cultivo</th>
-                    <th>Finca</th>
-                    <th>Ubicación</th>
-                    <th class="numeric">Última lectura</th>
-                    <th>Recibida</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="sensor : ${sensors}" data-search-row>
-                    <td th:text="${sensor.code}">AS-001</td>
-                    <td th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</td>
-                    <td th:text="${sensor.cropName}">Café</td>
-                    <td th:text="${sensor.estateName}">Finca</td>
-                    <td th:text="${sensor.location ?: '—'}">Lote norte</td>
-                    <td class="numeric"
-                        th:text="${sensor.lastValue != null ? #numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA') + ' ' + sensor.unit : '—'}">52,0 %</td>
-                    <td th:text="${sensor.lastReadingAt != null ? #temporals.format(sensor.lastReadingAt, 'd MMM, HH:mm') : '—'}">8 oct, 10:00</td>
-                    <td>
-                        <th:block th:if="${sensor.active}"><span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-check-circle-fill', 'Activo')}"></span></th:block>
-                        <th:block th:unless="${sensor.active}"><span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-dash-circle', 'Inactivo')}"></span></th:block>
-                    </td>
-                    <td>
-                        <form th:action="@{/sensores/{id}/eliminar(id=${sensor.id})}" method="post"
-                              th:attr="data-confirm=|¿Eliminar el sensor ${sensor.code} y todas sus lecturas? No se puede deshacer.|">
-                            <button type="submit" class="button button--ghost button--small button--danger-ghost">Eliminar</button>
-                        </form>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
+    <section class="card" th:if="${sensors.isEmpty()}">
+        <div th:replace="~{fragments/empty-state :: empty-state-action('bi-broadcast', 'Sin sensores',
+            'Aún no hay sensores registrados en tus cultivos. Registra el primero para ver sus lecturas.',
+            '/sensores/nuevo', 'Registrar tu primer sensor')}"></div>
     </section>
+
+    <!-- Both views hold the same sensors; data-view on this element decides which one shows. -->
+    <div id="sensorsView" data-view="cards" th:if="${!sensors.isEmpty()}">
+        <ul class="sensor-cards" data-view-panel="cards">
+            <li class="card sensor-card" th:each="sensor : ${sensors}" data-search-row
+                th:classappend="${!sensor.active} ? 'sensor-card--inactive' : (${sensor.lastValue == null} ? 'sensor-card--empty' : '')">
+                <div class="sensor-card-head">
+                    <span class="stat-icon" aria-hidden="true"><i class="bi" th:classappend="${sensor.icon()}"></i></span>
+                    <div>
+                        <h2 th:text="${sensor.code}">AS-001</h2>
+                        <span class="text-muted" th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</span>
+                    </div>
+                    <th:block th:if="${sensor.active}"><span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-check-circle-fill', 'Activo')}"></span></th:block>
+                    <th:block th:unless="${sensor.active}"><span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-dash-circle', 'Inactivo')}"></span></th:block>
+                </div>
+                <p class="sensor-card-value" th:if="${sensor.lastValue != null}">
+                    <span th:text="${#numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA')}">52,0</span>
+                    <span class="stat-unit" th:text="${sensor.unit}">%</span>
+                </p>
+                <p class="sensor-card-value sensor-card-value--empty" th:if="${sensor.lastValue == null}">Sin lecturas</p>
+                <p class="sensor-card-age" th:if="${sensor.lastValue != null and sensor.lastReadingAt != null}">
+                    <i class="bi bi-clock" aria-hidden="true"></i>
+                    <time th:datetime="${sensor.lastReadingAt}" th:title="${#temporals.format(sensor.lastReadingAt, 'd MMM yyyy, HH:mm')}"
+                          th:text="|Última lectura ${sensor.lastReadingAgo()}|">Última lectura hace 3 h</time>
+                </p>
+                <dl class="sensor-card-meta">
+                    <dt><i class="bi bi-flower1" aria-hidden="true"></i><span class="visually-hidden">Cultivo</span></dt>
+                    <dd th:text="|${sensor.cropName} · ${sensor.estateName}|">Café · Finca</dd>
+                    <th:block th:if="${sensor.location != null}">
+                        <dt><i class="bi bi-geo-alt" aria-hidden="true"></i><span class="visually-hidden">Ubicación</span></dt>
+                        <dd th:text="${sensor.location}">Lote norte</dd>
+                    </th:block>
+                    <dt><i class="bi bi-bullseye" aria-hidden="true"></i><span class="visually-hidden">Cobertura</span></dt>
+                    <dd th:text="${sensor.placed()} ? |Cubre ${sensor.coverageM} m a la redonda| : 'Sin ubicar en el mapa'">Cubre 40 m a la redonda</dd>
+                </dl>
+                <div class="sensor-card-actions">
+                    <a class="button button--ghost button--small" th:href="@{/sensores/{id}/ubicacion(id=${sensor.id})}">
+                        <i class="bi bi-geo" aria-hidden="true"></i>
+                        <span th:text="${sensor.placed()} ? 'Mover en el mapa' : 'Ubicar en el mapa'">Ubicar en el mapa</span>
+                    </a>
+                    <form th:action="@{/sensores/{id}/eliminar(id=${sensor.id})}" method="post"
+                          th:attr="data-confirm=|¿Eliminar el sensor ${sensor.code} y todas sus lecturas? No se puede deshacer.|">
+                        <button type="submit" class="button button--ghost button--small button--danger-ghost">Eliminar</button>
+                    </form>
+                </div>
+            </li>
+        </ul>
+
+        <section class="card" data-view-panel="table">
+            <div class="table-scroll">
+                <table class="table" id="sensorsTable">
+                    <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Tipo</th>
+                        <th>Cultivo</th>
+                        <th>Finca</th>
+                        <th>Ubicación</th>
+                        <th class="numeric">Última lectura</th>
+                        <th>Recibida</th>
+                        <th>Estado</th>
+                        <th data-no-export>Acciones</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="sensor : ${sensors}" data-search-row>
+                        <td th:text="${sensor.code}">AS-001</td>
+                        <td th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</td>
+                        <td th:text="${sensor.cropName}">Café</td>
+                        <td th:text="${sensor.estateName}">Finca</td>
+                        <td th:text="${sensor.location ?: '—'}">Lote norte</td>
+                        <td class="numeric"
+                            th:text="${sensor.lastValue != null ? #numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA') + ' ' + sensor.unit : '—'}">52,0 %</td>
+                        <td th:text="${sensor.lastReadingAt != null ? #temporals.format(sensor.lastReadingAt, 'd MMM, HH:mm') : '—'}">8 oct, 10:00</td>
+                        <td>
+                            <th:block th:if="${sensor.active}"><span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-check-circle-fill', 'Activo')}"></span></th:block>
+                            <th:block th:unless="${sensor.active}"><span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-dash-circle', 'Inactivo')}"></span></th:block>
+                        </td>
+                        <td>
+                            <form th:action="@{/sensores/{id}/eliminar(id=${sensor.id})}" method="post"
+                                  th:attr="data-confirm=|¿Eliminar el sensor ${sensor.code} y todas sus lecturas? No se puede deshacer.|">
+                                <button type="submit" class="button button--ghost button--small button--danger-ghost">Eliminar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
 </main>
 </body>
 </html>
