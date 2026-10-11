@@ -1,9 +1,10 @@
 // The assistant's chat window, on every signed-in page: written questions, voice messages and answers read
 // aloud. The conversation lives in sessionStorage, so it survives moving between pages and ends with the tab;
-// it is kept under the account's name, so signing in as someone else in the same tab starts an empty one.
+// it is kept under the account's name and erased on the sign-in page, so nobody who uses the tab next sees it.
 import { ApiError, csrfHeaders, isRecord, messageOf } from '../api/client.js';
 import { el, find, icon } from '../core/dom.js';
 import { plainText, renderMarkdown } from './markdown.js';
+import { CHAT_STORAGE_KEY } from './storage.js';
 import { canRecord, canSpeak, RecordingError, speak, stopSpeaking, VoiceRecorder } from './voice.js';
 import type { RecordingFailure } from './voice.js';
 
@@ -19,7 +20,6 @@ interface AiReply {
   transcript?: string;
 }
 
-const STORAGE_KEY = 'agrosense.ai.chat';
 const SPEAK_KEY = 'agrosense.ai.speak';
 /** Messages kept in the tab, and how many of them travel with a question as context. */
 const MAX_STORED = 40;
@@ -50,7 +50,7 @@ const isMessage = (value: unknown): value is Message =>
 
 function loadMessages(owner: string): Message[] {
   try {
-    const stored: unknown = JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? 'null');
+    const stored: unknown = JSON.parse(sessionStorage.getItem(CHAT_STORAGE_KEY) ?? 'null');
     if (!isRecord(stored) || stored['owner'] !== owner || !Array.isArray(stored['messages'])) return [];
     return stored['messages'].filter(isMessage).slice(-MAX_STORED);
   } catch {
@@ -60,7 +60,7 @@ function loadMessages(owner: string): Message[] {
 
 function saveMessages(owner: string, messages: Message[]): void {
   try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ owner, messages: messages.slice(-MAX_STORED) }));
+    sessionStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify({ owner, messages: messages.slice(-MAX_STORED) }));
   } catch {
     // Storage is full or disabled: the conversation simply lasts until the page is left.
   }

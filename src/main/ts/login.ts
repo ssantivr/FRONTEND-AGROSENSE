@@ -1,5 +1,6 @@
 // Sign-in and sign-up pages: theme switch, hero photograph, password toggles, counters, e-mail availability
 // and the two forms. Without JavaScript both forms still post normally and the server renders the outcome.
+import { forgetConversation } from './ai/storage.js';
 import { messageOf } from './api/client.js';
 import { checkEmail } from './api/ui.js';
 import { all, find, icon, need, prefersReducedMotion } from './core/dom.js';
@@ -16,6 +17,8 @@ import {
 } from './forms.js';
 import { initThemeToggles } from './theme.js';
 
+// These pages are only shown without a session: whatever the last user asked the assistant goes.
+forgetConversation();
 initThemeToggles();
 initCounters();
 initPasswordMeters();
