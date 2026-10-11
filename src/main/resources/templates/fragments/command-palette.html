@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Opened with Ctrl/⌘ + K or "?" (palette.ts). Every entry is a real page or action of this application. -->
+<dialog class="modal palette" id="commandPalette" th:fragment="command-palette" aria-label="Ir a un módulo o ejecutar una acción">
+    <div class="palette-search">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input type="search" id="commandPaletteInput" placeholder="Ir a…" autocomplete="off" spellcheck="false"
+               role="combobox" aria-expanded="true" aria-controls="commandPaletteList"
+               aria-label="Buscar un módulo o una acción" enterkeyhint="go">
+    </div>
+    <ul class="palette-list" id="commandPaletteList" role="listbox" aria-label="Resultados">
+        <li th:each="item : ${navigation}" role="presentation">
+            <a class="palette-entry" role="option" data-command="go" th:href="@{${item.path}}">
+                <i class="bi" th:classappend="${item.icon}" aria-hidden="true"></i>
+                <span th:text="${item.label}">Inicio</span>
+            </a>
+        </li>
+        <li role="presentation">
+            <a class="palette-entry" role="option" data-command="go" th:href="@{/parcelas/nueva}">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i> <span>Nueva parcela</span>
+            </a>
+        </li>
+        <li role="presentation">
+            <a class="palette-entry" role="option" data-command="go" th:href="@{/sensores/nuevo}">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i> <span>Nuevo sensor</span>
+            </a>
+        </li>
+        <li role="presentation">
+            <button type="button" class="palette-entry" role="option" data-command="theme">
+                <i class="bi bi-circle-half" aria-hidden="true"></i> <span>Cambiar de tema</span>
+            </button>
+        </li>
+    </ul>
+    <p class="palette-empty text-muted" id="commandPaletteEmpty" role="status" hidden>Nada coincide con la búsqueda.</p>
+    <p class="palette-help">
+        <span><kbd>↑</kbd> <kbd>↓</kbd> moverse</span>
+        <span><kbd>Enter</kbd> abrir</span>
+        <span><kbd>Esc</kbd> cerrar</span>
+        <span><kbd>Ctrl</kbd> <kbd>K</kbd> o <kbd>?</kbd> abrir este panel</span>
+    </p>
+</dialog>
+</body>
+</html>

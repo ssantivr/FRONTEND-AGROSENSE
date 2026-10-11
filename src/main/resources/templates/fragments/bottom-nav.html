@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Phones only: the four modules used most, one thumb away. "Más" opens the full menu (app.ts). -->
+<nav class="bottom-nav on-panel" th:fragment="bottom-nav" aria-label="Navegación rápida">
+    <th:block th:each="item : ${navigation}">
+        <a class="bottom-nav-link" th:if="${item.path == '/' or item.path == '/parcelas' or item.path == '/sensores' or item.path == '/alertas'}"
+           th:href="@{${item.path}}" th:attr="aria-current=${item.active ? 'page' : null}">
+            <i class="bi" th:classappend="${item.icon}" aria-hidden="true"></i>
+            <span th:text="${item.label}">Inicio</span>
+            <span class="bottom-nav-badge" th:if="${item.path == '/alertas' and openAlertCount != null and openAlertCount > 0}"
+                  th:text="${openAlertCount}" th:attr="aria-label=|${openAlertCount} alertas sin atender|">3</span>
+        </a>
+    </th:block>
+    <button type="button" class="bottom-nav-link" data-open-menu aria-controls="sidebar">
+        <i class="bi bi-list" aria-hidden="true"></i>
+        <span>Más</span>
+    </button>
+</nav>
+</body>
+</html>

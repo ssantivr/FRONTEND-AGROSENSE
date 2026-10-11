@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- The guided first set-up: estate, then crop, then sensor. `step` is the one being filled, 1 to 3. -->
+<ol class="stepper" th:fragment="stepper(step)" aria-label="Pasos para empezar">
+    <li class="stepper-step" th:each="label, status : ${ {'Parcela', 'Cultivo', 'Sensor'} }"
+        th:classappend="${status.count < step} ? 'is-done' : (${status.count == step} ? 'is-current' : '')"
+        th:attr="aria-current=${status.count == step} ? 'step' : null">
+        <span class="stepper-number">
+            <i class="bi bi-check-lg" th:if="${status.count < step}" aria-hidden="true"></i>
+            <span th:unless="${status.count < step}" th:text="${status.count}">1</span>
+        </span>
+        <span class="stepper-label">
+            <span class="visually-hidden" th:if="${status.count < step}">Hecho: </span>
+            <span th:text="${label}">Parcela</span>
+        </span>
+    </li>
+</ol>
+
+<!-- A crop's badge: its initial on the colour it keeps across the application. -->
+<span class="crop-dot" th:fragment="crop-dot(crop)" th:classappend="|crop-tone-${crop.tone()}|" aria-hidden="true"
+      th:text="${crop.initial()}">C</span>
+</body>
+</html>
