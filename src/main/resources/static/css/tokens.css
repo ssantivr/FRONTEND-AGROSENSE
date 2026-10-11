@@ -1,22 +1,159 @@
-/* Design tokens. Every colour, radius, shadow and timing used by styles.css is defined here. */
+/* Design tokens. Every colour, size, shadow and timing used by styles.css is defined here.
+   Colours are semantic and defined once per theme: [data-theme='premium'] and [data-theme='mono']. */
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('../fonts/PlusJakartaSans.woff2') format('woff2');
+}
+
 :root {
+  /* Typography: size / line-height pairs. One family for the whole interface, Plus Jakarta Sans: text in
+     its regular weights, titles in its heavy ones. A single 27 KB file, served locally. */
+  --font-body: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-heading: var(--font-body);
+  --text-display: 2.5rem;
+  --leading-display: 2.75rem;
+  --text-h1: 2rem;
+  --leading-h1: 2.375rem;
+  --text-h2: 1.5rem;
+  --leading-h2: 1.875rem;
+  --text-h3: 1.125rem;
+  --leading-h3: 1.625rem;
+  --text-body: 0.9375rem;
+  --leading-body: 1.5rem;
+  --text-small: 0.8125rem;
+  --leading-small: 1.25rem;
+  --text-micro: 0.75rem;
+  --leading-micro: 1rem;
+
+  /* Spacing: 4 px scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* Shape */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+  --touch-target: 44px;
+
+  /* Layers */
+  --z-base: 0;
+  --z-sticky: 900;
+  --z-dropdown: 950;
+  --z-overlay: 1000;
+  --z-modal: 1100;
+  --z-toast: 1200;
+
+  /* Layout */
+  --sidebar-width: 256px;
+  --sidebar-width-collapsed: 76px;
+  --topbar-height: 64px;
+  --content-max: 1440px;
+
+  /* Motion */
+  --motion-instant: 90ms;
+  --motion-fast: 140ms; /* immediate feedback: hover, press */
+  --motion-base: 220ms; /* controls, menus, tooltips */
+  --motion-slow: 360ms; /* panels, pages, context changes */
+  --motion-hero: 700ms; /* brand entrance on the sign-in page only */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.64, 0, 0.78, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --distance-sm: 6px;
+  --distance-md: 14px;
+  --stagger: 45ms;
+}
+
+/* .reduce-motion lets /design-system preview the reduced-motion behaviour without changing the OS setting. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 1ms;
+    --motion-base: 1ms;
+    --motion-slow: 1ms;
+    --motion-hero: 1ms;
+    --stagger: 0ms;
+    --distance-sm: 0px;
+    --distance-md: 0px;
+  }
+}
+
+:root.reduce-motion {
+  --motion-fast: 1ms;
+  --motion-base: 1ms;
+  --motion-slow: 1ms;
+  --motion-hero: 1ms;
+  --stagger: 0ms;
+  --distance-sm: 0px;
+  --distance-md: 0px;
+}
+
+/* ---------- Premium: green identity on light surfaces ---------- */
+
+:root,
+[data-theme='premium'] {
+  color-scheme: light;
+
   /* Brand */
-  --forest-900: #0f2b1d;
-  --forest-700: #1b4332;
-  --green-600: #2d6a4f;
-  --green-500: #40916c;
-  --lime-400: #b7e34a;
+  --brand-950: #10291f;
+  --brand-800: #174d35;
+  --brand-600: #16834a;
+  --brand-500: #35a85b;
+  --brand-200: #c7ed92;
 
-  /* Surfaces and text */
-  --bg: #f6f7f4;
+  /* Surfaces and text. --text-muted is darker than the brand sheet's #69756D so it reaches 4.5:1 on --bg. */
+  --bg: #f5f7f3;
   --surface: #ffffff;
-  --border: #e6eae3;
-  --text: #1a2b22;
-  --text-muted: #5f6f66;
-  --text-on-dark: #ffffff;
-  --text-on-dark-muted: #c5d3ca;
+  --surface-sunken: #eef2ec;
+  --border: #e2e8e2;
+  --border-strong: #c3cec5;
+  --text: #17231d;
+  --text-muted: #5f6b63;
 
-  /* Status. The base colours are used for icons and fills; the -text variants meet 4.5:1 on their -bg. */
+  /* One action colour, one highlight */
+  --accent: var(--brand-600);
+  --accent-hover: var(--brand-800);
+  --accent-contrast: #ffffff;
+  --accent-soft: #e4f3e9;
+  --highlight: var(--brand-200);
+  --highlight-contrast: var(--brand-950);
+  --focus-ring: var(--brand-600);
+
+  /* Dark panels: sidebar, hero, toasts */
+  --panel: var(--brand-950);
+  --panel-raised: var(--brand-800);
+  --panel-border: #23513b;
+  --panel-text: #ffffff;
+  --panel-text-muted: #c2d2c8;
+  --scrim: rgba(16, 41, 31, 0.56);
+  --photo-filter: none;
+  /* Applied to map tiles, which come as images in fixed colours. */
+  --map-filter: none;
+
+  /* Brand mark */
+  /* Brand mark: the darker half of the leaf, the lighter half, the circuit and its nodes. */
+  --mark-leaf: var(--brand-600);
+  --mark-leaf-2: var(--brand-500);
+  --mark-vein: #ffffff;
+  --mark-node: var(--brand-200);
+  --mark-accent: var(--brand-600);
+  --mark-leaf-on-panel: #2f9e56;
+  --mark-leaf-2-on-panel: #62c67e;
+  --mark-vein-on-panel: #ffffff;
+  --mark-node-on-panel: var(--brand-200);
+  --mark-accent-on-panel: var(--brand-200);
+
+  /* Status. Base colours are for icons and fills; the -text variants meet 4.5:1 on their -bg. */
   --status-success: #2e9e5b;
   --status-warning: #e9b72b;
   --status-danger: #d64545;
@@ -31,31 +168,207 @@
   --status-info-text: #22578a;
   --status-neutral-bg: #eef1ec;
   --status-neutral-text: #4a5a51;
+  --status-border-width: 0px;
+  --status-warning-border: solid;
+  --status-info-border: solid;
 
   /* Charts */
-  --chart-series: #2d6a4f;
-  --chart-series-soft: rgba(45, 106, 79, 0.12);
-  --chart-grid: #e6eae3;
-  --chart-threshold: #5f6f66;
+  --chart-1: #16834a;
+  --chart-2: #3b82c4;
+  --chart-3: #c98a12;
+  --chart-4: #7a5fb5;
+  --chart-5: #c2553f;
+  --chart-6: #4a5a51;
+  --chart-fill: rgba(22, 131, 74, 0.12);
+  --chart-grid: #e2e8e2;
+  --chart-threshold: #5f6b63;
 
-  /* Typography */
-  --font-heading: 'Plus Jakarta Sans', 'Sora', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Crops: the six colours a crop can take, kept wherever it appears (badges, charts). */
+  --crop-1: #16834a;
+  --crop-2: #3b82c4;
+  --crop-3: #b97a08;
+  --crop-4: #7a5fb5;
+  --crop-5: #c2553f;
+  --crop-6: #0f8587;
+  --crop-contrast: #ffffff;
 
-  /* Shape */
-  --radius-sm: 8px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
-  --shadow-sm: 0 1px 2px rgba(15, 43, 29, 0.06);
-  --shadow-md: 0 8px 24px rgba(15, 43, 29, 0.08);
-  --shadow-lg: 0 20px 48px rgba(15, 43, 29, 0.18);
+  /* Elevation: green-tinted, never pure black */
+  --shadow-1: 0 1px 2px rgba(16, 41, 31, 0.06);
+  --shadow-2: 0 6px 20px rgba(16, 41, 31, 0.08);
+  --shadow-3: 0 20px 48px rgba(16, 41, 31, 0.18);
+}
 
-  /* Motion */
-  --transition-fast: 150ms ease-out;
-  --transition-base: 250ms ease-out;
+/* ---------- Mono: black, white and greys. Not a dark mode. ---------- */
 
-  /* Layout */
-  --sidebar-width: 264px;
-  --sidebar-width-collapsed: 76px;
-  --topbar-height: 64px;
+[data-theme='mono'] {
+  color-scheme: light;
+
+  --bg: #f3f3f3;
+  --surface: #ffffff;
+  --surface-sunken: #ebebeb;
+  --border: #d6d6d6;
+  --border-strong: #8f8f8f;
+  --text: #0a0a0a;
+  --text-muted: #555555;
+
+  --accent: #0a0a0a;
+  --accent-hover: #3a3a3a;
+  --accent-contrast: #ffffff;
+  --accent-soft: #ebebeb;
+  --highlight: #ffffff;
+  --highlight-contrast: #0a0a0a;
+  --focus-ring: #0a0a0a;
+
+  --panel: #0a0a0a;
+  --panel-raised: #262626;
+  --panel-border: #3a3a3a;
+  --panel-text: #ffffff;
+  --panel-text-muted: #c4c4c4;
+  --scrim: rgba(10, 10, 10, 0.6);
+  --photo-filter: grayscale(1) contrast(1.08);
+  --map-filter: grayscale(1) contrast(1.05);
+
+  --mark-leaf: #0a0a0a;
+  --mark-leaf-2: #4a4a4a;
+  --mark-vein: #ffffff;
+  --mark-node: #ffffff;
+  --mark-accent: #555555;
+  --mark-leaf-on-panel: #ffffff;
+  --mark-leaf-2-on-panel: #b9b9b9;
+  --mark-vein-on-panel: #0a0a0a;
+  --mark-node-on-panel: #0a0a0a;
+  --mark-accent-on-panel: #c4c4c4;
+
+  /* Without colour, status is told apart by icon, label, border style and fill. */
+  --status-success: #0a0a0a;
+  --status-warning: #0a0a0a;
+  --status-danger: #0a0a0a;
+  --status-info: #0a0a0a;
+  --status-success-bg: #ffffff;
+  --status-success-text: #0a0a0a;
+  --status-warning-bg: #ffffff;
+  --status-warning-text: #0a0a0a;
+  --status-danger-bg: #0a0a0a;
+  --status-danger-text: #ffffff;
+  --status-info-bg: #ffffff;
+  --status-info-text: #0a0a0a;
+  --status-neutral-bg: #ebebeb;
+  --status-neutral-text: #3a3a3a;
+  --status-border-width: 1px;
+  --status-warning-border: dashed;
+  --status-info-border: dotted;
+
+  --chart-1: #0a0a0a;
+  --chart-2: #555555;
+  --chart-3: #8f8f8f;
+  --chart-4: #3a3a3a;
+  --chart-5: #707070;
+  --chart-6: #b0b0b0;
+  /* Without colour the crops differ by shade, and always by their initial. */
+  --crop-1: #0a0a0a;
+  --crop-2: #3a3a3a;
+  --crop-3: #555555;
+  --crop-4: #262626;
+  --crop-5: #6b6b6b;
+  --crop-6: #474747;
+  --crop-contrast: #ffffff;
+
+  --chart-fill: rgba(10, 10, 10, 0.08);
+  --chart-grid: #dcdcdc;
+  --chart-threshold: #0a0a0a;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-2: 0 6px 20px rgba(0, 0, 0, 0.08);
+  --shadow-3: 0 20px 48px rgba(0, 0, 0, 0.2);
+}
+
+/* ---------- Dark: the same identity on deep green-black surfaces ---------- */
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #0c1511;
+  --surface: #14201a;
+  --surface-sunken: #0f1a15;
+  --border: #25352c;
+  --border-strong: #3d5246;
+  --text: #e8efe9;
+  --text-muted: #9db0a4;
+
+  --accent: #3fb56a;
+  --accent-hover: #5bc983;
+  --accent-contrast: #06140c;
+  --accent-soft: #183326;
+  --highlight: #c7ed92;
+  --highlight-contrast: #10291f;
+  --focus-ring: #6fd695;
+
+  --panel: #08110d;
+  --panel-raised: #15281f;
+  --panel-border: #22382c;
+  --panel-text: #ffffff;
+  --panel-text-muted: #b3c4b9;
+  --scrim: rgba(0, 0, 0, 0.66);
+  --photo-filter: brightness(0.85);
+  --map-filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9);
+
+  --mark-leaf: #2f9e56;
+  --mark-leaf-2: #62c67e;
+  --mark-vein: #ffffff;
+  --mark-node: #c7ed92;
+  --mark-accent: #c7ed92;
+  --mark-leaf-on-panel: #2f9e56;
+  --mark-leaf-2-on-panel: #62c67e;
+  --mark-vein-on-panel: #ffffff;
+  --mark-node-on-panel: #c7ed92;
+  --mark-accent-on-panel: #c7ed92;
+
+  --status-success: #4cc27b;
+  --status-warning: #e9b72b;
+  --status-danger: #ef6b6b;
+  --status-info: #6aa9e0;
+  --status-success-bg: #153324;
+  --status-success-text: #8fe0b0;
+  --status-warning-bg: #3a2f0c;
+  --status-warning-text: #f3d376;
+  --status-danger-bg: #3d1a1a;
+  --status-danger-text: #ffb0b0;
+  --status-info-bg: #14293d;
+  --status-info-text: #a9cff3;
+  --status-neutral-bg: #1e2b24;
+  --status-neutral-text: #b3c4b9;
+  --status-border-width: 0px;
+  --status-warning-border: solid;
+  --status-info-border: solid;
+
+  --chart-1: #4cc27b;
+  --chart-2: #6aa9e0;
+  --chart-3: #e9b72b;
+  --chart-4: #a68be0;
+  --chart-5: #ef8b6b;
+  --chart-6: #9db0a4;
+  --crop-1: #4cc27b;
+  --crop-2: #6aa9e0;
+  --crop-3: #e9b72b;
+  --crop-4: #a68be0;
+  --crop-5: #ef8b6b;
+  --crop-6: #45c4c6;
+  --crop-contrast: #06140c;
+
+  --chart-fill: rgba(76, 194, 123, 0.16);
+  --chart-grid: #25352c;
+  --chart-threshold: #9db0a4;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-2: 0 6px 20px rgba(0, 0, 0, 0.35);
+  --shadow-3: 0 20px 48px rgba(0, 0, 0, 0.5);
+}
+
+@media (prefers-contrast: more) {
+  :root,
+  [data-theme='premium'],
+  [data-theme='dark'],
+  [data-theme='mono'] {
+    --border: var(--border-strong);
+  }
 }
