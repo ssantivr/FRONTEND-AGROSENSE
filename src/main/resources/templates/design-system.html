@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout('Sistema de diseño', ~{::main}, 'design-system')}">
+<body>
+<main id="main" class="app-content" tabindex="-1" data-motion-stagger>
+    <header th:replace="~{fragments/page-header :: page-header('Sistema de diseño',
+        'Marca, tokens y componentes de AgroSense. Cambia de tema en la barra superior para ver ambos. Solo existe en el perfil demo.')}"></header>
+
+    <section class="card" aria-labelledby="dsLogo">
+        <h2 id="dsLogo">Logotipo</h2>
+        <ul class="ds-grid">
+            <li class="ds-tile"><span th:replace="~{fragments/brand :: logo(28, false)}"></span></li>
+            <li class="ds-tile ds-tile--panel on-panel"><span th:replace="~{fragments/brand :: logo(28, false)}"></span></li>
+            <li class="ds-tile"><svg th:replace="~{fragments/brand :: mark(48, false)}"></svg></li>
+            <li class="ds-tile ds-tile--panel on-panel"><svg th:replace="~{fragments/brand :: mark(48, false)}"></svg></li>
+            <li class="ds-tile"><img th:src="@{/img/brand/agrosense-mark-mono-black.svg}" alt="Símbolo en negro" width="48" height="48"></li>
+            <li class="ds-tile ds-tile--panel"><img th:src="@{/img/brand/agrosense-mark-mono-white.svg}" alt="Símbolo en blanco" width="48" height="48"></li>
+        </ul>
+        <p class="note">
+            <i class="bi bi-info-circle" aria-hidden="true"></i>
+            Tamaño mínimo: 20 px el símbolo, 96 px el logo horizontal. Zona de seguridad: media altura del símbolo.
+        </p>
+    </section>
+
+    <section class="card" aria-labelledby="dsColour">
+        <h2 id="dsColour">Color del tema activo</h2>
+        <ul class="ds-grid">
+            <li class="ds-swatch ds-swatch--panel"><code>--panel</code> Barra lateral, hero</li>
+            <li class="ds-swatch ds-swatch--panel-raised"><code>--panel-raised</code> Hover sobre panel</li>
+            <li class="ds-swatch ds-swatch--accent"><code>--accent</code> Acción primaria</li>
+            <li class="ds-swatch ds-swatch--accent-soft"><code>--accent-soft</code> Tinte de acento</li>
+            <li class="ds-swatch ds-swatch--highlight"><code>--highlight</code> Acento puntual</li>
+            <li class="ds-swatch ds-swatch--bg"><code>--bg</code> Fondo</li>
+            <li class="ds-swatch ds-swatch--surface"><code>--surface</code> Superficie</li>
+            <li class="ds-swatch ds-swatch--border"><code>--border-strong</code> Borde de controles</li>
+            <li class="ds-swatch ds-swatch--text"><code>--text</code> Texto</li>
+            <li class="ds-swatch ds-swatch--text-muted"><code>--text-muted</code> Texto secundario</li>
+            <li class="ds-swatch ds-swatch--chart-1"><code>--chart-1</code></li>
+            <li class="ds-swatch ds-swatch--chart-2"><code>--chart-2</code></li>
+            <li class="ds-swatch ds-swatch--chart-3"><code>--chart-3</code></li>
+            <li class="ds-swatch ds-swatch--chart-4"><code>--chart-4</code></li>
+            <li class="ds-swatch ds-swatch--chart-5"><code>--chart-5</code></li>
+            <li class="ds-swatch ds-swatch--chart-6"><code>--chart-6</code></li>
+        </ul>
+    </section>
+
+    <section class="card stack" aria-labelledby="dsType">
+        <h2 id="dsType">Tipografía · Inter</h2>
+        <p class="ds-type-display">Display 40/44</p>
+        <h1>Título 1 · 32/38</h1>
+        <p class="ds-type-h2">Título 2 · 24/30</p>
+        <h3>Título 3 · 18/26</h3>
+        <p>Cuerpo 15/24. Cada gota y cada dato, donde tu cultivo los necesita.</p>
+        <p class="ds-type-small text-muted">Pequeño 13/20 · texto secundario</p>
+        <p class="ds-type-micro text-muted">Micro 12/16 · cifras tabulares 0123456789</p>
+    </section>
+
+    <section class="card stack" aria-labelledby="dsControls">
+        <h2 id="dsControls">Botones y estados</h2>
+        <div class="ds-row">
+            <button type="button" class="button">Primario</button>
+            <button type="button" class="button button--ghost">Secundario</button>
+            <button type="button" class="button button--danger">Destructivo</button>
+            <button type="button" class="button button--ghost button--danger-ghost">Eliminar</button>
+            <button type="button" class="button button--small">Pequeño</button>
+            <button type="button" class="button" disabled>Deshabilitado</button>
+            <button type="button" class="button is-loading" disabled aria-busy="true">
+                <span class="button-spinner" aria-hidden="true"></span> Cargando…
+            </button>
+        </div>
+        <div class="ds-row">
+            <span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-check-circle-fill', 'Éxito')}"></span>
+            <span th:replace="~{fragments/status-pill :: status-pill('warning', 'bi-exclamation-circle', 'Advertencia')}"></span>
+            <span th:replace="~{fragments/status-pill :: status-pill('danger', 'bi-exclamation-triangle-fill', 'Error')}"></span>
+            <span th:replace="~{fragments/status-pill :: status-pill('info', 'bi-info-circle', 'Información')}"></span>
+            <span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-dash-circle', 'Sin datos')}"></span>
+        </div>
+        <p class="form-alert form-alert--error" role="note">
+            <i class="bi bi-exclamation-circle" aria-hidden="true"></i> Mensaje de error de un formulario.
+        </p>
+        <p class="form-alert form-alert--info" role="note">
+            <i class="bi bi-check-circle" aria-hidden="true"></i> Mensaje de confirmación.
+        </p>
+    </section>
+
+    <section class="card" aria-labelledby="dsFields">
+        <h2 id="dsFields">Campos</h2>
+        <div class="field-row">
+            <label class="field">
+                <span class="field-label">Campo de texto</span>
+                <input type="text" placeholder="Lote norte">
+                <span class="field-hint">Texto de ayuda.</span>
+            </label>
+            <label class="field">
+                <span class="field-label">Con error</span>
+                <input type="text" value="abc" aria-invalid="true">
+                <span class="field-error">Ingresa un número válido.</span>
+            </label>
+            <label class="field">
+                <span class="field-label">Selección</span>
+                <select><option>Germinación</option><option>Crecimiento</option></select>
+            </label>
+        </div>
+    </section>
+
+    <section class="kpi-grid" aria-label="Indicadores de muestra">
+        <article th:replace="~{fragments/stat-card :: stat-card('Indicador destacado', '—', null, 'Trazo de muestra', 'bi-moisture', true, '0,20 20,14 40,17 60,8 80,11 100,5', null)}"></article>
+        <article th:replace="~{fragments/stat-card :: stat-card('Indicador compacto', '—', null, 'Sin lecturas', 'bi-thermometer-half', false, null, null)}"></article>
+        <div class="card"><div th:replace="~{fragments/empty-state :: empty-state('bi-broadcast', 'Estado vacío', 'Mensaje claro y una acción cuando existe.')}"></div></div>
+        <div class="card"><div class="skeleton ds-skeleton" role="img" aria-label="Skeleton de carga"></div></div>
+    </section>
+
+    <section class="card stack" aria-labelledby="dsMotion">
+        <h2 id="dsMotion">Movimiento</h2>
+        <div class="ds-row">
+            <button type="button" class="button button--ghost" data-demo-toast="success" data-demo-message="Cambios guardados.">Toast de éxito</button>
+            <button type="button" class="button button--ghost" data-demo-toast="error" data-demo-message="No se pudo conectar con el servidor.">Toast de error</button>
+            <button type="button" class="button button--ghost" id="demoConfirm">Modal de confirmación</button>
+            <button type="button" class="button button--ghost" id="demoReplay">Repetir entrada</button>
+        </div>
+        <ul class="ds-grid" id="demoMotionSample" data-motion-stagger>
+            <li class="ds-tile">fade-up · 1</li>
+            <li class="ds-tile">fade-up · 2</li>
+            <li class="ds-tile">fade-up · 3</li>
+            <li class="ds-tile">fade-up · 4</li>
+        </ul>
+        <label class="switch-row">
+            <input type="checkbox" id="demoReduceMotion">
+            <span>
+                <strong>Simular movimiento reducido</strong>
+                <span class="text-muted">Aplica en esta página lo mismo que <code>prefers-reduced-motion</code>: sin desplazamientos ni bucles.</span>
+            </span>
+        </label>
+    </section>
+</main>
+</body>
+</html>
