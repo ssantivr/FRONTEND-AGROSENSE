@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{fragments/layout :: layout('Nuevo sensor', ~{::main}, null)}">
+      th:replace="~{fragments/layout :: layout('Nuevo sensor', ~{::main}, 'sensor-map')}">
 <body>
-<main id="main" class="app-content" tabindex="-1">
+<main id="main" class="app-content" tabindex="-1" data-motion-stagger>
     <header th:replace="~{fragments/page-header :: page-header('Nuevo sensor', 'Registra un sensor instalado en uno de tus cultivos.')}"></header>
+
+    <th:block th:if="${guideStep != null}"><ol th:replace="~{fragments/stepper :: stepper(${guideStep})}"></ol></th:block>
 
     <section class="card card--form">
         <th:block th:if="${cropOptions.isEmpty()}">
@@ -16,9 +18,10 @@
 
         <form th:if="${!cropOptions.isEmpty()}" class="stack" th:action="@{/sensores}" method="post"
               th:object="${sensorForm}" novalidate>
+            <input type="hidden" name="guia" value="1" th:if="${guideStep != null}">
             <label class="field">
                 <span class="field-label">Cultivo</span>
-                <select th:field="*{cropId}" th:attr="aria-invalid=${#fields.hasErrors('cropId')}">
+                <select th:field="*{cropId}" data-picker-crop th:attr="aria-invalid=${#fields.hasErrors('cropId')}">
                     <option th:each="option : ${cropOptions}" th:value="${option.id}" th:text="${option.label}">Café</option>
                 </select>
                 <span class="field-error" th:if="${#fields.hasErrors('cropId')}" th:errors="*{cropId}">Error</span>
@@ -45,13 +48,17 @@
                        th:attr="aria-invalid=${#fields.hasErrors('location')}">
                 <span class="field-error" th:if="${#fields.hasErrors('location')}" th:errors="*{location}">Error</span>
             </label>
+            <fieldset th:replace="~{fragments/sensor-picker :: picker(${sensorForm.position}, 'position.', ${sitesJson}, null)}"></fieldset>
+            <span class="field-error" th:each="error : ${#fields.errors('position.*')}" th:text="${error}">Error</span>
+            <span class="field-error" th:if="${#fields.hasErrors('position')}" th:errors="*{position}">Error</span>
             <p class="note">
                 <i class="bi bi-info-circle" aria-hidden="true"></i>
                 El sensor queda registrado, pero no mostrará lecturas hasta que exista un servicio que las reciba
                 desde el dispositivo.
             </p>
             <div class="form-actions">
-                <a class="button button--ghost" th:href="@{/sensores}">Cancelar</a>
+                <a class="button button--ghost" th:if="${guideStep == null}" th:href="@{/sensores}">Cancelar</a>
+                <a class="button button--ghost" th:if="${guideStep != null}" th:href="@{/}">Terminar sin sensor</a>
                 <button type="submit" class="button">Guardar</button>
             </div>
         </form>

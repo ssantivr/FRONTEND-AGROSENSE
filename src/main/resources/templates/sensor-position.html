@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout('Ubicar sensor', ~{::main}, 'sensor-map')}">
+<body>
+<main id="main" class="app-content" tabindex="-1" data-motion-stagger>
+    <header th:replace="~{fragments/page-header :: page-header(${'Ubicar el sensor ' + sensor.code},
+        ${#messages.msg('sensorType.' + sensor.type) + ' · ' + sensor.cropName + ' · ' + sensor.estateName})}"></header>
+
+    <section class="card card--form">
+        <form class="stack" th:action="@{/sensores/{id}/ubicacion(id=${sensor.id})}" method="post"
+              th:object="${positionForm}" novalidate>
+            <fieldset th:replace="~{fragments/sensor-picker :: picker(${positionForm}, '', null, ${siteJson})}"></fieldset>
+            <span class="field-error" th:each="error : ${#fields.allErrors()}" th:text="${error}">Error</span>
+            <div class="form-actions">
+                <a class="button button--ghost" th:href="@{/sensores}">Cancelar</a>
+                <button type="submit" class="button">Guardar ubicación</button>
+            </div>
+        </form>
+    </section>
+</main>
+</body>
+</html>
