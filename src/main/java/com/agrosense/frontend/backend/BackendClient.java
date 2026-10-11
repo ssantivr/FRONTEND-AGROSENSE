@@ -1,5 +1,8 @@
 package com.agrosense.frontend.backend;
 
+import com.agrosense.frontend.ai.AiAssistantException;
+import com.agrosense.frontend.ai.AiChatForm;
+import com.agrosense.frontend.ai.AiReply;
 import com.agrosense.frontend.entity.enums.SensorType;
 import com.agrosense.frontend.exception.BusinessRuleException;
 import com.agrosense.frontend.exception.NotFoundException;
@@ -7,13 +10,19 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.stereotype.Component;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
@@ -48,6 +57,8 @@ public class BackendClient {
 
     private final RestClient api;
     private final RestClient health;
+    /** For the assistant, whose answers come from an AI service and take longer than the other calls. */
+    private final RestClient assistant;
     private final BackendToken token;
 
     private volatile Availability availability = new Availability(false, Instant.EPOCH);
@@ -56,10 +67,12 @@ public class BackendClient {
             @Value("${agrosense.backend.jwt-secret:}") String jwtSecret,
             @Value("${agrosense.backend.connect-timeout-ms:3000}") long connectTimeoutMs,
             @Value("${agrosense.backend.read-timeout-ms:10000}") long readTimeoutMs,
-            @Value("${agrosense.backend.health-timeout-ms:3000}") long healthTimeoutMs) {
+            @Value("${agrosense.backend.health-timeout-ms:3000}") long healthTimeoutMs,
+            @Value("${agrosense.backend.assistant-timeout-ms:30000}") long assistantTimeoutMs) {
         if (url.isBlank() || jwtSecret.isBlank()) {
             this.api = null;
             this.health = null;
+            this.assistant = null;
             this.token = null;
             log.info("Backend API not configured: every operation uses the database");
             return;
@@ -68,6 +81,7 @@ public class BackendClient {
         Duration connectTimeout = Duration.ofMillis(connectTimeoutMs);
         this.api = client(baseUrl, connectTimeout, Duration.ofMillis(readTimeoutMs));
         this.health = client(baseUrl, connectTimeout, Duration.ofMillis(healthTimeoutMs));
+        this.assistant = client(baseUrl, connectTimeout, Duration.ofMillis(assistantTimeoutMs));
         this.token = new BackendToken(jwtSecret);
         log.info("Backend API configured at {}", baseUrl);
     }
@@ -168,6 +182,74 @@ public class BackendClient {
                 .body(new LoginRequest(email, password))
                 .retrieve().onStatus(HttpStatusCode::isError, BackendClient::failAccount).toBodilessEntity());
         return true;
+    }
+
+    /**
+     * Asks the assistant a written question.
+     *
+     * @throws AiAssistantException with the backend's status and message when it cannot answer
+     */
+    public AiReply askAssistant(String email, AiChatForm form) {
+        return assistantCall(() -> assistant.post().uri("/api/ai/chat")
+                .header(HttpHeaders.AUTHORIZATION, token.bearerFor(email))
+                .body(form)
+                .retrieve().onStatus(HttpStatusCode::isError, BackendClient::failAssistant).body(AiReply.class));
+    }
+
+    /** Asks the assistant with a recording, with the text of what was said, or with both. */
+    public AiReply askAssistantByVoice(String email, byte[] audio, String contentType, String transcript) {
+        MultiValueMap<String, Object> form = new LinkedMultiValueMap<>();
+        if (audio != null) {
+            HttpHeaders part = new HttpHeaders();
+            part.setContentType(contentType == null
+                    ? MediaType.APPLICATION_OCTET_STREAM : MediaType.parseMediaType(contentType));
+            // A part only counts as a file when it has a name; the backend ignores which one.
+            form.add("audio", new HttpEntity<>(new ByteArrayResource(audio) {
+                @Override
+                public String getFilename() {
+                    return "voice";
+                }
+            }, part));
+        }
+        if (transcript != null && !transcript.isBlank()) {
+            form.add("transcript", transcript);
+        }
+        return assistantCall(() -> assistant.post().uri("/api/ai/voice")
+                .header(HttpHeaders.AUTHORIZATION, token.bearerFor(email))
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(form)
+                .retrieve().onStatus(HttpStatusCode::isError, BackendClient::failAssistant).body(AiReply.class));
+    }
+
+    /** An assistant that gives no usable answer is reported to the user; nothing can stand in for it. */
+    private AiReply assistantCall(Supplier<AiReply> call) {
+        try {
+            AiReply reply = call.get();
+            if (reply == null || reply.reply() == null || reply.reply().isBlank()) {
+                throw new AiAssistantException(HttpStatus.BAD_GATEWAY,
+                        "El asistente no generó una respuesta. Inténtalo de nuevo.");
+            }
+            return reply;
+        } catch (RestClientException | IllegalArgumentException exception) {
+            log.warn("Assistant call failed: {}", exception.getMessage());
+            throw new AiAssistantException(HttpStatus.GATEWAY_TIMEOUT,
+                    "El asistente tardó demasiado en responder. Inténtalo de nuevo.");
+        }
+    }
+
+    /** The backend words these answers for the user, so its status and message are passed on as they are. */
+    private static void failAssistant(org.springframework.http.HttpRequest request, ClientHttpResponse response)
+            throws IOException {
+        int status = response.getStatusCode().value();
+        String message = messageOf(response);
+        // 401 and 403 here mean this server's token was refused: a fault of the deployment, not of the user.
+        if (status == 401 || status == 403 || status == 404 || message == null) {
+            log.warn("Assistant: HTTP {} from {}", status, request.getURI().getPath());
+            throw new AiAssistantException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "El asistente no está disponible en este momento. Inténtalo más tarde.");
+        }
+        HttpStatus resolved = HttpStatus.resolve(status);
+        throw new AiAssistantException(resolved == null ? HttpStatus.BAD_GATEWAY : resolved, message);
     }
 
     private boolean checkHealth() {

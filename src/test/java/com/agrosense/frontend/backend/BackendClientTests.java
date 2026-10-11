@@ -1,5 +1,8 @@
 package com.agrosense.frontend.backend;
 
+import com.agrosense.frontend.ai.AiAssistantException;
+import com.agrosense.frontend.ai.AiChatForm;
+import com.agrosense.frontend.ai.AiReply;
 import com.agrosense.frontend.backend.BackendClient.IrrigationResponse;
 import com.agrosense.frontend.backend.BackendClient.ReadingResponse;
 import com.agrosense.frontend.entity.enums.SensorType;
@@ -10,6 +13,7 @@ import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.LockedException;
 
@@ -55,7 +59,7 @@ class BackendClientTests {
             respond(exchange, status, responseBody);
         });
         server.start();
-        client = new BackendClient("http://127.0.0.1:" + server.getAddress().getPort() + "/", SECRET, 1000, 600, 600);
+        client = new BackendClient("http://127.0.0.1:" + server.getAddress().getPort() + "/", SECRET, 1000, 600, 600, 600);
     }
 
     @AfterEach
@@ -65,7 +69,7 @@ class BackendClientTests {
 
     @Test
     void isOffWithoutAUrlOrASecret() {
-        BackendClient unconfigured = new BackendClient("", "", 1000, 600, 600);
+        BackendClient unconfigured = new BackendClient("", "", 1000, 600, 600, 600);
 
         assertThat(unconfigured.isAvailable()).isFalse();
         assertThat(unconfigured.attempt(() -> "never called")).isEmpty();
@@ -201,6 +205,81 @@ class BackendClientTests {
 
         assertThat(client.isAvailable()).isFalse();
         assertThat(client.attempt(() -> client.acknowledgeAlert(EMAIL, 1))).isEmpty();
+    }
+
+    @Test
+    void theAssistantIsAskedThroughTheBackendInWritingAndByVoice() {
+        responseBody = "{\"reply\":\"Riega hoy.\"}";
+        AiReply written = client.askAssistant(EMAIL,
+                new AiChatForm("¿Riego hoy?", List.of(new AiChatForm.Turn("assistant", "Hola"))));
+
+        assertThat(written.reply()).isEqualTo("Riega hoy.");
+        assertThat(written.transcript()).isNull();
+        assertThat(requests).containsExactly("POST /api/ai/chat");
+        assertThat(authorizations.get(0)).startsWith("Bearer ");
+        assertThat(bodies.get(0)).contains("\"message\":\"¿Riego hoy?\"")
+                .contains("\"role\":\"assistant\"").contains("\"text\":\"Hola\"");
+
+        responseBody = "{\"reply\":\"Está seco.\",\"transcript\":\"¿Cómo está el suelo?\"}";
+        AiReply spoken = client.askAssistantByVoice(EMAIL, new byte[] {1, 2, 3}, "audio/webm;codecs=opus", null);
+
+        assertThat(spoken.transcript()).isEqualTo("¿Cómo está el suelo?");
+        assertThat(requests).last().isEqualTo("POST /api/ai/voice");
+        // The recording travels as a file part with its type; without text there is no transcript part.
+        assertThat(bodies.get(1)).contains("name=\"audio\"").contains("filename=\"voice\"").contains("audio/webm")
+                .doesNotContain("name=\"transcript\"");
+
+        client.askAssistantByVoice(EMAIL, null, null, "¿Riego hoy?");
+        assertThat(bodies.get(2)).contains("name=\"transcript\"").contains("¿Riego hoy?").doesNotContain("name=\"audio\"");
+    }
+
+    @Test
+    void whenTheAssistantCannotAnswerTheUserIsToldWhy() {
+        AiChatForm question = new AiChatForm("Hola", null);
+
+        // The backend's own wording and status reach the user, including the ones it answers with 5xx.
+        status = 429;
+        responseBody = "{\"message\":\"Has hecho muchas consultas seguidas.\"}";
+        assertThatThrownBy(() -> client.askAssistant(EMAIL, question))
+                .isInstanceOfSatisfying(AiAssistantException.class, error -> {
+                    assertThat(error.getStatus()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+                    assertThat(error.getMessage()).isEqualTo("Has hecho muchas consultas seguidas.");
+                });
+        status = 503;
+        responseBody = "{\"message\":\"El asistente de IA no está configurado todavía.\"}";
+        assertThatThrownBy(() -> client.askAssistant(EMAIL, question))
+                .isInstanceOfSatisfying(AiAssistantException.class, error -> {
+                    assertThat(error.getStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+                    assertThat(error.getMessage()).contains("no está configurado");
+                });
+
+        // A refused token or an older backend without the endpoint is not something the user can fix.
+        for (int refused : new int[] {401, 403, 404}) {
+            status = refused;
+            responseBody = "{\"message\":\"Debes iniciar sesión para acceder a este recurso.\"}";
+            assertThatThrownBy(() -> client.askAssistant(EMAIL, question))
+                    .isInstanceOfSatisfying(AiAssistantException.class, error -> {
+                        assertThat(error.getStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+                        assertThat(error.getMessage()).doesNotContain("iniciar sesión");
+                    });
+        }
+
+        status = 200;
+        responseBody = "{\"reply\":\"  \"}";
+        assertThatThrownBy(() -> client.askAssistant(EMAIL, question))
+                .isInstanceOfSatisfying(AiAssistantException.class,
+                        error -> assertThat(error.getStatus()).isEqualTo(HttpStatus.BAD_GATEWAY));
+
+        responseBody = "{\"reply\":\"Tarde\"}";
+        delayMs = 1500;
+        assertThatThrownBy(() -> client.askAssistant(EMAIL, question))
+                .isInstanceOfSatisfying(AiAssistantException.class,
+                        error -> assertThat(error.getStatus()).isEqualTo(HttpStatus.GATEWAY_TIMEOUT));
+        // A slow assistant says nothing about the rest of the backend: other calls go on using it.
+        // (The test server answers one request at a time, so it first finishes the slow one.)
+        delayMs = 0;
+        sleep(1300);
+        assertThat(client.isAvailable()).isTrue();
     }
 
     private static void respond(HttpExchange exchange, int status, String body) throws IOException {

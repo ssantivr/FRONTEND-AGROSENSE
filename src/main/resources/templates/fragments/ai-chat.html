@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- The assistant's chat window; js/ai/chat-widget.js fills the conversation and wires the controls.
+     The microphone and read-aloud buttons start hidden and are shown only where the browser supports them. -->
+<section class="ai-chat" id="aiChat" th:fragment="ai-chat" aria-label="Asistente de IA"
+         th:attr="data-chat-url=@{/api/ui/ai/chat},data-voice-url=@{/api/ui/ai/voice}">
+    <div class="ai-chat-panel" id="aiChatPanel" role="dialog" aria-modal="false" aria-labelledby="aiChatTitle" hidden>
+        <header class="ai-chat-header">
+            <div class="ai-chat-heading-text">
+                <h2 id="aiChatTitle">Asistente AgroSense</h2>
+                <p>Cultivos, riego y sensores</p>
+            </div>
+            <button type="button" class="icon-button" id="aiChatSpeak" aria-pressed="false"
+                    aria-label="Leer las respuestas en voz alta" title="Leer las respuestas en voz alta" hidden>
+                <i class="bi bi-volume-mute" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="icon-button" id="aiChatClear"
+                    aria-label="Empezar una conversación nueva" title="Conversación nueva">
+                <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="icon-button" id="aiChatClose" aria-label="Cerrar el asistente" title="Cerrar">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+        </header>
+        <div class="ai-chat-log" id="aiChatLog" role="log" aria-live="polite" aria-label="Conversación con el asistente"
+             tabindex="0"></div>
+        <p class="ai-chat-status" id="aiChatStatus" role="status" hidden></p>
+        <form class="ai-chat-form" id="aiChatForm" novalidate>
+            <textarea id="aiChatInput" rows="1" maxlength="1000" autocomplete="off"
+                      aria-label="Tu pregunta para el asistente" placeholder="Pregunta sobre tus cultivos…"></textarea>
+            <button type="button" class="icon-button" id="aiChatMic" aria-pressed="false"
+                    aria-label="Grabar un mensaje de voz" hidden>
+                <i class="bi bi-mic" aria-hidden="true"></i>
+            </button>
+            <button type="submit" class="icon-button ai-chat-send" id="aiChatSend" aria-label="Enviar la pregunta" disabled>
+                <i class="bi bi-send" aria-hidden="true"></i>
+            </button>
+        </form>
+    </div>
+    <button type="button" class="ai-chat-launcher" id="aiChatLauncher" aria-controls="aiChatPanel"
+            aria-expanded="false" aria-label="Abrir o cerrar el asistente de IA" title="Asistente de IA">
+        <i class="bi bi-stars" aria-hidden="true"></i>
+    </button>
+</section>
+</body>
+</html>
