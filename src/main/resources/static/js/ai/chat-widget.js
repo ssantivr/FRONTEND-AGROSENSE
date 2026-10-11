@@ -15,6 +15,7 @@ const REQUEST_TIMEOUT_MS = 45_000;
 const MAX_RECORDING_MS = 45_000;
 const NEAR_BOTTOM_PX = 80;
 const VOICE_PLACEHOLDER = 'Mensaje de voz';
+const LOCAL_NOTE = 'Respuesta básica con los datos de tu finca: el modelo de IA no está disponible ahora.';
 const SUGGESTIONS = ['¿Cómo están mis cultivos hoy?', '¿Cuándo conviene regar?', '¿Qué hago con mis alertas?'];
 const RECORDING_MESSAGES = {
     unsupported: 'Este navegador no puede grabar audio. Escribe tu pregunta.',
@@ -25,8 +26,12 @@ const RECORDING_MESSAGES = {
 };
 const isAiReply = (value) => isRecord(value) &&
     typeof value['reply'] === 'string' &&
-    (value['transcript'] === undefined || value['transcript'] === null || typeof value['transcript'] === 'string');
-const isMessage = (value) => isRecord(value) && (value['role'] === 'user' || value['role'] === 'assistant') && typeof value['text'] === 'string';
+    (value['transcript'] === undefined || value['transcript'] === null || typeof value['transcript'] === 'string') &&
+    (value['source'] === undefined || value['source'] === null || typeof value['source'] === 'string');
+const isMessage = (value) => isRecord(value) &&
+    (value['role'] === 'user' || value['role'] === 'assistant') &&
+    typeof value['text'] === 'string' &&
+    (value['local'] === undefined || typeof value['local'] === 'boolean');
 function loadMessages(owner) {
     try {
         const stored = JSON.parse(sessionStorage.getItem(CHAT_STORAGE_KEY) ?? 'null');
@@ -147,6 +152,9 @@ function mount(parts) {
             item.append(renderMarkdown(message.text));
         else
             item.textContent = message.text;
+        // Said under the answer itself, so nobody takes a summary of the readings for the model's advice.
+        if (message.local)
+            item.append(el('p', 'ai-chat-note', LOCAL_NOTE));
         return item;
     }
     function showEmptyState() {
@@ -237,8 +245,9 @@ function mount(parts) {
         }
         append(note, true);
     }
-    function showAnswer(reply, spoken) {
-        addMessage({ role: 'assistant', text: reply });
+    function showAnswer(answer, spoken) {
+        const reply = answer.reply;
+        addMessage({ role: 'assistant', text: reply, ...(answer.source === 'local' ? { local: true } : {}) });
         if (readAloud || spoken)
             speak(plainText(reply));
     }
@@ -246,12 +255,16 @@ function mount(parts) {
     async function requestAnswer(question) {
         if (pending)
             return;
-        const history = messages.slice(0, -1).slice(-MAX_CONTEXT);
+        // Only who said what travels: the rest of a stored message is this window's own business.
+        const history = messages
+            .slice(0, -1)
+            .slice(-MAX_CONTEXT)
+            .map(({ role, text }) => ({ role, text }));
         setPending(true);
         try {
             const answer = await ask(chatUrl, { message: question, history });
             setPending(false);
-            showAnswer(answer.reply, false);
+            showAnswer(answer, false);
         }
         catch (error) {
             setPending(false);
@@ -293,7 +306,7 @@ function mount(parts) {
                     saveMessages(owner, messages);
                 }
             }
-            showAnswer(answer.reply, true);
+            showAnswer(answer, true);
         }
         catch (error) {
             setPending(false);
