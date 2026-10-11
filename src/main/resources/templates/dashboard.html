@@ -2,223 +2,317 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       th:replace="~{fragments/layout :: layout('Inicio', ~{::main}, 'dashboard')}">
 <body>
-<main id="main" class="app-content" tabindex="-1">
+<main id="main" class="app-content" tabindex="-1" data-motion-stagger>
 
-    <div class="row g-3">
-        <div class="col-12 col-lg-8">
-            <section class="card welcome">
-                <div>
-                    <p class="welcome-eyebrow">Panel de control</p>
-                    <h1>Hola, <span sec:authentication="principal.displayName">Usuario</span></h1>
-                    <p>Este es el estado de tus parcelas, sensores y riegos.</p>
-                </div>
-                <th:block th:if="${demoMode}"><span th:replace="~{fragments/status-pill :: status-pill('info', 'bi-info-circle', 'Vista de demostración')}"></span></th:block>
-            </section>
+    <section class="hero" aria-label="Resumen">
+        <img th:replace="~{fragments/page-header :: hero-photo('narino-fields')}">
+        <div class="hero-body">
+            <p class="eyebrow">Panel de control</p>
+            <h1>Hola, <span sec:authentication="principal.displayName">Usuario</span></h1>
+            <p>Este es el estado de tus parcelas, sensores y riegos.</p>
+            <ul class="hero-facts">
+                <li th:if="${dashboard.runningIrrigation != null}">
+                    <span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-play-circle-fill', 'Riego activo')}"></span>
+                </li>
+                <li th:if="${openAlertCount != null and openAlertCount > 0}">
+                    <span th:replace="~{fragments/status-pill :: status-pill('warning', 'bi-bell',
+                        ${openAlertCount == 1 ? '1 alerta sin atender' : openAlertCount + ' alertas sin atender'})}"></span>
+                </li>
+                <li th:if="${openAlertCount != null and openAlertCount == 0}">
+                    <span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-check2-circle', 'Sin alertas pendientes')}"></span>
+                </li>
+                <li th:if="${demoMode}">
+                    <span th:replace="~{fragments/status-pill :: status-pill('info', 'bi-info-circle', 'Vista de demostración')}"></span>
+                </li>
+            </ul>
         </div>
-        <div class="col-12 col-lg-4">
-            <section class="card weather" aria-labelledby="weatherTitle">
-                <i class="bi bi-cloud-slash" aria-hidden="true"></i>
-                <div>
-                    <h2 id="weatherTitle">Clima no configurado</h2>
-                    <p class="text-muted">Aún no hay un servicio de clima conectado.</p>
-                </div>
-            </section>
-        </div>
-    </div>
+        <section class="hero-aside" aria-labelledby="weatherTitle">
+            <i class="bi bi-cloud-slash" aria-hidden="true"></i>
+            <div>
+                <h2 id="weatherTitle">Clima no configurado</h2>
+                <p>Aún no hay un servicio de clima conectado.</p>
+            </div>
+        </section>
+    </section>
 
-    <section class="row g-3" aria-label="Indicadores">
-        <div class="col-12 col-sm-6 col-xl-3">
-            <article th:replace="~{fragments/stat-card :: stat-card('Parcelas', ${dashboard.estateCount}, null,
-                ${dashboard.activeCropCount + ' cultivos activos'}, 'bi-map')}"></article>
-        </div>
-        <div class="col-12 col-sm-6 col-xl-3">
-            <article th:replace="~{fragments/stat-card :: stat-card('Agua aplicada',
-                ${#numbers.formatDecimal(dashboard.waterLitersLast7Days, 1, 'POINT', 0, 'COMMA')}, 'L',
-                'Últimos 7 días', 'bi-droplet')}"></article>
-        </div>
-        <div class="col-12 col-sm-6 col-xl-3" th:with="summary=${dashboard.summary('AIR_TEMPERATURE')}">
-            <article th:replace="~{fragments/stat-card :: stat-card('Temperatura',
-                ${summary.value != null ? #numbers.formatDecimal(summary.value, 1, 1, 'COMMA') : null}, '°C',
-                ${summary.value != null ? 'Promedio de la última lectura' : 'Sin lecturas'}, 'bi-thermometer-half')}"></article>
-        </div>
-        <div class="col-12 col-sm-6 col-xl-3" th:with="summary=${dashboard.summary('SOIL_MOISTURE')}">
+    <!-- Soil moisture leads: it is the reading irrigation decisions depend on. -->
+    <section class="kpi-grid" aria-label="Indicadores" data-motion-stagger>
+        <th:block th:with="summary=${dashboard.summary('SOIL_MOISTURE')}">
             <article th:replace="~{fragments/stat-card :: stat-card('Humedad del suelo',
                 ${summary.value != null ? #numbers.formatDecimal(summary.value, 1, 1, 'COMMA') : null}, '%',
-                ${summary.value != null ? 'Promedio de la última lectura' : 'Sin lecturas'}, 'bi-moisture')}"></article>
-        </div>
+                ${summary.value != null ? 'Promedio de la última lectura de cada sensor' : 'Sin lecturas'}, 'bi-moisture', true,
+                ${summary.sparkline}, ${dashboard.humidityRange})}"></article>
+        </th:block>
+        <th:block th:with="summary=${dashboard.summary('AIR_TEMPERATURE')}">
+            <article th:replace="~{fragments/stat-card :: stat-card('Temperatura',
+                ${summary.value != null ? #numbers.formatDecimal(summary.value, 1, 1, 'COMMA') : null}, '°C',
+                ${summary.value != null ? 'Promedio de la última lectura' : 'Sin lecturas'}, 'bi-thermometer-half', false,
+                ${summary.sparkline}, null)}"></article>
+        </th:block>
+        <article th:replace="~{fragments/stat-card :: stat-card('Agua aplicada',
+            ${#numbers.formatDecimal(dashboard.waterLitersLast7Days, 1, 'POINT', 0, 'COMMA')}, 'L',
+            'Últimos 7 días', 'bi-droplet', false, ${dashboard.waterSparkline}, null)}"></article>
+        <article th:replace="~{fragments/stat-card :: stat-card('Parcelas', ${dashboard.estateCount}, null,
+            ${dashboard.activeCropCount + ' cultivos activos'}, 'bi-map', false, null, null)}"></article>
     </section>
 
-    <div class="row g-3">
-        <div class="col-12 col-lg-8">
-            <section class="card" aria-labelledby="mapTitle">
-                <h2 id="mapTitle">Mapa de parcelas</h2>
-                <div th:if="${dashboard.hasMapData}" id="estateMap" class="map skeleton" role="application"
-                     aria-label="Mapa con la ubicación de las parcelas"></div>
-                <!-- Schematic view shown when no estate has coordinates, or when the map cannot be drawn. -->
-                <div id="estateMapFallback" class="map-fallback" th:hidden="${dashboard.hasMapData}">
-                    <p class="map-fallback-notice" role="status">
-                        <i class="bi bi-geo-alt" aria-hidden="true"></i>
-                        <span id="estateMapFallbackNotice"
-                              th:text="${demoMode} ? 'Vista de demostración / Sin coordenadas registradas' : 'Sin coordenadas registradas'">
-                            Sin coordenadas registradas
-                        </span>
-                    </p>
-                    <ul class="map-fallback-grid" th:if="${!dashboard.estates.isEmpty()}">
-                        <li th:each="estate : ${dashboard.estates}">
-                            <button type="button" class="map-fallback-tile" data-estate-tile
-                                    th:data-name="${estate.name}" th:data-location="${estate.location}"
-                                    th:data-area="${estate.areaHa}"
-                                    th:data-crops="${#strings.listJoin(estate.crops.?[active].![name], ', ')}">
-                                <i class="bi bi-geo" aria-hidden="true"></i>
-                                <span class="map-fallback-name" th:text="${estate.name}">Finca</span>
-                                <span class="text-muted" th:text="${estate.location ?: 'Sin ubicación'}">Pasto</span>
-                            </button>
-                        </li>
-                    </ul>
-                    <p class="text-muted" th:if="${dashboard.estates.isEmpty()}">Aún no tienes parcelas registradas.</p>
-                </div>
-            </section>
+    <!-- A new account has nothing to show yet: lead it through the first estate, crop and sensor. -->
+    <section class="card onboarding" th:if="${dashboard.estateCards.isEmpty()}" aria-labelledby="onboardingTitle">
+        <div>
+            <h2 id="onboardingTitle">Empieza en tres pasos</h2>
+            <p class="text-muted">Registra tu parcela, uno de sus cultivos y un sensor. Te llevamos de un paso al siguiente.</p>
         </div>
-        <div class="col-12 col-lg-4">
-            <section class="card map-detail" aria-labelledby="mapDetailTitle" aria-live="polite">
-                <h2 id="mapDetailTitle">Detalle de la parcela</h2>
-                <div id="estateDetail">
-                    <p class="text-muted">Selecciona una parcela en el mapa para ver su detalle.</p>
-                </div>
+        <ol th:replace="~{fragments/stepper :: stepper(1)}"></ol>
+        <a class="button" th:href="@{/parcelas/nueva(guia=1)}">
+            <i class="bi bi-plus-lg" aria-hidden="true"></i> Crear mi primera parcela
+        </a>
+    </section>
+
+    <!-- Wide screens: the map and the readings on the left; what needs attention or action on the right. -->
+    <div class="dash-grid">
+        <div class="dash-main">
+            <section class="card map-section" id="mapSection" aria-labelledby="mapTitle">
+            <div class="card-header">
+            <div>
+            <h2 id="mapTitle">Mapa de parcelas</h2>
+            <p class="text-muted" th:if="${!dashboard.estateCards.isEmpty()}"
+            th:with="located=${dashboard.markers.size()}, total=${dashboard.estateCards.size()}"
+            th:text="${located == total} ? (${total == 1} ? '1 parcela ubicada en el mapa' : |${total} parcelas ubicadas en el mapa|)
+            : |${located} de ${total} parcelas tienen coordenadas|">
+            2 parcelas ubicadas en el mapa
+            </p>
+            </div>
+            <div class="row-actions">
+            <th:block th:if="${dashboard.hasMapData}">
+            <button type="button" class="button button--ghost button--small" id="mapFit">
+            <i class="bi bi-bounding-box" aria-hidden="true"></i> Ver todas
+            </button>
+            <button type="button" class="button button--ghost button--small" id="mapExpand" aria-pressed="false">
+            <i class="bi bi-arrows-fullscreen" aria-hidden="true"></i> <span>Ampliar</span>
+            </button>
+            </th:block>
+            <a class="link" th:href="@{/parcelas}">Ver parcelas</a>
+            </div>
+            </div>
+            
+            <div class="map-layout">
+            <div class="map-stage">
+            <!-- data-markers carries what /api/ui/estates/markers would answer, so the map needs no request. -->
+            <div th:if="${dashboard.hasMapData}" id="estateMap" class="map skeleton" role="application"
+            aria-label="Mapa con la ubicación de las parcelas" th:attr="data-markers=${markersJson}"></div>
+            <!-- Streets or satellite imagery; dashboard.ts remembers the choice in this browser. -->
+            <div class="segmented map-layers" role="group" aria-label="Tipo de mapa" id="mapLayers"
+            th:if="${dashboard.hasMapData}">
+            <button type="button" class="segmented-option" data-map-layer="streets" aria-pressed="true">
+            <i class="bi bi-map" aria-hidden="true"></i> Mapa
+            </button>
+            <button type="button" class="segmented-option" data-map-layer="satellite" aria-pressed="false">
+            <i class="bi bi-globe-americas" aria-hidden="true"></i> Satélite
+            </button>
+            </div>
+            <!-- What the shapes drawn around each estate mean. -->
+            <ul class="map-legend" th:if="${dashboard.hasMapData}" aria-label="Leyenda del mapa">
+            <li><span class="map-legend-swatch map-legend-swatch--boundary" aria-hidden="true"></span> Contorno de la parcela</li>
+            <li><span class="map-legend-swatch map-legend-swatch--area" aria-hidden="true"></span> Área aproximada (sin contorno)</li>
+            <li><span class="map-legend-swatch map-legend-swatch--coverage" aria-hidden="true"></span> Cobertura del sensor</li>
+            <li><span class="map-legend-swatch map-legend-swatch--sensor" aria-hidden="true"></span> Sensor</li>
+            </ul>
+            <p class="map-hint" th:if="${dashboard.hasMapData}" aria-hidden="true">
+            <i class="bi bi-mouse" aria-hidden="true"></i> Haz clic en el mapa para acercar con la rueda
+            </p>
+            <!-- Shown when no estate has coordinates, or when the map cannot be drawn. -->
+            <div id="estateMapFallback" class="map-fallback" th:hidden="${dashboard.hasMapData}">
+            <i class="bi bi-geo-alt map-fallback-icon" aria-hidden="true"></i>
+            <p class="map-fallback-notice" role="status">
+            <span id="estateMapFallbackNotice"
+            th:text="${demoMode} ? 'Vista de demostración / Sin coordenadas registradas' : 'Sin coordenadas registradas'">
+            Sin coordenadas registradas
+            </span>
+            </p>
+            <p class="text-muted" th:if="${!dashboard.estateCards.isEmpty()}">
+            Añade la latitud y la longitud de una parcela para verla aquí.
+            </p>
+            </div>
+            </div>
+            
+            <ul class="estate-list" th:if="${!dashboard.estateCards.isEmpty()}" aria-label="Parcelas">
+            <li th:each="estate : ${dashboard.estateCards}">
+            <button type="button" class="estate-item" data-estate-tile th:data-estate-id="${estate.id}"
+            th:attr="aria-pressed=${estate.hasCoordinates()} ? 'false' : null"
+            th:disabled="${!estate.hasCoordinates()}">
+            <span class="estate-item-pin" aria-hidden="true"
+            th:classappend="${estate.openAlerts > 0} ? 'estate-item-pin--alert'">
+            <i class="bi" th:classappend="${estate.hasCoordinates()} ? 'bi-geo-alt-fill' : 'bi-geo-alt'"></i>
+            </span>
+            <span class="estate-item-body">
+            <span class="estate-item-name" th:text="${estate.name}">Finca</span>
+            <span class="estate-item-meta">
+            <span th:text="${estate.location ?: 'Sin ubicación'}">Pasto</span>
+            <span th:if="${estate.areaHa != null}"
+            th:text="| · ${#numbers.formatDecimal(estate.areaHa, 1, 1, 'COMMA')} ha|"> · 12,5 ha</span>
+            </span>
+            <span class="estate-item-crops" th:if="${!estate.crops.isEmpty()}"
+            th:text="${#strings.listJoin(estate.crops, ' · ')}">Café · Plátano</span>
+            <span class="estate-item-stats">
+            <span><i class="bi bi-broadcast" aria-hidden="true"></i>
+            <span th:text="${estate.sensorCount == 1} ? '1 sensor' : |${estate.sensorCount} sensores|">2 sensores</span></span>
+            <span class="estate-item-alerts" th:if="${estate.openAlerts > 0}">
+            <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+            <span th:text="${estate.openAlerts == 1} ? '1 alerta' : |${estate.openAlerts} alertas|">1 alerta</span></span>
+            <span th:if="${estate.openAlerts == 0}"><i class="bi bi-check2-circle" aria-hidden="true"></i> Sin alertas</span>
+            </span>
+            </span>
+            </button>
+            <a class="estate-item-add link" th:if="${!estate.hasCoordinates()}"
+            th:href="@{/parcelas/{id}/editar(id=${estate.id})}">
+            <i class="bi bi-plus-lg" aria-hidden="true"></i> Agregar coordenadas
+            </a>
+            </li>
+            </ul>
+            
+            <!-- No estates yet: point to the first step instead of leaving an empty list. -->
+            <div class="estate-list estate-list--empty" th:if="${dashboard.estateCards.isEmpty()}">
+            <p class="text-muted">Aún no tienes parcelas registradas.</p>
+            <a class="button button--small" th:href="@{/parcelas/nueva}">
+            <i class="bi bi-plus-lg" aria-hidden="true"></i> Crear la primera parcela
+            </a>
+            </div>
+            </div>
             </section>
-        </div>
-    </div>
 
-    <div class="row g-3">
-        <div class="col-12 col-lg-5">
-            <section class="card" aria-labelledby="irrigationTitle">
-                <h2 id="irrigationTitle">Control de riego</h2>
-                <div class="pump" id="pumpStatus" aria-live="polite">
-                    <span class="pump-icon" aria-hidden="true"><i class="bi bi-water"></i></span>
-                    <div th:if="${dashboard.runningIrrigation != null}">
-                        <span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-play-circle-fill', 'Riego en curso')}"></span>
-                        <p th:text="|${dashboard.runningIrrigation.cropName} · termina a las ${#temporals.format(dashboard.runningIrrigation.endsAt, 'HH:mm')}|">
-                            Café · termina a las 10:30
-                        </p>
-                    </div>
-                    <div th:unless="${dashboard.runningIrrigation != null}">
-                        <span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-pause-circle', 'Sin riego en curso')}"></span>
-                        <p class="text-muted">No hay riegos activos en este momento.</p>
-                    </div>
-                </div>
-
-                <form th:if="${!dashboard.cropOptions.isEmpty()}" class="form-grid" id="quickIrrigation"
-                      th:action="@{/riego}" method="post" th:object="${irrigationForm}">
-                    <label class="field">
-                        <span class="field-label">Cultivo</span>
-                        <select th:field="*{cropId}" required>
-                            <option th:each="option : ${dashboard.cropOptions}" th:value="${option.id}"
-                                    th:text="${option.label}">Café</option>
-                        </select>
-                    </label>
-                    <label class="field">
-                        <span class="field-label">Duración (minutos)</span>
-                        <input type="number" th:field="*{durationMin}" min="1" max="240" required>
-                    </label>
-                    <label class="field">
-                        <span class="field-label">Agua (litros)</span>
-                        <input type="number" th:field="*{waterLiters}" min="0.01" step="0.01" required>
-                    </label>
-                    <button type="submit" class="button">
-                        <i class="bi bi-play-fill" aria-hidden="true"></i> Iniciar riego
-                    </button>
-                </form>
-                <p class="text-muted" th:if="${dashboard.cropOptions.isEmpty()}">No tienes cultivos activos para regar.</p>
-                <p class="note">
-                    <i class="bi bi-info-circle" aria-hidden="true"></i>
-                    El riego queda registrado en el sistema. El control de la bomba física aún no está disponible.
-                </p>
-            </section>
-        </div>
-
-        <div class="col-12 col-lg-7">
-            <section class="card" aria-labelledby="sensorsTitle">
-                <h2 id="sensorsTitle">Sensores</h2>
-                <ul class="sensor-grid">
-                    <li class="sensor-tile" th:each="summary : ${dashboard.sensorSummaries}">
-                        <span class="sensor-tile-label" th:text="#{${'sensorType.' + summary.type}}">Humedad</span>
-                        <span class="sensor-tile-value" th:if="${summary.value != null}">
-                            <span th:text="${#numbers.formatDecimal(summary.value, 1, 1, 'COMMA')}">52,0</span>
-                            <span class="stat-unit" th:text="${summary.unit}">%</span>
-                        </span>
-                        <span class="sensor-tile-value sensor-tile-value--empty" th:if="${summary.value == null}">Sin datos</span>
-                        <span class="stat-hint" th:if="${summary.value != null}"
-                              th:text="${summary.sensorCount == 1 ? '1 sensor' : summary.sensorCount + ' sensores'}">2 sensores</span>
-                    </li>
-                </ul>
-            </section>
-        </div>
-    </div>
-
-    <div class="row g-3">
-        <div class="col-12 col-lg-7">
             <section class="card" aria-labelledby="readingsTitle">
-                <div class="card-header">
-                    <h2 id="readingsTitle">Lecturas de las últimas 24 horas</h2>
-                    <label class="field field--inline" th:if="${!dashboard.chartSensors.isEmpty()}">
-                        <span class="field-label">Sensor</span>
-                        <select id="chartSensor">
-                            <option th:each="sensor : ${dashboard.chartSensors}" th:value="${sensor.id}"
-                                    th:text="|${sensor.code} · ${#messages.msg('sensorType.' + sensor.type)} · ${sensor.cropName}|">
-                                AS-001
-                            </option>
-                        </select>
-                    </label>
-                </div>
-                <div th:if="${!dashboard.chartSensors.isEmpty()}">
-                    <div class="chart skeleton" id="readingsChartBox">
-                        <canvas id="readingsChart" role="img" aria-label="Gráfica de lecturas del sensor seleccionado"></canvas>
-                    </div>
-                    <p class="chart-message" id="readingsMessage" role="status" hidden></p>
-                    <details class="chart-table">
-                        <summary>Ver datos en tabla</summary>
-                        <div class="table-scroll">
-                            <table class="table">
-                                <thead><tr><th>Hora</th><th class="numeric">Valor</th></tr></thead>
-                                <tbody id="readingsTable"></tbody>
-                            </table>
-                        </div>
-                    </details>
-                </div>
-                <th:block th:if="${dashboard.chartSensors.isEmpty()}"><div th:replace="~{fragments/empty-state :: empty-state('bi-graph-up', 'Sin lecturas',
-                     'Ningún sensor activo ha enviado lecturas todavía.')}"></div></th:block>
+            <div class="card-header">
+            <h2 id="readingsTitle">Lecturas de las últimas 24 horas</h2>
+            <label class="field field--inline" th:if="${!dashboard.chartSensors.isEmpty()}">
+            <span class="field-label">Sensor</span>
+            <select id="chartSensor">
+            <option th:each="sensor : ${dashboard.chartSensors}" th:value="${sensor.id}"
+            th:text="|${sensor.code} · ${#messages.msg('sensorType.' + sensor.type)} · ${sensor.cropName}|">
+            AS-001
+            </option>
+            </select>
+            </label>
+            </div>
+            <div th:if="${!dashboard.chartSensors.isEmpty()}">
+            <div class="chart skeleton" id="readingsChartBox">
+            <canvas id="readingsChart" role="img" aria-label="Gráfica de lecturas del sensor seleccionado"></canvas>
+            </div>
+            <p class="chart-message" id="readingsMessage" role="status" hidden></p>
+            <details class="chart-table">
+            <summary>Ver datos en tabla</summary>
+            <div class="table-scroll">
+            <table class="table">
+            <thead><tr><th>Hora</th><th class="numeric">Valor</th></tr></thead>
+            <tbody id="readingsTable"></tbody>
+            </table>
+            </div>
+            </details>
+            </div>
+            <th:block th:if="${dashboard.chartSensors.isEmpty()}"><div th:replace="~{fragments/empty-state :: empty-state-action('bi-graph-up', 'Sin lecturas',
+            'Ningún sensor activo ha enviado lecturas todavía. Registra uno para empezar a ver sus datos aquí.',
+            '/sensores/nuevo', 'Registrar un sensor')}"></div></th:block>
             </section>
         </div>
-        <div class="col-12 col-lg-5">
-            <section class="card" aria-labelledby="waterTitle">
-                <h2 id="waterTitle">Agua aplicada por día (L)</h2>
-                <div class="chart skeleton" id="waterChartBox">
-                    <canvas id="waterChart" role="img" aria-label="Gráfica de litros de agua aplicados por día en la última semana"></canvas>
-                </div>
-                <p class="chart-message" id="waterMessage" role="status" hidden></p>
-            </section>
-        </div>
-    </div>
 
-    <section class="card" aria-labelledby="alertsTitle">
-        <div class="card-header">
+        <div class="dash-side">
+            <section class="card" aria-labelledby="alertsTitle">
+            <div class="card-header">
             <h2 id="alertsTitle">Alertas recientes</h2>
             <a class="link" th:href="@{/alertas}">Ver todas</a>
-        </div>
-        <ul class="alert-list" th:if="${!dashboard.recentAlerts.isEmpty()}">
+            </div>
+            <ul class="alert-list" th:if="${!dashboard.recentAlerts.isEmpty()}">
             <li th:each="alert : ${dashboard.recentAlerts}">
-                <span th:replace="~{fragments/status-pill :: severity-pill(${alert.severity})}"></span>
-                <div>
-                    <strong th:text="|${#messages.msg('alertType.' + alert.type)} · ${alert.cropName}|">Humedad baja · Café</strong>
-                    <p class="text-muted" th:text="${alert.message}">Mensaje</p>
-                </div>
-                <time class="text-muted" th:datetime="${alert.createdAt}"
-                      th:text="${#temporals.format(alert.createdAt, 'd MMM, HH:mm')}">8 oct, 10:00</time>
+            <span th:replace="~{fragments/status-pill :: severity-pill(${alert.severity})}"></span>
+            <div>
+            <strong th:text="|${#messages.msg('alertType.' + alert.type)} · ${alert.cropName}|">Humedad baja · Café</strong>
+            <p class="text-muted" th:text="${alert.message}">Mensaje</p>
+            </div>
+            <time class="text-muted" th:datetime="${alert.createdAt}"
+            th:text="${#temporals.format(alert.createdAt, 'd MMM, HH:mm')}">8 oct, 10:00</time>
             </li>
-        </ul>
-        <th:block th:if="${dashboard.recentAlerts.isEmpty()}"><div th:replace="~{fragments/empty-state :: empty-state('bi-check2-circle', 'Todo en orden',
-             'No hay alertas pendientes.')}"></div></th:block>
-    </section>
+            </ul>
+            <th:block th:if="${dashboard.recentAlerts.isEmpty()}"><div th:replace="~{fragments/empty-state :: empty-state('bi-check2-circle', 'Todo en orden',
+            'No hay alertas pendientes.')}"></div></th:block>
+            </section>
+
+            <section class="card" aria-labelledby="irrigationTitle">
+            <h2 id="irrigationTitle">Control de riego</h2>
+            <div class="pump" id="pumpStatus" aria-live="polite"
+            th:classappend="${dashboard.runningIrrigation != null} ? 'pump--running'">
+            <span class="pump-icon" aria-hidden="true"><i class="bi bi-water"></i></span>
+            <div th:if="${dashboard.runningIrrigation != null}">
+            <span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-play-circle-fill', 'Riego en curso')}"></span>
+            <p th:text="|${dashboard.runningIrrigation.cropName} · termina a las ${#temporals.format(dashboard.runningIrrigation.endsAt, 'HH:mm')}|">
+            Café · termina a las 10:30
+            </p>
+            <progress class="running-bar" data-countdown aria-label="Avance del riego"
+            th:max="${dashboard.runningIrrigation.totalSeconds()}"
+            th:value="${dashboard.runningIrrigation.totalSeconds() - dashboard.runningIrrigation.remainingSeconds()}"
+            th:attr="data-remaining=${dashboard.runningIrrigation.remainingSeconds()},data-total=${dashboard.runningIrrigation.totalSeconds()}">50</progress>
+            </div>
+            <div th:unless="${dashboard.runningIrrigation != null}">
+            <span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-pause-circle', 'Sin riego en curso')}"></span>
+            <p class="text-muted">No hay riegos activos en este momento.</p>
+            </div>
+            </div>
+            
+            <form th:if="${!dashboard.cropOptions.isEmpty()}" class="form-grid" id="quickIrrigation"
+            th:action="@{/riego}" method="post" th:object="${irrigationForm}">
+            <label class="field">
+            <span class="field-label">Cultivo</span>
+            <select th:field="*{cropId}" required>
+            <option th:each="option : ${dashboard.cropOptions}" th:value="${option.id}"
+            th:text="${option.label}">Café</option>
+            </select>
+            </label>
+            <label class="field">
+            <span class="field-label">Duración (minutos)</span>
+            <input type="number" th:field="*{durationMin}" min="1" max="240" inputmode="numeric" required>
+            </label>
+            <label class="field">
+            <span class="field-label">Agua (litros)</span>
+            <input type="number" th:field="*{waterLiters}" min="0.01" step="0.01" inputmode="decimal" required>
+            </label>
+            <button type="submit" class="button">
+            <i class="bi bi-play-fill" aria-hidden="true"></i> Iniciar riego
+            </button>
+            </form>
+            <p class="text-muted" th:if="${dashboard.cropOptions.isEmpty()}">No tienes cultivos activos para regar.</p>
+            <p class="note">
+            <i class="bi bi-info-circle" aria-hidden="true"></i>
+            El riego queda registrado en el sistema. El control de la bomba física aún no está disponible.
+            </p>
+            </section>
+
+            <section class="card" aria-labelledby="sensorsTitle">
+            <div class="card-header">
+            <h2 id="sensorsTitle">Sensores</h2>
+            <a class="link" th:href="@{/sensores}">Ver todos</a>
+            </div>
+            <ul class="sensor-grid">
+            <li class="sensor-tile" th:each="summary : ${dashboard.sensorSummaries}"
+            th:classappend="${summary.value == null} ? 'sensor-tile--empty'">
+            <span class="sensor-tile-label" th:text="#{${'sensorType.' + summary.type}}">Humedad</span>
+            <span class="sensor-tile-value" th:if="${summary.value != null}">
+            <span th:text="${#numbers.formatDecimal(summary.value, 1, 1, 'COMMA')}">52,0</span>
+            <span class="stat-unit" th:text="${summary.unit}">%</span>
+            </span>
+            <span class="sensor-tile-value sensor-tile-value--empty" th:if="${summary.value == null}">Sin datos</span>
+            <span class="stat-hint" th:if="${summary.value != null}"
+            th:text="${summary.sensorCount == 1 ? '1 sensor' : summary.sensorCount + ' sensores'}">2 sensores</span>
+            </li>
+            </ul>
+            </section>
+
+            <section class="card" aria-labelledby="waterTitle">
+            <h2 id="waterTitle">Agua aplicada por día (L)</h2>
+            <div class="chart skeleton" id="waterChartBox" th:attr="data-days=${waterUsageJson}">
+            <canvas id="waterChart" role="img" aria-label="Gráfica de litros de agua aplicados por día en la última semana"></canvas>
+            </div>
+            <p class="chart-message" id="waterMessage" role="status" hidden></p>
+            </section>
+        </div>
+    </div>
 </main>
 </body>
 </html>
