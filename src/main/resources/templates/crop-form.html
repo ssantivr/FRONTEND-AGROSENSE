@@ -2,11 +2,14 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{fragments/layout :: layout(${formTitle}, ~{::main}, null)}">
 <body>
-<main id="main" class="app-content" tabindex="-1">
+<main id="main" class="app-content" tabindex="-1" data-motion-stagger>
     <header th:replace="~{fragments/page-header :: page-header(${formTitle}, 'Datos del cultivo y rangos aceptables para las alertas.')}"></header>
+
+    <th:block th:if="${guideStep != null}"><ol th:replace="~{fragments/stepper :: stepper(${guideStep})}"></ol></th:block>
 
     <section class="card card--form">
         <form class="stack" th:action="@{${formAction}}" method="post" th:object="${cropForm}" novalidate>
+            <input type="hidden" name="guia" value="1" th:if="${guideStep != null}">
             <div class="field-row">
                 <label class="field">
                     <span class="field-label">Nombre</span>
