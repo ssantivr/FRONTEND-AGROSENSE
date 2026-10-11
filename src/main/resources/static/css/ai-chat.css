@@ -129,6 +129,15 @@
   margin-top: 0;
 }
 
+/* Under an answer given without the model: quieter than the answer, and set apart from it. */
+.ai-chat-message .ai-chat-note {
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px dashed var(--border);
+  color: var(--text-muted);
+  font-size: var(--text-micro);
+}
+
 .ai-chat-message > :last-child {
   margin-bottom: 0;
 }
