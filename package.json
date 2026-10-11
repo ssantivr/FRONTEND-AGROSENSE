@@ -1,0 +1,16 @@
+{
+  "name": "agrosense-frontend-scripts",
+  "private": true,
+  "description": "TypeScript sources of the browser scripts. tsc compiles them into src/main/resources/static/js, which is committed so the Maven build needs no Node.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "watch": "tsc -p tsconfig.json --watch"
+  },
+  "devDependencies": {
+    "@types/leaflet": "1.9.22",
+    "chart.js": "4.4.1",
+    "typescript": "7.0.2"
+  }
+}
