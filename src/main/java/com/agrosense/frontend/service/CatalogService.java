@@ -4,7 +4,9 @@ import com.agrosense.frontend.backend.BackendClient;
 import com.agrosense.frontend.backend.BackendUnavailableException;
 import com.agrosense.frontend.dto.CropForm;
 import com.agrosense.frontend.dto.EstateForm;
+import com.agrosense.frontend.dto.Boundary;
 import com.agrosense.frontend.dto.SensorForm;
+import com.agrosense.frontend.dto.SensorPositionForm;
 import com.agrosense.frontend.entity.Crop;
 import com.agrosense.frontend.entity.Estate;
 import com.agrosense.frontend.entity.Sensor;
@@ -22,6 +24,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.RoundingMode;
+import java.math.BigDecimal;
 import java.util.Locale;
 
 /** Creates, edits and removes the user's own estates, crops and sensors. */
@@ -50,6 +54,7 @@ public class CatalogService {
         form.setAreaHa(estate.getAreaHa());
         form.setLatitude(estate.getLatitude());
         form.setLongitude(estate.getLongitude());
+        form.setBoundary(estate.getBoundary());
         return form;
     }
 
@@ -58,12 +63,13 @@ public class CatalogService {
         return findEstate(email, estateId).getName();
     }
 
-    public void createEstate(String email, EstateForm form) {
+    /** @return the id of the new estate */
+    public Integer createEstate(String email, EstateForm form) {
         User owner = userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("User not found"));
         Estate estate = Estate.builder().user(owner).build();
         apply(form, estate);
-        estateRepository.save(estate);
+        return estateRepository.save(estate).getIdEstate();
     }
 
     public void updateEstate(String email, Integer estateId, EstateForm form) {
@@ -99,10 +105,11 @@ public class CatalogService {
         return form;
     }
 
-    public void createCrop(String email, Integer estateId, CropForm form) {
+    /** @return the id of the new crop */
+    public Integer createCrop(String email, Integer estateId, CropForm form) {
         Crop crop = Crop.builder().estate(findEstate(email, estateId)).build();
         apply(form, crop);
-        cropRepository.save(crop);
+        return cropRepository.save(crop).getIdCrop();
     }
 
     public void updateCrop(String email, Integer cropId, CropForm form) {
@@ -141,14 +148,38 @@ public class CatalogService {
                 throw new BusinessRuleException(
                         "El servidor no respondió a tiempo. Revisa la lista de sensores antes de intentarlo de nuevo.");
             }
+            // The API knows nothing about positions: the row it created is completed here, in the same database.
+            sensorRepository.findBySensorCodeIgnoreCase(code).ifPresent(sensor -> place(sensor, form.getPosition()));
             return;
         }
-        sensorRepository.save(Sensor.builder()
+        Sensor sensor = Sensor.builder()
                 .crop(crop)
                 .sensorCode(code)
                 .sensorType(form.getSensorType())
                 .location(blankToNull(form.getLocation()))
-                .build());
+                .build();
+        place(sensor, form.getPosition());
+        sensorRepository.save(sensor);
+    }
+
+    /** Moves one of the user's sensors, changes its coverage, or takes it off the map when the form is empty. */
+    public void placeSensor(String email, Integer sensorId, SensorPositionForm position) {
+        place(findSensor(email, sensorId), position);
+    }
+
+    public SensorPositionForm findSensorPosition(String email, Integer sensorId) {
+        Sensor sensor = findSensor(email, sensorId);
+        SensorPositionForm position = new SensorPositionForm();
+        position.setLatitude(sensor.getLatitude());
+        position.setLongitude(sensor.getLongitude());
+        position.setCoverageM(sensor.getCoverageM());
+        return position;
+    }
+
+    private static void place(Sensor sensor, SensorPositionForm position) {
+        sensor.setLatitude(position.getLatitude());
+        sensor.setLongitude(position.getLongitude());
+        sensor.setCoverageM(position.getCoverageM());
     }
 
     public void deleteSensor(String email, Integer sensorId) {
@@ -180,9 +211,17 @@ public class CatalogService {
     private static void apply(EstateForm form, Estate estate) {
         estate.setName(form.getName().trim());
         estate.setLocation(blankToNull(form.getLocation()));
-        estate.setAreaHa(form.getAreaHa());
-        estate.setLatitude(form.getLatitude());
-        estate.setLongitude(form.getLongitude());
+        Boundary boundary = Boundary.parse(form.getBoundary());
+        estate.setBoundary(boundary == null ? null : boundary.toJson());
+        // A drawn outline answers what was left empty: its area, and its middle as the estate's point.
+        estate.setAreaHa(form.getAreaHa() == null && boundary != null ? boundary.areaHa() : form.getAreaHa());
+        if (form.getLatitude() == null && boundary != null) {
+            estate.setLatitude(BigDecimal.valueOf(boundary.centre()[0]).setScale(7, RoundingMode.HALF_UP));
+            estate.setLongitude(BigDecimal.valueOf(boundary.centre()[1]).setScale(7, RoundingMode.HALF_UP));
+        } else {
+            estate.setLatitude(form.getLatitude());
+            estate.setLongitude(form.getLongitude());
+        }
     }
 
     private static void apply(CropForm form, Crop crop) {
