@@ -2,7 +2,7 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{fragments/layout :: layout('Alertas', ~{::main}, null)}">
 <body>
-<main id="main" class="app-content" tabindex="-1">
+<main id="main" class="app-content" tabindex="-1" data-motion-stagger>
     <header th:replace="~{fragments/page-header :: page-header('Alertas', 'Avisos generados por los sensores y el sistema.')}"></header>
 
     <section class="card">
@@ -16,39 +16,44 @@
         <th:block th:if="${alerts.isEmpty()}"><div th:replace="~{fragments/empty-state :: empty-state('bi-check2-circle', 'Sin alertas',
              'No hay alertas para mostrar con este filtro.')}"></div></th:block>
 
-        <div class="table-scroll" th:if="${!alerts.isEmpty()}">
-            <table class="table">
-                <thead>
-                <tr>
-                    <th>Severidad</th>
-                    <th>Alerta</th>
-                    <th>Cultivo</th>
-                    <th class="numeric">Valor detectado</th>
-                    <th>Fecha</th>
-                    <th>Acción</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="alert : ${alerts.content}" data-search-row>
-                    <td><span th:replace="~{fragments/status-pill :: severity-pill(${alert.severity})}"></span></td>
-                    <td class="cell-wrap">
-                        <strong th:text="#{${'alertType.' + alert.type}}">Humedad baja</strong>
-                        <p class="text-muted" th:text="${alert.message}">Mensaje</p>
-                    </td>
-                    <td th:text="|${alert.cropName} · ${alert.estateName}|">Café · Finca</td>
-                    <td class="numeric"
-                        th:text="${alert.detectedValue != null ? #numbers.formatDecimal(alert.detectedValue, 1, 1, 'COMMA') : '—'}">37,4</td>
-                    <td th:text="${#temporals.format(alert.createdAt, 'd MMM, HH:mm')}">8 oct, 10:00</td>
-                    <td>
-                        <span class="text-muted" th:if="${alert.acknowledged}">Atendida</span>
-                        <form th:unless="${alert.acknowledged}" th:action="@{/alertas/{id}/atender(id=${alert.id})}"
-                              method="post" data-confirm="¿Marcar esta alerta como atendida?">
-                            <button type="submit" class="button button--ghost button--small">Marcar como atendida</button>
-                        </form>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
+        <!-- A timeline, newest day first. The stripe and the pill both carry the severity. -->
+        <div class="timeline" th:if="${!alerts.isEmpty()}">
+            <section class="timeline-day" th:each="day : ${alertDays}">
+                <h2 class="timeline-date">
+                    <time th:datetime="${day.date}" th:text="${#temporals.format(day.date, 'EEEE d ''de'' MMMM')}">viernes 9 de octubre</time>
+                </h2>
+                <ol class="timeline-list">
+                    <li class="timeline-item" th:each="alert : ${day.alerts}" data-search-row
+                        th:with="level=${alert.severity.name()}"
+                        th:classappend="|timeline-item--${level == 'VERY_HIGH' or level == 'HIGH' ? 'danger' : (level == 'MEDIUM' ? 'warning' : 'neutral')}${alert.acknowledged ? ' timeline-item--done' : ''}|">
+                        <time class="timeline-time" th:datetime="${alert.createdAt}"
+                              th:text="${#temporals.format(alert.createdAt, 'HH:mm')}">10:00</time>
+                        <div class="timeline-body">
+                            <div class="timeline-head">
+                                <strong th:text="#{${'alertType.' + alert.type}}">Humedad baja</strong>
+                                <span th:replace="~{fragments/status-pill :: severity-pill(${alert.severity})}"></span>
+                            </div>
+                            <p th:text="${alert.message}">Mensaje</p>
+                            <p class="timeline-meta">
+                                <span><i class="bi bi-flower1" aria-hidden="true"></i> <span th:text="|${alert.cropName} · ${alert.estateName}|">Café · Finca</span></span>
+                                <span th:if="${alert.detectedValue != null}">
+                                    <i class="bi bi-speedometer2" aria-hidden="true"></i>
+                                    Valor detectado: <span th:text="${#numbers.formatDecimal(alert.detectedValue, 1, 1, 'COMMA')}">37,4</span>
+                                </span>
+                            </p>
+                        </div>
+                        <div class="timeline-action">
+                            <span class="text-muted" th:if="${alert.acknowledged}">
+                                <i class="bi bi-check2" aria-hidden="true"></i> Atendida
+                            </span>
+                            <form th:unless="${alert.acknowledged}" th:action="@{/alertas/{id}/atender(id=${alert.id})}"
+                                  method="post" data-confirm="¿Marcar esta alerta como atendida?">
+                                <button type="submit" class="button button--ghost button--small">Marcar como atendida</button>
+                            </form>
+                        </div>
+                    </li>
+                </ol>
+            </section>
         </div>
 
         <nav th:replace="~{fragments/pagination :: pagination(${alerts}, ${pageUrl})}"></nav>
