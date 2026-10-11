@@ -6,6 +6,7 @@ import com.agrosense.frontend.entity.Alert;
 import com.agrosense.frontend.exception.NotFoundException;
 import com.agrosense.frontend.repository.AlertRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -14,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -34,10 +37,24 @@ public class AlertService {
     }
 
     public List<AlertView> findRecentOpen(String email, int limit) {
-        Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "createdAt"));
-        return alertRepository.findByCropEstateUserEmailAndAcknowledgedFalse(email, pageable)
+        return alertRepository
+                .findByCropEstateUserEmailAndAcknowledgedFalseOrderByCreatedAtDesc(email, Limit.of(limit)).stream()
                 .map(AlertService::toView)
-                .getContent();
+                .toList();
+    }
+
+    /** The newest open alerts of one of the user's estates. */
+    public List<AlertView> findOpenByEstate(String email, Integer estateId, int limit) {
+        return alertRepository
+                .findByCropEstateIdEstateAndCropEstateUserEmailAndAcknowledgedFalseOrderByCreatedAtDesc(estateId, email,
+                        Limit.of(limit))
+                .stream().map(AlertService::toView).toList();
+    }
+
+    /** Open alerts by estate id; estates without any are absent. */
+    public Map<Integer, Integer> countOpenByEstate(String email) {
+        return alertRepository.countOpenByEstate(email).stream()
+                .collect(Collectors.toMap(row -> (Integer) row[0], row -> ((Number) row[1]).intValue()));
     }
 
     public long countOpen(String email) {
