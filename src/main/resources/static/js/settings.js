@@ -1,23 +1,22 @@
 // Settings page: browser-level preferences and the account deletion dialog.
 import { isSidebarCollapsed, setSidebarCollapsed } from './app.js';
-
-const sidebarPreference = document.getElementById('prefSidebarCollapsed');
+import { find } from './core/dom.js';
+const sidebarPreference = find('prefSidebarCollapsed', HTMLInputElement);
 if (sidebarPreference) {
-  sidebarPreference.checked = isSidebarCollapsed();
-  sidebarPreference.addEventListener('change', () => setSidebarCollapsed(sidebarPreference.checked));
-  // Keep the checkbox in step with the top bar button.
-  document.getElementById('sidebarToggle')?.addEventListener('click', () => {
     sidebarPreference.checked = isSidebarCollapsed();
-  });
+    sidebarPreference.addEventListener('change', () => setSidebarCollapsed(sidebarPreference.checked));
+    // Keep the checkbox in step with the top bar button.
+    find('sidebarToggle', HTMLButtonElement)?.addEventListener('click', () => {
+        sidebarPreference.checked = isSidebarCollapsed();
+    });
 }
-
-const modal = document.getElementById('deleteAccountModal');
-const openButton = document.getElementById('openDeleteAccount');
-if (modal?.showModal && openButton) {
-  openButton.addEventListener('click', () => {
-    modal.showModal();
-    document.getElementById('deleteAccountPassword').focus();
-  });
-  document.getElementById('cancelDeleteAccount').addEventListener('click', () => modal.close());
-  modal.addEventListener('close', () => modal.querySelector('form').reset());
+const modal = find('deleteAccountModal', HTMLDialogElement);
+const openButton = find('openDeleteAccount', HTMLButtonElement);
+if (modal && openButton) {
+    openButton.addEventListener('click', () => {
+        modal.showModal();
+        find('deleteAccountPassword', HTMLInputElement)?.focus();
+    });
+    find('cancelDeleteAccount', HTMLButtonElement)?.addEventListener('click', () => modal.close());
+    modal.addEventListener('close', () => modal.querySelector('form')?.reset());
 }
