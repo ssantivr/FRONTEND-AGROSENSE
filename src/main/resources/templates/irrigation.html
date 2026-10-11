@@ -2,9 +2,37 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{fragments/layout :: layout('Riego', ~{::main}, null)}">
 <body>
-<main id="main" class="app-content" tabindex="-1">
-    <header th:replace="~{fragments/page-header :: page-header('Riego', 'Registra un riego manual y consulta el historial.')}"></header>
+<main id="main" class="app-content" tabindex="-1" data-motion-stagger>
+    <header class="hero hero--compact">
+        <img th:replace="~{fragments/page-header :: hero-photo('pivot')}">
+        <div class="hero-body">
+            <h1>Riego</h1>
+            <p>Registra un riego manual y consulta el historial.</p>
+        </div>
+    </header>
 
+    <!-- Irrigations under way: how far along each one is and how long is left (app.ts counts it down). -->
+    <section class="card running-card" aria-labelledby="runningTitle" th:if="${!running.isEmpty()}">
+        <h2 id="runningTitle" th:text="${running.size() == 1} ? 'Riego en curso' : |${running.size()} riegos en curso|">Riego en curso</h2>
+        <ul class="running-list">
+            <li class="running-item" th:each="irrigation : ${running}" data-countdown
+                th:attr="data-remaining=${irrigation.remainingSeconds()},data-total=${irrigation.totalSeconds()}">
+                <span class="pump-icon" aria-hidden="true"><i class="bi bi-water"></i></span>
+                <div class="running-body">
+                    <div class="running-head">
+                        <strong th:text="|${irrigation.cropName} · ${irrigation.estateName}|">Café · Finca</strong>
+                        <span class="running-left" data-countdown-text
+                              th:text="|Termina a las ${#temporals.format(irrigation.endsAt, 'HH:mm')}|">Termina a las 10:30</span>
+                    </div>
+                    <progress class="running-bar" th:max="${irrigation.totalSeconds()}"
+                              th:value="${irrigation.totalSeconds() - irrigation.remainingSeconds()}"
+                              aria-label="Avance del riego">50</progress>
+                    <p class="text-muted" th:if="${irrigation.waterLiters != null}"
+                       th:text="|${#numbers.formatDecimal(irrigation.waterLiters, 1, 'POINT', 0, 'COMMA')} L en ${irrigation.durationMin} min|">450 L en 30 min</p>
+                </div>
+            </li>
+        </ul>
+    </section>
     <section class="card" aria-labelledby="startTitle">
         <h2 id="startTitle">Iniciar riego manual</h2>
 
@@ -47,41 +75,100 @@
     </section>
 
     <section class="card" aria-labelledby="historyTitle">
-        <h2 id="historyTitle">Historial</h2>
+        <div class="card-header">
+            <h2 id="historyTitle">Historial</h2>
+            <div class="row-actions" th:if="${!irrigations.isEmpty()}">
+                <div class="segmented" role="group" aria-label="Vista" data-view-toggle="irrigationView">
+                    <button type="button" class="segmented-option" data-view="cards" aria-pressed="true">
+                        <i class="bi bi-calendar3" aria-hidden="true"></i> Por día
+                    </button>
+                    <button type="button" class="segmented-option" data-view="table" aria-pressed="false">
+                        <i class="bi bi-table" aria-hidden="true"></i> Tabla
+                    </button>
+                </div>
+                <button type="button" class="button button--ghost button--small" data-export-csv="irrigationTable"
+                        data-filename="riegos">
+                    <i class="bi bi-download" aria-hidden="true"></i> Exportar CSV
+                </button>
+            </div>
+        </div>
         <th:block th:if="${irrigations.isEmpty()}"><div th:replace="~{fragments/empty-state :: empty-state('bi-droplet', 'Sin riegos',
              'Aún no hay riegos registrados.')}"></div></th:block>
 
-        <div class="table-scroll" th:if="${!irrigations.isEmpty()}">
-            <table class="table">
-                <thead>
-                <tr>
-                    <th>Cultivo</th>
-                    <th>Finca</th>
-                    <th>Inicio</th>
-                    <th>Fin</th>
-                    <th class="numeric">Duración (min)</th>
-                    <th class="numeric">Agua (L)</th>
-                    <th>Tipo</th>
-                    <th>Estado</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="irrigation : ${irrigations}" data-search-row>
-                    <td th:text="${irrigation.cropName}">Café</td>
-                    <td th:text="${irrigation.estateName}">Finca</td>
-                    <td th:text="${irrigation.startedAt != null ? #temporals.format(irrigation.startedAt, 'd MMM, HH:mm') : '—'}">8 oct, 10:00</td>
-                    <td th:text="${irrigation.endsAt != null ? #temporals.format(irrigation.endsAt, 'd MMM, HH:mm') : '—'}">8 oct, 10:30</td>
-                    <td class="numeric" th:text="${irrigation.durationMin ?: '—'}">30</td>
-                    <td class="numeric"
-                        th:text="${irrigation.waterLiters != null ? #numbers.formatDecimal(irrigation.waterLiters, 1, 'POINT', 0, 'COMMA') : '—'}">450</td>
-                    <td th:text="#{${'irrigationType.' + irrigation.type}}">Manual</td>
-                    <td>
-                        <th:block th:if="${irrigation.running}"><span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-play-circle-fill', 'En curso')}"></span></th:block>
-                        <th:block th:unless="${irrigation.running}"><span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-check2', 'Finalizado')}"></span></th:block>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
+        <div id="irrigationView" data-view="cards" th:if="${!irrigations.isEmpty()}">
+            <!-- One block per day, newest first. The bar compares the day's litres with the busiest day. -->
+            <div class="timeline" data-view-panel="cards">
+                <section class="timeline-day" th:each="day : ${irrigationDays}">
+                    <div class="day-head">
+                        <h3 class="timeline-date">
+                            <time th:datetime="${day.date}" th:text="${#temporals.format(day.date, 'EEEE d ''de'' MMMM')}">viernes 9 de octubre</time>
+                        </h3>
+                        <progress class="liters-bar" th:max="${maxDayLiters}" th:value="${day.liters}"
+                                  th:aria-label="|Litros del día frente al día de mayor consumo|">50</progress>
+                        <strong class="day-total" th:text="|${#numbers.formatDecimal(day.liters, 1, 'POINT', 0, 'COMMA')} L|">450 L</strong>
+                    </div>
+                    <ol class="timeline-list">
+                        <li class="timeline-item" th:each="irrigation : ${day.irrigations}" data-search-row
+                            th:classappend="${irrigation.running} ? 'timeline-item--running' : 'timeline-item--done'">
+                            <time class="timeline-time" th:datetime="${irrigation.startedAt}"
+                                  th:text="${#temporals.format(irrigation.startedAt, 'HH:mm')}">10:00</time>
+                            <div class="timeline-body">
+                                <div class="timeline-head">
+                                    <strong th:text="${irrigation.cropName}">Café</strong>
+                                    <span class="text-muted" th:text="${irrigation.estateName}">Finca</span>
+                                </div>
+                                <p class="timeline-meta">
+                                    <span th:if="${irrigation.waterLiters != null}"><i class="bi bi-droplet" aria-hidden="true"></i>
+                                        <span th:text="|${#numbers.formatDecimal(irrigation.waterLiters, 1, 'POINT', 0, 'COMMA')} L|">450 L</span></span>
+                                    <span th:if="${irrigation.durationMin != null}"><i class="bi bi-stopwatch" aria-hidden="true"></i>
+                                        <span th:text="|${irrigation.durationMin} min|">30 min</span></span>
+                                    <span><i class="bi bi-person" aria-hidden="true"></i>
+                                        <span th:text="#{${'irrigationType.' + irrigation.type}}">Manual</span></span>
+                                </p>
+                            </div>
+                            <div class="timeline-action">
+                                <th:block th:if="${irrigation.running}"><span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-play-circle-fill', 'En curso')}"></span></th:block>
+                                <th:block th:unless="${irrigation.running}"><span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-check2', 'Finalizado')}"></span></th:block>
+                            </div>
+                        </li>
+                    </ol>
+                </section>
+            </div>
+
+            <div class="table-scroll table-scroll--sticky" data-view-panel="table">
+                <table class="table" id="irrigationTable" data-sortable>
+                    <thead>
+                    <tr>
+                        <th>Cultivo</th>
+                        <th>Finca</th>
+                        <th>Inicio</th>
+                        <th>Fin</th>
+                        <th class="numeric">Duración (min)</th>
+                        <th class="numeric">Agua (L)</th>
+                        <th>Tipo</th>
+                        <th>Estado</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="irrigation : ${irrigations}" data-search-row>
+                        <td th:text="${irrigation.cropName}">Café</td>
+                        <td th:text="${irrigation.estateName}">Finca</td>
+                        <td th:attr="data-sort=${irrigation.startedAt}"
+                            th:text="${irrigation.startedAt != null ? #temporals.format(irrigation.startedAt, 'd MMM, HH:mm') : '—'}">8 oct, 10:00</td>
+                        <td th:attr="data-sort=${irrigation.endsAt}"
+                            th:text="${irrigation.endsAt != null ? #temporals.format(irrigation.endsAt, 'd MMM, HH:mm') : '—'}">8 oct, 10:30</td>
+                        <td class="numeric" th:text="${irrigation.durationMin ?: '—'}">30</td>
+                        <td class="numeric"
+                            th:text="${irrigation.waterLiters != null ? #numbers.formatDecimal(irrigation.waterLiters, 1, 'POINT', 0, 'COMMA') : '—'}">450</td>
+                        <td th:text="#{${'irrigationType.' + irrigation.type}}">Manual</td>
+                        <td>
+                            <th:block th:if="${irrigation.running}"><span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-play-circle-fill', 'En curso')}"></span></th:block>
+                            <th:block th:unless="${irrigation.running}"><span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-check2', 'Finalizado')}"></span></th:block>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </section>
 </main>

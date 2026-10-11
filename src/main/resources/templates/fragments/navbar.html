@@ -10,12 +10,21 @@
     <div class="topbar-search" id="tableSearch" hidden>
         <i class="bi bi-search" aria-hidden="true"></i>
         <input type="search" id="tableSearchInput" placeholder="Buscar en esta página"
-               aria-label="Buscar en esta página" autocomplete="off">
+               aria-label="Buscar en esta página" autocomplete="off" enterkeyhint="search">
     </div>
 
     <div class="topbar-spacer"></div>
 
+    <button type="button" class="topbar-command" data-open-command-palette aria-haspopup="dialog"
+            aria-label="Ir a un módulo o ejecutar una acción" title="Ir a… (Ctrl K)">
+        <i class="bi bi-command" aria-hidden="true"></i>
+        <span>Ir a…</span>
+        <kbd>Ctrl K</kbd>
+    </button>
+
     <time class="topbar-clock" id="clock" aria-label="Fecha y hora actuales"></time>
+
+    <div th:replace="~{fragments/brand :: theme-toggle}"></div>
 
     <a class="icon-button topbar-alerts" th:href="@{/alertas}"
        th:attr="aria-label=${openAlertCount != null and openAlertCount > 0} ? |${openAlertCount} alertas sin atender| : 'Sin alertas pendientes'">

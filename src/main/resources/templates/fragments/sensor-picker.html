@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Where a sensor stands and how far its readings reach, chosen on a map (sensor-map.ts) or typed.
+     position: a SensorPositionForm. prefix: put before the field names ("position." inside SensorForm).
+     sites: JSON of estates by crop id, when a crop select decides the estate; site: JSON of one estate. -->
+<fieldset class="fieldset sensor-picker" id="sensorPicker" th:fragment="picker(position, prefix, sites, site)"
+          th:attr="data-sites=${sites},data-site=${site}">
+    <legend>Ubicación y cobertura (opcional)</legend>
+    <p class="field-hint">
+        Haz clic en el mapa para colocar el sensor y arrástralo para moverlo. El círculo es su cobertura: el
+        terreno que representan sus lecturas. La línea discontinua es el área aproximada de la parcela.
+    </p>
+    <div class="map picker-map" id="pickerMap" role="application" aria-label="Mapa para ubicar el sensor" hidden></div>
+    <p class="form-alert form-alert--info" id="pickerNotice" role="status" hidden>
+        <i class="bi bi-info-circle" aria-hidden="true"></i> <span id="pickerNoticeText"></span>
+    </p>
+    <div class="field-row">
+        <label class="field">
+            <span class="field-label">Latitud</span>
+            <input type="number" id="pickerLatitude" th:name="|${prefix}latitude|" th:value="${position.latitude}"
+                   min="-90" max="90" step="any" inputmode="decimal" placeholder="1.2136">
+        </label>
+        <label class="field">
+            <span class="field-label">Longitud</span>
+            <input type="number" id="pickerLongitude" th:name="|${prefix}longitude|" th:value="${position.longitude}"
+                   min="-180" max="180" step="any" inputmode="decimal" placeholder="-77.2811">
+        </label>
+        <label class="field">
+            <span class="field-label">Radio de cobertura (m)</span>
+            <input type="number" id="pickerCoverage" th:name="|${prefix}coverageM|" th:value="${position.coverageM}"
+                   min="1" max="2000" step="1" inputmode="numeric" placeholder="30">
+        </label>
+    </div>
+    <p class="picker-summary text-muted" id="pickerSummary" aria-live="polite"></p>
+    <div class="row-actions">
+        <button type="button" class="button button--ghost button--small" id="pickerClear">
+            <i class="bi bi-x-lg" aria-hidden="true"></i> Quitar del mapa
+        </button>
+    </div>
+</fieldset>
+</body>
+</html>

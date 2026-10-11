@@ -1,45 +1,76 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{fragments/auth-layout :: auth('Iniciar sesión', ~{::form})}">
+      th:replace="~{fragments/auth-layout :: auth('Iniciar sesión', ~{::form}, 'coffee', 'Ricohin · CC BY 3.0 · Chinchiná, Colombia')}">
 <body>
-<form class="login-card" th:action="@{/login}" method="post" novalidate>
-    <h2>Iniciar sesión</h2>
-    <p class="text-muted">Ingresa con tu cuenta de AgroSense.</p>
+<!-- login.js sends this form with fetch to show the real state of the request; without it, it posts normally. -->
+<form class="auth-card" id="loginForm" th:action="@{/login}" method="post" novalidate>
+    <span class="auth-progress" aria-hidden="true"></span>
+    <div class="auth-card-intro">
+        <h1>Bienvenido a AgroSense</h1>
+        <p class="text-muted">Ingresa con tu cuenta para ver tus parcelas, sensores y riegos.</p>
+    </div>
 
-    <p class="form-alert form-alert--error" role="alert" th:if="${param.error}">
+    <p class="form-alert form-alert--error" role="alert" data-server-message th:if="${param.error}">
         <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
-        No pudimos iniciar sesión. Revisa tus datos e inténtalo de nuevo.
+        No se pudo iniciar sesión. Comprueba tus credenciales.
     </p>
-    <p class="form-alert form-alert--info" role="status" th:if="${param.logout}">
+    <p class="form-alert form-alert--error" role="alert" data-server-message th:if="${param.locked}">
+        <i class="bi bi-hourglass-split" aria-hidden="true"></i>
+        Demasiados intentos fallidos. Espera unos minutos antes de volver a intentarlo.
+    </p>
+    <p class="form-alert form-alert--info" role="status" data-server-message th:if="${param.logout}">
         <i class="bi bi-check-circle" aria-hidden="true"></i>
         Cerraste sesión correctamente.
     </p>
-    <p class="form-alert form-alert--info" role="status" th:if="${param.registered}">
+    <p class="form-alert form-alert--info" role="status" data-server-message th:if="${param.registered}">
         <i class="bi bi-check-circle" aria-hidden="true"></i>
         Tu cuenta fue creada. Ya puedes iniciar sesión.
     </p>
-    <p class="form-alert form-alert--info" role="status" th:if="${param.deleted}">
+    <p class="form-alert form-alert--info" role="status" data-server-message th:if="${param.deleted}">
         <i class="bi bi-check-circle" aria-hidden="true"></i>
         Tu cuenta y sus datos fueron eliminados.
     </p>
+    <!-- Filled by login.js with the outcome of the request. -->
+    <div class="form-alert form-alert--error" id="authStatus" role="alert" hidden>
+        <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+        <span class="form-alert-body">
+            <span id="authStatusText"></span>
+            <button type="button" class="button button--small" id="authRetry" hidden>Reintentar</button>
+        </span>
+    </div>
 
     <label class="field">
         <span class="field-label">Correo electrónico</span>
-        <input type="email" name="email" autocomplete="username" required autofocus>
+        <input type="email" name="email" autocomplete="username" inputmode="email" enterkeyhint="next"
+               autocapitalize="none" spellcheck="false" required aria-describedby="emailError"
+               th:value="${registeredEmail}" th:autofocus="${registeredEmail == null}">
+        <span class="field-slot" id="emailError" role="alert"><span class="field-error"></span></span>
     </label>
 
     <label class="field">
         <span class="field-label">Contraseña</span>
         <span class="field-with-action">
-            <input type="password" name="password" id="password" autocomplete="current-password" required>
+            <input type="password" name="password" id="password" autocomplete="current-password" maxlength="72"
+                   enterkeyhint="go" required aria-describedby="passwordError" data-caps-warning="loginCaps"
+                   th:autofocus="${registeredEmail != null}">
             <button type="button" class="icon-button" data-toggle-password="password" aria-pressed="false"
                     aria-label="Mostrar contraseña">
                 <i class="bi bi-eye" aria-hidden="true"></i>
             </button>
         </span>
+        <span class="field-hint field-hint--warning" id="loginCaps" role="status" hidden>
+            <i class="bi bi-capslock" aria-hidden="true"></i> Bloq Mayús está activado.
+        </span>
+        <span class="field-slot" id="passwordError" role="alert"><span class="field-error"></span></span>
     </label>
 
-    <button type="submit" class="button button--block">Entrar</button>
+    <button type="submit" class="button button--block button--large" id="authSubmit">
+        <span class="button-spinner" aria-hidden="true"></span>
+        <svg class="button-check" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+            <path pathLength="1" d="M4 10.5l4 4 8-9"/>
+        </svg>
+        <span id="authSubmitLabel" aria-live="polite">Iniciar sesión</span>
+    </button>
 
     <p class="auth-switch">¿No tienes cuenta? <a class="link" th:href="@{/registro}">Crear cuenta</a></p>
 </form>

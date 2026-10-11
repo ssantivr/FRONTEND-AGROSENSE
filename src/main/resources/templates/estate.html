@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(${estate.name}, ~{::main}, 'estate-detail')}">
+<body>
+<main id="main" class="app-content" tabindex="-1" data-motion-stagger>
+    <header class="hero hero--compact">
+        <img th:replace="~{fragments/page-header :: hero-photo('narino-fields')}">
+        <div class="hero-body">
+            <p class="eyebrow"><a class="hero-back" th:href="@{/parcelas}"><i class="bi bi-arrow-left" aria-hidden="true"></i> Parcelas</a></p>
+            <h1 th:text="${estate.name}">Finca</h1>
+            <p>
+                <i class="bi bi-geo-alt" aria-hidden="true"></i>
+                <span th:text="${estate.location ?: 'Sin ubicación'}">Pasto</span>
+            </p>
+        </div>
+        <div class="row-actions">
+            <a class="button" th:href="@{/parcelas/{id}/cultivos/nuevo(id=${estate.id})}">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i> Agregar cultivo
+            </a>
+            <a class="button button--on-photo" th:href="@{/parcelas/{id}/editar(id=${estate.id})}">
+                <i class="bi bi-pencil" aria-hidden="true"></i> Editar
+            </a>
+        </div>
+    </header>
+
+    <section class="kpi-grid kpi-grid--even" aria-label="Resumen de la parcela" data-motion-stagger>
+        <article th:replace="~{fragments/stat-card :: stat-card('Área',
+            ${estate.areaHa != null ? #numbers.formatDecimal(estate.areaHa, 1, 2, 'COMMA') : null}, 'ha',
+            ${estate.boundary != null ? 'Con contorno dibujado' : 'Sin contorno dibujado'}, 'bi-bounding-box', false, null, null)}"></article>
+        <article th:replace="~{fragments/stat-card :: stat-card('Cultivos activos', ${estate.activeCropCount()}, null,
+            ${estate.crops.size() == 1 ? '1 cultivo registrado' : estate.crops.size() + ' cultivos registrados'}, 'bi-flower1', false, null, null)}"></article>
+        <article th:replace="~{fragments/stat-card :: stat-card('Sensores', ${sensors.size()}, null,
+            ${sensors.?[placed()].size() + ' ubicados en el mapa'}, 'bi-broadcast', false, null, null)}"></article>
+        <article th:replace="~{fragments/stat-card :: stat-card('Alertas sin atender', ${alerts.size()}, null,
+            ${alerts.isEmpty() ? 'Todo en orden' : 'Revísalas abajo'}, 'bi-bell', false, null, null)}"></article>
+    </section>
+
+    <div class="dash-grid">
+        <div class="dash-main">
+            <section class="card" aria-labelledby="estateMapTitle">
+                <div class="card-header">
+                    <h2 id="estateMapTitle">Mapa</h2>
+                    <a class="link" th:href="@{/parcelas/{id}/editar(id=${estate.id})}"
+                       th:text="${estate.boundary != null} ? 'Editar contorno' : 'Dibujar contorno'">Dibujar contorno</a>
+                </div>
+                <div class="map-stage" th:if="${estate.latitude != null}">
+                    <!-- The same marker the dashboard map uses, for this estate only (estate-detail.ts). -->
+                    <div id="detailMap" class="map skeleton" role="application"
+                         th:aria-label="|Mapa de ${estate.name}|" th:attr="data-estate=${estateJson}"></div>
+                    <div class="segmented map-layers" role="group" aria-label="Tipo de mapa" id="mapLayers">
+                        <button type="button" class="segmented-option" data-map-layer="streets" aria-pressed="true">
+                            <i class="bi bi-map" aria-hidden="true"></i> Mapa
+                        </button>
+                        <button type="button" class="segmented-option" data-map-layer="satellite" aria-pressed="false">
+                            <i class="bi bi-globe-americas" aria-hidden="true"></i> Satélite
+                        </button>
+                    </div>
+                    <ul class="map-legend" aria-label="Leyenda del mapa">
+                        <li><span class="map-legend-swatch map-legend-swatch--boundary" aria-hidden="true"></span> Contorno de la parcela</li>
+                        <li><span class="map-legend-swatch map-legend-swatch--coverage" aria-hidden="true"></span> Cobertura del sensor</li>
+                        <li><span class="map-legend-swatch map-legend-swatch--sensor" aria-hidden="true"></span> Sensor</li>
+                    </ul>
+                </div>
+                <th:block th:if="${estate.latitude == null}">
+                    <div th:replace="~{fragments/empty-state :: empty-state-action('bi-geo-alt', 'Sin ubicación en el mapa',
+                        'Esta parcela no tiene coordenadas ni contorno. Dibuja su contorno para verla aquí con sus sensores.',
+                        ${'/parcelas/' + estate.id + '/editar'}, 'Ubicar la parcela')}"></div>
+                </th:block>
+            </section>
+
+            <section class="card" aria-labelledby="cropsTitle">
+                <div class="card-header">
+                    <h2 id="cropsTitle">Cultivos</h2>
+                    <a class="link" th:href="@{/parcelas/{id}/cultivos/nuevo(id=${estate.id})}">Agregar cultivo</a>
+                </div>
+                <th:block th:if="${estate.crops.isEmpty()}">
+                    <div th:replace="~{fragments/empty-state :: empty-state-action('bi-flower1', 'Sin cultivos',
+                        'Agrega un cultivo para definir sus rangos y recibir alertas.',
+                        ${'/parcelas/' + estate.id + '/cultivos/nuevo'}, 'Agregar un cultivo')}"></div>
+                </th:block>
+                <ul class="crop-list" th:if="${!estate.crops.isEmpty()}">
+                    <li class="crop-item" th:each="crop : ${estate.crops}" th:classappend="${crop.active} ? '' : 'crop-item--inactive'">
+                        <span th:replace="~{fragments/stepper :: crop-dot(${crop})}"></span>
+                        <div class="crop-item-body">
+                            <div class="crop-item-head">
+                                <strong th:text="${crop.name}">Café</strong>
+                                <span class="text-muted" th:if="${crop.variety != null}" th:text="${crop.variety}">Castillo</span>
+                                <th:block th:if="${crop.active}"><span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-check-circle-fill', ${#messages.msg('cropStage.' + crop.stage)})}"></span></th:block>
+                                <th:block th:unless="${crop.active}"><span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-dash-circle', 'Inactivo')}"></span></th:block>
+                            </div>
+                            <dl class="crop-ranges">
+                                <div><dt>Humedad</dt><dd th:text="|${crop.humidityMin.stripTrailingZeros().toPlainString()} – ${crop.humidityMax.stripTrailingZeros().toPlainString()} %|">40 – 80 %</dd></div>
+                                <div><dt>Temperatura</dt><dd th:text="|${crop.tempMin.stripTrailingZeros().toPlainString()} – ${crop.tempMax.stripTrailingZeros().toPlainString()} °C|">15 – 35 °C</dd></div>
+                                <div><dt>pH</dt><dd th:text="|${crop.phMin.stripTrailingZeros().toPlainString()} – ${crop.phMax.stripTrailingZeros().toPlainString()}|">5,5 – 7</dd></div>
+                                <div th:if="${crop.sowingDate != null}"><dt>Siembra</dt><dd th:text="${#temporals.format(crop.sowingDate, 'd MMM yyyy')}">14 mar 2025</dd></div>
+                            </dl>
+                        </div>
+                        <a class="button button--ghost button--small" th:href="@{/cultivos/{id}/editar(id=${crop.id})}">Editar</a>
+                    </li>
+                </ul>
+            </section>
+        </div>
+
+        <div class="dash-side">
+            <section class="card" aria-labelledby="estateAlertsTitle">
+                <div class="card-header">
+                    <h2 id="estateAlertsTitle">Alertas sin atender</h2>
+                    <a class="link" th:href="@{/alertas}">Ver todas</a>
+                </div>
+                <ul class="mini-list" th:if="${!alerts.isEmpty()}">
+                    <li th:each="alert : ${alerts}">
+                        <span th:replace="~{fragments/status-pill :: severity-pill(${alert.severity})}"></span>
+                        <div>
+                            <strong th:text="|${#messages.msg('alertType.' + alert.type)} · ${alert.cropName}|">Humedad baja · Café</strong>
+                            <p class="text-muted" th:text="${alert.message}">Mensaje</p>
+                            <time class="text-muted" th:datetime="${alert.createdAt}"
+                                  th:text="${#temporals.format(alert.createdAt, 'd MMM, HH:mm')}">8 oct, 10:00</time>
+                        </div>
+                    </li>
+                </ul>
+                <th:block th:if="${alerts.isEmpty()}"><div th:replace="~{fragments/empty-state :: empty-state('bi-check2-circle', 'Todo en orden',
+                     'Esta parcela no tiene alertas pendientes.')}"></div></th:block>
+            </section>
+
+            <section class="card" aria-labelledby="estateSensorsTitle">
+                <div class="card-header">
+                    <h2 id="estateSensorsTitle">Sensores</h2>
+                    <a class="link" th:href="@{/sensores/nuevo}">Nuevo sensor</a>
+                </div>
+                <ul class="mini-list" th:if="${!sensors.isEmpty()}">
+                    <li th:each="sensor : ${sensors}">
+                        <span class="stat-icon mini-icon" aria-hidden="true"><i class="bi" th:classappend="${sensor.icon()}"></i></span>
+                        <div>
+                            <strong th:text="|${sensor.code} · ${#messages.msg('sensorType.' + sensor.type)}|">AS-001 · Humedad</strong>
+                            <p th:if="${sensor.lastValue != null}">
+                                <span class="mini-value" th:text="|${#numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA')} ${sensor.unit}|">52,0 %</span>
+                                <span class="text-muted" th:text="| · ${sensor.lastReadingAgo()}|"> · hace 3 h</span>
+                            </p>
+                            <p class="text-muted" th:if="${sensor.lastValue == null}" th:text="${sensor.active} ? 'Sin lecturas' : 'Inactivo'">Sin lecturas</p>
+                            <a class="link" th:href="@{/sensores/{id}/ubicacion(id=${sensor.id})}"
+                               th:text="${sensor.placed()} ? |Cubre ${sensor.coverageM} m · mover| : 'Ubicar en el mapa'">Ubicar en el mapa</a>
+                        </div>
+                    </li>
+                </ul>
+                <th:block th:if="${sensors.isEmpty()}"><div th:replace="~{fragments/empty-state :: empty-state('bi-broadcast', 'Sin sensores',
+                     'Ningún cultivo de esta parcela tiene sensores registrados.')}"></div></th:block>
+            </section>
+
+            <section class="card" aria-labelledby="estateIrrigationsTitle">
+                <div class="card-header">
+                    <h2 id="estateIrrigationsTitle">Riegos recientes</h2>
+                    <a class="link" th:href="@{/riego}">Ir a Riego</a>
+                </div>
+                <ul class="mini-list" th:if="${!irrigations.isEmpty()}">
+                    <li th:each="irrigation : ${irrigations}">
+                        <span class="stat-icon mini-icon" aria-hidden="true"><i class="bi bi-droplet"></i></span>
+                        <div>
+                            <strong th:text="${irrigation.cropName}">Café</strong>
+                            <p>
+                                <span class="mini-value" th:if="${irrigation.waterLiters != null}"
+                                      th:text="|${#numbers.formatDecimal(irrigation.waterLiters, 1, 'POINT', 0, 'COMMA')} L|">450 L</span>
+                                <span class="text-muted" th:if="${irrigation.durationMin != null}" th:text="| · ${irrigation.durationMin} min|"> · 30 min</span>
+                            </p>
+                            <time class="text-muted" th:if="${irrigation.startedAt != null}" th:datetime="${irrigation.startedAt}"
+                                  th:text="${#temporals.format(irrigation.startedAt, 'd MMM, HH:mm')}">8 oct, 10:00</time>
+                        </div>
+                        <th:block th:if="${irrigation.running}"><span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-play-circle-fill', 'En curso')}"></span></th:block>
+                    </li>
+                </ul>
+                <th:block th:if="${irrigations.isEmpty()}"><div th:replace="~{fragments/empty-state :: empty-state('bi-droplet', 'Sin riegos',
+                     'Aún no se ha regado ningún cultivo de esta parcela.')}"></div></th:block>
+            </section>
+        </div>
+    </div>
+</main>
+</body>
+</html>
