@@ -17,6 +17,7 @@ import com.agrosense.frontend.repository.CropRepository;
 import com.agrosense.frontend.repository.IrrigationRepository;
 import com.agrosense.frontend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,6 +48,23 @@ public class IrrigationService {
         return irrigationRepository.findByCropEstateUserEmailOrderByStartedAtDesc(email).stream()
                 .map(irrigation -> toView(irrigation, now))
                 .toList();
+    }
+
+    /** Irrigations started on or after {@code since}, newest first: what the dashboard needs, not the whole history. */
+    public List<IrrigationView> findSince(String email, LocalDateTime since) {
+        LocalDateTime now = LocalDateTime.now();
+        return irrigationRepository
+                .findByCropEstateUserEmailAndStartedAtGreaterThanEqualOrderByStartedAtDesc(email, since).stream()
+                .map(irrigation -> toView(irrigation, now))
+                .toList();
+    }
+
+    /** The newest irrigations of one of the user's estates. */
+    public List<IrrigationView> findByEstate(String email, Integer estateId, int limit) {
+        LocalDateTime now = LocalDateTime.now();
+        return irrigationRepository
+                .findByCropEstateIdEstateAndCropEstateUserEmailOrderByStartedAtDesc(estateId, email, Limit.of(limit))
+                .stream().map(irrigation -> toView(irrigation, now)).toList();
     }
 
     public Optional<IrrigationView> findRunning(List<IrrigationView> history) {
