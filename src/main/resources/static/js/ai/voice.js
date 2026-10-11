@@ -17,17 +17,21 @@ export class VoiceRecorder {
     stream = null;
     chunks = [];
     limit;
+    /** Changes on every cancel, so a start that was still asking for the microphone knows it is not wanted. */
+    generation = 0;
     get recording() {
         return this.recorder?.state === 'recording';
     }
     /**
      * Asks for the microphone and starts recording. `onLimit` runs when the recording reaches `maxMs`,
-     * so the caller can stop and send it instead of letting it grow.
+     * so the caller can stop and send it instead of letting it grow. Resolves with false, and with the
+     * microphone released, when the recording was cancelled while the browser was asking for permission.
      */
     async start(maxMs, onLimit) {
         if (!canRecord())
             throw new RecordingError('unsupported');
         this.cancel();
+        const generation = this.generation;
         let stream;
         try {
             stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -39,6 +43,10 @@ export class VoiceRecorder {
             if (name === 'NotFoundError' || name === 'OverconstrainedError')
                 throw new RecordingError('no-microphone');
             throw new RecordingError('failed');
+        }
+        if (generation !== this.generation) {
+            stream.getTracks().forEach((track) => track.stop());
+            return false;
         }
         try {
             const type = RECORDING_TYPES.find((candidate) => MediaRecorder.isTypeSupported(candidate));
@@ -52,6 +60,7 @@ export class VoiceRecorder {
             this.stream = stream;
             this.recorder = recorder;
             this.limit = window.setTimeout(onLimit, maxMs);
+            return true;
         }
         catch {
             stream.getTracks().forEach((track) => track.stop());
@@ -83,6 +92,7 @@ export class VoiceRecorder {
     }
     /** Stops without keeping anything. Safe to call when nothing is being recorded. */
     cancel() {
+        this.generation++;
         const recorder = this.recorder;
         if (recorder && recorder.state !== 'inactive') {
             try {

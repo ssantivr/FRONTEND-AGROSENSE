@@ -25,6 +25,8 @@ export class VoiceRecorder {
   private stream: MediaStream | null = null;
   private chunks: Blob[] = [];
   private limit: number | undefined;
+  /** Changes on every cancel, so a start that was still asking for the microphone knows it is not wanted. */
+  private generation = 0;
 
   get recording(): boolean {
     return this.recorder?.state === 'recording';
@@ -32,11 +34,13 @@ export class VoiceRecorder {
 
   /**
    * Asks for the microphone and starts recording. `onLimit` runs when the recording reaches `maxMs`,
-   * so the caller can stop and send it instead of letting it grow.
+   * so the caller can stop and send it instead of letting it grow. Resolves with false, and with the
+   * microphone released, when the recording was cancelled while the browser was asking for permission.
    */
-  async start(maxMs: number, onLimit: () => void): Promise<void> {
+  async start(maxMs: number, onLimit: () => void): Promise<boolean> {
     if (!canRecord()) throw new RecordingError('unsupported');
     this.cancel();
+    const generation = this.generation;
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -45,6 +49,10 @@ export class VoiceRecorder {
       if (name === 'NotAllowedError' || name === 'SecurityError') throw new RecordingError('denied');
       if (name === 'NotFoundError' || name === 'OverconstrainedError') throw new RecordingError('no-microphone');
       throw new RecordingError('failed');
+    }
+    if (generation !== this.generation) {
+      stream.getTracks().forEach((track) => track.stop());
+      return false;
     }
     try {
       const type = RECORDING_TYPES.find((candidate) => MediaRecorder.isTypeSupported(candidate));
@@ -57,6 +65,7 @@ export class VoiceRecorder {
       this.stream = stream;
       this.recorder = recorder;
       this.limit = window.setTimeout(onLimit, maxMs);
+      return true;
     } catch {
       stream.getTracks().forEach((track) => track.stop());
       throw new RecordingError('failed');
@@ -95,6 +104,7 @@ export class VoiceRecorder {
 
   /** Stops without keeping anything. Safe to call when nothing is being recorded. */
   cancel(): void {
+    this.generation++;
     const recorder = this.recorder;
     if (recorder && recorder.state !== 'inactive') {
       try {

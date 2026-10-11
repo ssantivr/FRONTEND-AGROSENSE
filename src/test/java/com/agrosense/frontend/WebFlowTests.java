@@ -198,6 +198,8 @@ class WebFlowTests {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("id=\"aiChat\"")))
                 .andExpect(content().string(containsString("data-chat-url=\"/api/ui/ai/chat\"")))
+                // The conversation kept in the browser is tied to the account, so another user never sees it.
+                .andExpect(content().string(containsString("data-owner=\"demo@agrosense.co\"")))
                 .andExpect(content().string(containsString("/js/ai/chat-widget.js")))
                 .andExpect(content().string(containsString("/css/ai-chat.css")));
         mvc.perform(get("/login")).andExpect(content().string(not(containsString("id=\"aiChat\""))));
