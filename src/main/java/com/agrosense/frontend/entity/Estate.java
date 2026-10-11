@@ -39,6 +39,10 @@ public class Estate {
     @Column(name = "area_ha", precision = 10, scale = 2)
     private BigDecimal areaHa;
 
+    /** Outline as JSON, see {@link com.agrosense.frontend.dto.Boundary}; null until it is drawn. */
+    @Column(length = 8000)
+    private String boundary;
+
     @OneToMany(mappedBy = "estate", cascade = CascadeType.ALL, orphanRemoval = true,
             fetch = FetchType.LAZY)
     @Builder.Default
