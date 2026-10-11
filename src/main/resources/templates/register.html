@@ -1,64 +1,127 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{fragments/auth-layout :: auth('Crear cuenta', ~{::form})}">
+      th:replace="~{fragments/auth-layout :: auth('Crear cuenta', ~{::form}, 'plantain', 'Samuel Rengifo · CC BY-SA 4.0 · Buga, Colombia')}">
 <body>
-<form class="login-card" th:action="@{/registro}" method="post" th:object="${registrationForm}" novalidate>
-    <h2>Crear cuenta</h2>
-    <p class="text-muted">Regístrate para empezar a usar AgroSense.</p>
+<!-- The limits are also enforced by RegistrationForm and by the backend API. Lengths count the text as
+     typed, spaces included. login.ts checks each field as it is left, keeps the counters, the password
+     meter and its checklist up to date, and says whether the e-mail is free; without it the form still
+     posts and the server answers with the same messages. -->
+<form class="auth-card auth-card--wide" id="registerForm" th:action="@{/registro}" method="post"
+      th:object="${registrationForm}" novalidate>
+    <div class="auth-card-intro">
+        <h1>Crea tu cuenta</h1>
+        <p class="text-muted">Te toma un minuto. Después registras tu primera parcela con una guía de tres pasos.</p>
+    </div>
 
     <p class="form-alert form-alert--error" role="alert" th:each="error : ${#fields.globalErrors()}">
         <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
         <span th:text="${error}">Error</span>
     </p>
 
-    <div class="field-row">
+    <fieldset class="form-section">
+        <legend>Sobre ti</legend>
+        <div class="field-row">
+            <label class="field">
+                <span class="field-label-row">
+                    <span class="field-label">Nombre</span>
+                    <span class="field-counter" id="nameCounter" aria-hidden="true"
+                          th:text="|${registrationForm.name == null ? 0 : registrationForm.name.length()}/18|">0/18</span>
+                </span>
+                <input type="text" th:field="*{name}" autocomplete="given-name" minlength="2" maxlength="18" required
+                       autofocus data-counter="nameCounter" aria-describedby="nameHint nameError"
+                       th:attr="aria-invalid=${#fields.hasErrors('name')}">
+                <span class="field-hint" id="nameHint">De 2 a 18 caracteres; los espacios cuentan.</span>
+                <span class="field-error" data-server-error th:if="${#fields.hasErrors('name')}" th:errors="*{name}">Error</span>
+                <span class="field-slot" id="nameError" role="alert"><span class="field-error"></span></span>
+            </label>
+            <label class="field">
+                <span class="field-label-row">
+                    <span class="field-label">Apellido</span>
+                    <span class="field-counter" id="lastNameCounter" aria-hidden="true"
+                          th:text="|${registrationForm.lastName == null ? 0 : registrationForm.lastName.length()}/18|">0/18</span>
+                </span>
+                <input type="text" th:field="*{lastName}" autocomplete="family-name" minlength="2" maxlength="18" required
+                       data-counter="lastNameCounter" aria-describedby="lastNameHint lastNameError"
+                       th:attr="aria-invalid=${#fields.hasErrors('lastName')}">
+                <span class="field-hint" id="lastNameHint">De 2 a 18 caracteres; los espacios cuentan.</span>
+                <span class="field-error" data-server-error th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}">Error</span>
+                <span class="field-slot" id="lastNameError" role="alert"><span class="field-error"></span></span>
+            </label>
+        </div>
+    </fieldset>
+
+    <fieldset class="form-section">
+        <legend>Tu acceso</legend>
         <label class="field">
-            <span class="field-label">Nombre</span>
-            <input type="text" th:field="*{name}" autocomplete="given-name" minlength="2" maxlength="80" required
-                   autofocus
-                   th:attr="aria-invalid=${#fields.hasErrors('name')}">
-            <span class="field-error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">Error</span>
+            <span class="field-label">Correo electrónico</span>
+            <input type="email" th:field="*{email}" autocomplete="username" inputmode="email" autocapitalize="none"
+                   spellcheck="false" minlength="6" maxlength="160" required placeholder="nombre@ejemplo.com"
+                   aria-describedby="emailHint emailAvailability emailError"
+                   th:attr="aria-invalid=${#fields.hasErrors('email')},data-email-availability=@{/registro/disponibilidad}">
+            <span class="field-hint" id="emailHint">Con este correo iniciarás sesión.</span>
+            <span class="field-hint" id="emailAvailability" role="status" aria-live="polite" hidden></span>
+            <span class="field-error" data-server-error th:if="${#fields.hasErrors('email')}" th:errors="*{email}">Error</span>
+            <span class="field-slot" id="emailError" role="alert"><span class="field-error"></span></span>
         </label>
+
         <label class="field">
-            <span class="field-label">Apellido</span>
-            <input type="text" th:field="*{lastName}" autocomplete="family-name" minlength="2" maxlength="80" required
-                   th:attr="aria-invalid=${#fields.hasErrors('lastName')}">
-            <span class="field-error" th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}">Error</span>
+            <span class="field-label-row">
+                <span class="field-label">Contraseña</span>
+                <span class="field-counter" id="passwordCounter" aria-hidden="true">0/32</span>
+            </span>
+            <span class="field-with-action">
+                <!-- Passwords are never echoed back into the form after a failed submit. -->
+                <input type="password" name="password" id="password" autocomplete="new-password" minlength="8"
+                       maxlength="32" required data-counter="passwordCounter" data-caps-warning="passwordCaps"
+                       aria-describedby="passwordStrengthLabel passwordRules passwordError"
+                       th:attr="aria-invalid=${#fields.hasErrors('password')}">
+                <button type="button" class="icon-button" data-toggle-password="password" aria-pressed="false"
+                        aria-label="Mostrar contraseña">
+                    <i class="bi bi-eye" aria-hidden="true"></i>
+                </button>
+            </span>
+            <!-- data-level 0 to 4: the number of filled bars carries the level, with or without colour. -->
+            <span class="strength" data-strength-for="password" data-level="0">
+                <span class="strength-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                <span class="field-hint" id="passwordStrengthLabel" data-strength-label aria-live="polite">Entre 8 y 32 caracteres; los espacios cuentan.</span>
+            </span>
+            <!-- Only the length is required; the rest is advice. Each line is marked as the password meets it. -->
+            <ul class="rule-list" id="passwordRules" data-rules-for="password">
+                <li data-rule="length"><span>Entre 8 y 32 caracteres <strong>(obligatorio)</strong></span></li>
+                <li data-rule="mixed"><span>Mayúsculas y minúsculas</span></li>
+                <li data-rule="digit"><span>Al menos un número</span></li>
+                <li data-rule="symbol"><span>Al menos un símbolo o un espacio</span></li>
+            </ul>
+            <span class="field-hint field-hint--warning" id="passwordCaps" role="status" hidden>
+                <i class="bi bi-capslock" aria-hidden="true"></i> Bloq Mayús está activado.
+            </span>
+            <span class="field-error" data-server-error th:if="${#fields.hasErrors('password')}" th:errors="*{password}">Error</span>
+            <span class="field-slot" id="passwordError" role="alert"><span class="field-error"></span></span>
         </label>
-    </div>
 
-    <label class="field">
-        <span class="field-label">Correo electrónico</span>
-        <input type="email" th:field="*{email}" autocomplete="username" minlength="6" maxlength="160" required
-               th:attr="aria-invalid=${#fields.hasErrors('email')},data-email-availability=@{/registro/disponibilidad}">
-        <span class="field-hint" id="emailAvailability" role="status" aria-live="polite" hidden></span>
-        <span class="field-error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">Error</span>
-    </label>
+        <label class="field">
+            <span class="field-label">Confirmar contraseña</span>
+            <span class="field-with-action">
+                <input type="password" name="confirmPassword" id="confirmPassword" autocomplete="new-password"
+                       minlength="8" maxlength="32" required data-caps-warning="passwordCaps"
+                       aria-describedby="confirmPasswordMatch confirmPasswordError"
+                       th:attr="aria-invalid=${#fields.hasErrors('passwordConfirmed')}">
+                <button type="button" class="icon-button" data-toggle-password="confirmPassword" aria-pressed="false"
+                        aria-label="Mostrar contraseña">
+                    <i class="bi bi-eye" aria-hidden="true"></i>
+                </button>
+            </span>
+            <span class="field-hint field-hint--ok" id="confirmPasswordMatch" role="status" aria-live="polite" hidden>Las contraseñas coinciden.</span>
+            <span class="field-error" data-server-error th:if="${#fields.hasErrors('passwordConfirmed')}"
+                  th:errors="*{passwordConfirmed}">Error</span>
+            <span class="field-slot" id="confirmPasswordError" role="alert"><span class="field-error"></span></span>
+        </label>
+    </fieldset>
 
-    <label class="field">
-        <span class="field-label">Contraseña</span>
-        <span class="field-with-action">
-            <!-- Passwords are never echoed back into the form after a failed submit. -->
-            <input type="password" name="password" id="password" autocomplete="new-password" minlength="8"
-                   maxlength="72" required th:attr="aria-invalid=${#fields.hasErrors('password')}">
-            <button type="button" class="icon-button" data-toggle-password="password" aria-pressed="false"
-                    aria-label="Mostrar contraseña">
-                <i class="bi bi-eye" aria-hidden="true"></i>
-            </button>
-        </span>
-        <span class="field-hint">Entre 8 y 72 caracteres.</span>
-        <span class="field-error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">Error</span>
-    </label>
-
-    <label class="field">
-        <span class="field-label">Confirmar contraseña</span>
-        <input type="password" name="confirmPassword" autocomplete="new-password" minlength="8" maxlength="72" required
-               th:attr="aria-invalid=${#fields.hasErrors('passwordConfirmed')}">
-        <span class="field-error" th:if="${#fields.hasErrors('passwordConfirmed')}"
-              th:errors="*{passwordConfirmed}">Error</span>
-    </label>
-
-    <button type="submit" class="button button--block">Crear cuenta</button>
+    <button type="submit" class="button button--block button--large" id="registerSubmit">
+        <span class="button-spinner" aria-hidden="true"></span>
+        <span id="registerSubmitLabel" aria-live="polite">Crear cuenta</span>
+    </button>
 
     <p class="auth-switch">¿Ya tienes cuenta? <a class="link" th:href="@{/login}">Iniciar sesión</a></p>
 </form>
