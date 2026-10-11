@@ -7,12 +7,32 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 
 public interface SensorReadingRepository extends JpaRepository<SensorReading, Long> {
 
-    Optional<SensorReading> findFirstBySensorIdSensorOrderByRecordedAtDesc(Integer idSensor);
+    /**
+     * Average value per sensor type and hour since {@code since}, oldest first, over the user's active
+     * sensors. Each row is {SensorType, hour, average}.
+     */
+    @Query("select r.sensor.sensorType, trunc(r.recordedAt, hour), avg(r.value) from SensorReading r "
+            + "where r.sensor.crop.estate.user.email = :email and r.sensor.active = true and r.recordedAt >= :since "
+            + "group by r.sensor.sensorType, trunc(r.recordedAt, hour) order by trunc(r.recordedAt, hour)")
+    List<Object[]> findHourlyAverages(@Param("email") String email, @Param("since") LocalDateTime since);
+
+    /**
+     * Lowest, highest and average value and number of readings of each of the user's sensors since
+     * {@code since}. Each row is {sensor id, min, max, average, count}; sensors without readings are absent.
+     */
+    @Query("select r.sensor.idSensor, min(r.value), max(r.value), avg(r.value), count(r) from SensorReading r "
+            + "where r.sensor.crop.estate.user.email = :email and r.recordedAt >= :since group by r.sensor.idSensor")
+    List<Object[]> findStatistics(@Param("email") String email, @Param("since") LocalDateTime since);
+
+    /** The newest reading of each of these sensors, in one query instead of one per sensor. */
+    @Query("select r from SensorReading r where r.sensor.idSensor in :sensorIds and r.recordedAt = "
+            + "(select max(latest.recordedAt) from SensorReading latest where latest.sensor = r.sensor)")
+    List<SensorReading> findLatestOf(@Param("sensorIds") Collection<Integer> sensorIds);
 
     List<SensorReading> findBySensorIdSensorAndRecordedAtGreaterThanEqualOrderByRecordedAt(
             Integer idSensor, LocalDateTime since);
