@@ -2,7 +2,7 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{fragments/layout :: layout('Configuración', ~{::main}, 'settings')}">
 <body>
-<main id="main" class="app-content" tabindex="-1">
+<main id="main" class="app-content" tabindex="-1" data-motion-stagger>
     <header th:replace="~{fragments/page-header :: page-header('Configuración', 'Tu perfil, tus preferencias y tu cuenta.')}"></header>
 
     <section class="card" aria-labelledby="profileTitle">
@@ -33,6 +33,23 @@
         <p class="note">
             <i class="bi bi-info-circle" aria-hidden="true"></i>
             Las preferencias se guardan en este navegador, no en tu cuenta.
+        </p>
+    </section>
+
+    <section class="card" aria-labelledby="creditsTitle">
+        <h2 id="creditsTitle">Fotografías</h2>
+        <ul class="credits">
+            <li>Cafetal en Chinchiná, Caldas — Ricohin —
+                <a class="link" href="https://commons.wikimedia.org/wiki/File:Chinchin%C3%A1_cafetal.jpg" rel="noopener">CC BY 3.0</a></li>
+            <li>Cultivos en Tajumbina, Nariño — Jeyson Diaz —
+                <a class="link" href="https://commons.wikimedia.org/wiki/File:Cultivos_en_Tajumbina.jpg" rel="noopener">CC BY-SA 4.0</a></li>
+            <li>Plataneras en la zona rural de Buga — Samuel Rengifo —
+                <a class="link" href="https://commons.wikimedia.org/wiki/File:Plataneras_en_la_zona_rural_de_Buga.JPG" rel="noopener">CC BY-SA 4.0</a></li>
+            <li>Riego por pivote — Lance Cheung, USDA — dominio público</li>
+        </ul>
+        <p class="note">
+            <i class="bi bi-info-circle" aria-hidden="true"></i>
+            Las imágenes se redimensionaron y recomprimieron. Mapas: © colaboradores de OpenStreetMap. Imágenes de satélite: © Esri, Maxar, Earthstar Geographics.
         </p>
     </section>
 

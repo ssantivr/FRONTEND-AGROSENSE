@@ -1,46 +1,220 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{fragments/layout :: layout('Reportes', ~{::main}, null)}">
+      th:replace="~{fragments/layout :: layout('Reportes', ~{::main}, 'reports')}">
 <body>
-<main id="main" class="app-content" tabindex="-1">
-    <header th:replace="~{fragments/page-header :: page-header('Reportes', 'Resumen del agua aplicada por cultivo.')}"></header>
-
-    <section class="card" aria-labelledby="waterReportTitle">
-        <h2 id="waterReportTitle">Consumo de agua por cultivo</h2>
-        <th:block th:if="${waterReport.isEmpty()}"><div th:replace="~{fragments/empty-state :: empty-state('bi-bar-chart', 'Sin datos',
-             'Aún no hay riegos registrados para generar el reporte.')}"></div></th:block>
-
-        <div class="table-scroll" th:if="${!waterReport.isEmpty()}">
-            <table class="table">
-                <thead>
-                <tr>
-                    <th>Cultivo</th>
-                    <th>Finca</th>
-                    <th class="numeric">Riegos</th>
-                    <th class="numeric">Tiempo total (min)</th>
-                    <th class="numeric">Agua total (L)</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="row : ${waterReport}" data-search-row>
-                    <td th:text="${row.cropName}">Café</td>
-                    <td th:text="${row.estateName}">Finca</td>
-                    <td class="numeric" th:text="${row.irrigationCount}">2</td>
-                    <td class="numeric" th:text="${row.totalMinutes}">55</td>
-                    <td class="numeric" th:text="${#numbers.formatDecimal(row.totalLiters, 1, 'POINT', 0, 'COMMA')}">830</td>
-                </tr>
-                </tbody>
-            </table>
+<main id="main" class="app-content" tabindex="-1" data-motion-stagger>
+    <div class="page-toolbar">
+        <header th:replace="~{fragments/page-header :: page-header('Reportes', 'El agua aplicada, lo que midieron los sensores y las alertas del periodo.')}"></header>
+        <div class="row-actions no-print">
+            <!-- The period applies to the whole page; each option is a link, so it works without scripts. -->
+            <nav class="segmented" aria-label="Periodo del reporte">
+                <a class="segmented-option" th:each="period : ${periods}" th:href="@{/reportes(dias=${period})}"
+                   th:attr="aria-current=${period == report.days} ? 'true' : null"
+                   th:text="${period == 0} ? 'Todo' : |${period} días|">30 días</a>
+            </nav>
+            <button type="button" class="button button--ghost" data-print>
+                <i class="bi bi-printer" aria-hidden="true"></i> Imprimir o guardar PDF
+            </button>
         </div>
-        <p class="note">
-            <i class="bi bi-info-circle" aria-hidden="true"></i>
-            Los riegos manuales no registran litros hasta que exista un medidor de caudal conectado.
-        </p>
+    </div>
+
+    <p class="print-only" th:text="${report.days == 0} ? 'Periodo: todo el registro' : |Periodo: últimos ${report.days} días|">Periodo</p>
+
+    <section class="kpi-grid kpi-grid--even" aria-label="Resumen del periodo" data-motion-stagger>
+        <article th:replace="~{fragments/stat-card :: stat-card('Agua aplicada',
+            ${#numbers.formatDecimal(report.totals.liters, 1, 'POINT', 0, 'COMMA')}, 'L',
+            ${report.totals.changePercent == null ? 'Sin periodo anterior con el que comparar'
+                : (report.totals.changePercent == 0 ? 'Igual que el periodo anterior'
+                : (report.totals.changePercent > 0 ? '+' : '') + report.totals.changePercent + ' % frente al periodo anterior')},
+            'bi-droplet', true, null, null)}"></article>
+        <article th:replace="~{fragments/stat-card :: stat-card('Riegos', ${report.totals.irrigations}, null,
+            ${report.totals.irrigations == 0 ? 'Ninguno en el periodo'
+                : #numbers.formatDecimal(report.totals.averageLiters, 1, 'POINT', 1, 'COMMA') + ' L por riego en promedio'},
+            'bi-moisture', false, null, null)}"></article>
+        <article th:replace="~{fragments/stat-card :: stat-card('Tiempo de riego', ${report.totals.minutes}, 'min',
+            ${report.totals.minutes >= 60 ? 'Unas ' + (report.totals.minutes / 60) + ' h en total' : 'En total'},
+            'bi-stopwatch', false, null, null)}"></article>
+        <article th:replace="~{fragments/stat-card :: stat-card('Alertas', ${report.alertTotal()}, null,
+            ${report.alertTotal() == 0 ? 'Ninguna en el periodo' : report.alertOpen() + ' sin atender'},
+            'bi-bell', false, null, null)}"></article>
     </section>
 
-    <section class="card">
-        <div th:replace="~{fragments/empty-state :: empty-state('bi-file-earmark-arrow-down', 'Exportación no disponible',
-            'La descarga de reportes en PDF o Excel aún no está implementada.')}"></div>
+    <!-- ---------- Water ---------- -->
+    <section class="report-block" aria-labelledby="waterBlockTitle">
+        <h2 class="report-block-title" id="waterBlockTitle"><i class="bi bi-droplet" aria-hidden="true"></i> Agua</h2>
+
+        <div class="card" th:if="${report.byCrop.isEmpty()}">
+            <div th:replace="~{fragments/empty-state :: empty-state-action('bi-bar-chart', 'Sin riegos en el periodo',
+                 'No hay riegos registrados en estas fechas. Prueba con un periodo más largo o registra un riego.',
+                 '/riego', 'Registrar un riego')}"></div>
+        </div>
+
+        <!-- The charts draw from data-charts (reports.ts); the table below carries the same figures as text. -->
+        <div class="report-grid" id="reportCharts" th:if="${!report.byCrop.isEmpty()}" th:attr="data-charts=${chartsJson}">
+            <section class="card report-wide" aria-labelledby="dailyTitle">
+                <h3 id="dailyTitle" th:text="${report.days == 0} ? 'Agua por día, últimos 90 días (L)' : |Agua por día, últimos ${report.days} días (L)|">Agua por día</h3>
+                <div class="chart skeleton" id="dailyChartBox">
+                    <canvas id="dailyChart" role="img" aria-label="Litros de agua aplicados cada día del periodo"></canvas>
+                </div>
+                <p class="chart-message" id="dailyMessage" role="status" hidden></p>
+            </section>
+            <section class="card" aria-labelledby="cropChartTitle">
+                <h3 id="cropChartTitle">Por cultivo (L)</h3>
+                <div class="chart chart--short skeleton" id="cropChartBox">
+                    <canvas id="cropChart" role="img" aria-label="Litros de agua aplicados a cada cultivo"></canvas>
+                </div>
+            </section>
+            <section class="card" aria-labelledby="estateChartTitle">
+                <h3 id="estateChartTitle">Por parcela (L por hectárea)</h3>
+                <div class="chart chart--short skeleton" id="estateChartBox">
+                    <canvas id="estateChart" role="img" aria-label="Litros de agua por hectárea en cada parcela"></canvas>
+                </div>
+                <p class="chart-message" id="estateMessage" role="status" hidden></p>
+            </section>
+            <section class="card" aria-labelledby="typeChartTitle">
+                <h3 id="typeChartTitle">Manual frente a automático (L)</h3>
+                <div class="chart chart--short skeleton" id="typeChartBox">
+                    <canvas id="typeChart" role="img" aria-label="Litros aplicados en riegos manuales y en riegos automáticos"></canvas>
+                </div>
+            </section>
+            <section class="card" aria-labelledby="estateTableTitle">
+                <h3 id="estateTableTitle">Parcelas</h3>
+                <div class="table-scroll">
+                    <table class="table" data-sortable>
+                        <thead><tr><th>Parcela</th><th class="numeric">Agua (L)</th><th class="numeric">L por ha</th></tr></thead>
+                        <tbody>
+                        <tr th:each="row : ${report.byEstate}">
+                            <td th:text="${row.estateName}">Finca</td>
+                            <td class="numeric" th:text="${#numbers.formatDecimal(row.liters, 1, 'POINT', 0, 'COMMA')}">830</td>
+                            <td class="numeric" th:text="${row.litersPerHa != null ? #numbers.formatDecimal(row.litersPerHa, 1, 'POINT', 1, 'COMMA') : '—'}">66,4</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <section class="card" aria-labelledby="waterReportTitle" th:if="${!report.byCrop.isEmpty()}">
+            <div class="card-header">
+                <h3 id="waterReportTitle">Consumo de agua por cultivo</h3>
+                <button type="button" class="button button--ghost button--small no-print" data-export-csv="waterReportTable"
+                        data-filename="consumo-de-agua">
+                    <i class="bi bi-download" aria-hidden="true"></i> Exportar CSV
+                </button>
+            </div>
+            <div class="table-scroll table-scroll--sticky">
+                <table class="table" id="waterReportTable" data-sortable>
+                    <thead>
+                    <tr>
+                        <th>Cultivo</th>
+                        <th>Finca</th>
+                        <th class="numeric">Riegos</th>
+                        <th class="numeric">Tiempo total (min)</th>
+                        <th class="numeric">Agua total (L)</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="row : ${report.byCrop}" data-search-row>
+                        <td th:text="${row.cropName}">Café</td>
+                        <td th:text="${row.estateName}">Finca</td>
+                        <td class="numeric" th:text="${row.irrigationCount}">2</td>
+                        <td class="numeric" th:text="${row.totalMinutes}">55</td>
+                        <td class="numeric" th:text="${#numbers.formatDecimal(row.totalLiters, 1, 'POINT', 0, 'COMMA')}">830</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="note">
+                <i class="bi bi-info-circle" aria-hidden="true"></i>
+                Los riegos manuales no registran litros hasta que exista un medidor de caudal conectado.
+            </p>
+        </section>
+    </section>
+
+    <!-- ---------- Sensors ---------- -->
+    <section class="report-block" aria-labelledby="sensorBlockTitle">
+        <h2 class="report-block-title" id="sensorBlockTitle"><i class="bi bi-broadcast" aria-hidden="true"></i> Sensores</h2>
+        <section class="card" aria-labelledby="sensorReportTitle">
+            <div class="card-header">
+                <h3 id="sensorReportTitle">Lo que midió cada sensor</h3>
+                <button type="button" class="button button--ghost button--small no-print" data-export-csv="sensorReportTable"
+                        data-filename="lecturas-por-sensor" th:if="${!report.sensors.isEmpty()}">
+                    <i class="bi bi-download" aria-hidden="true"></i> Exportar CSV
+                </button>
+            </div>
+            <th:block th:if="${report.sensors.isEmpty()}"><div th:replace="~{fragments/empty-state :: empty-state('bi-broadcast', 'Sin lecturas en el periodo',
+                 'Ningún sensor envió lecturas en estas fechas.')}"></div></th:block>
+            <div class="table-scroll table-scroll--sticky" th:if="${!report.sensors.isEmpty()}">
+                <table class="table" id="sensorReportTable" data-sortable>
+                    <thead>
+                    <tr>
+                        <th>Sensor</th>
+                        <th>Mide</th>
+                        <th>Cultivo</th>
+                        <th class="numeric">Mínimo</th>
+                        <th class="numeric">Promedio</th>
+                        <th class="numeric">Máximo</th>
+                        <th class="numeric">Lecturas</th>
+                        <th>Rango</th>
+                        <th>Estado</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="sensor : ${report.sensors}" data-search-row>
+                        <td><strong th:text="${sensor.code}">AS-001</strong></td>
+                        <td class="cell-soft" th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</td>
+                        <td class="cell-soft" th:text="|${sensor.cropName} · ${sensor.estateName}|">Café · Finca</td>
+                        <td class="numeric" th:text="|${#numbers.formatDecimal(sensor.min, 1, 1, 'COMMA')} ${sensor.unit ?: ''}|">39,0 %</td>
+                        <td class="numeric"><strong th:text="|${#numbers.formatDecimal(sensor.average, 1, 1, 'COMMA')} ${sensor.unit ?: ''}|">52,0 %</strong></td>
+                        <td class="numeric" th:text="|${#numbers.formatDecimal(sensor.max, 1, 1, 'COMMA')} ${sensor.unit ?: ''}|">65,0 %</td>
+                        <td class="numeric" th:text="${sensor.readings}">24</td>
+                        <td th:text="${sensor.rangeMin != null and sensor.rangeMax != null}
+                            ? |${sensor.rangeMin.stripTrailingZeros().toPlainString()} – ${sensor.rangeMax.stripTrailingZeros().toPlainString()}| : '—'">40 – 80</td>
+                        <td>
+                            <th:block th:if="${sensor.within == true}"><span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-check-circle-fill', 'Dentro del rango')}"></span></th:block>
+                            <th:block th:if="${sensor.within == false}"><span th:replace="~{fragments/status-pill :: status-pill('danger', 'bi-exclamation-triangle-fill', 'Fuera del rango')}"></span></th:block>
+                            <th:block th:if="${sensor.within == null}"><span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-dash-circle', 'Sin rango')}"></span></th:block>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </section>
+
+    <!-- ---------- Alerts ---------- -->
+    <section class="report-block" aria-labelledby="alertBlockTitle">
+        <h2 class="report-block-title" id="alertBlockTitle"><i class="bi bi-bell" aria-hidden="true"></i> Alertas</h2>
+        <section class="card" aria-labelledby="alertReportTitle">
+            <div class="card-header">
+                <h3 id="alertReportTitle">Alertas por tipo</h3>
+                <button type="button" class="button button--ghost button--small no-print" data-export-csv="alertReportTable"
+                        data-filename="alertas-por-tipo" th:if="${!report.alerts.isEmpty()}">
+                    <i class="bi bi-download" aria-hidden="true"></i> Exportar CSV
+                </button>
+            </div>
+            <th:block th:if="${report.alerts.isEmpty()}"><div th:replace="~{fragments/empty-state :: empty-state('bi-check2-circle', 'Sin alertas en el periodo',
+                 'No se generó ninguna alerta en estas fechas.')}"></div></th:block>
+            <div class="table-scroll" th:if="${!report.alerts.isEmpty()}">
+                <table class="table" id="alertReportTable" data-sortable>
+                    <thead>
+                    <tr><th>Alerta</th><th>Severidad</th><th class="numeric">Total</th><th class="numeric">Sin atender</th><th>Atendidas</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="alert : ${report.alerts}">
+                        <td th:text="#{${'alertType.' + alert.type}}">Humedad baja</td>
+                        <td><span th:replace="~{fragments/status-pill :: severity-pill(${alert.severity})}"></span></td>
+                        <td class="numeric" th:text="${alert.total}">3</td>
+                        <td class="numeric" th:text="${alert.open}">1</td>
+                        <td>
+                            <progress class="share-bar" th:max="${alert.total}" th:value="${alert.total - alert.open}"
+                                      th:aria-label="|${alert.total - alert.open} de ${alert.total} atendidas|">50</progress>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </section>
 </main>
 </body>
