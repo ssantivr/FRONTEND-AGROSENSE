@@ -25,7 +25,7 @@ La contraseña de la demo se puede cambiar con la variable `DEMO_PASSWORD`.
 | `DATABASE_PASSWORD`     | Contraseña                                              |
 | `PORT`                  | Puerto HTTP (por defecto 8080)                          |
 | `SESSION_COOKIE_SECURE` | `false` solo si se sirve sin HTTPS (por defecto `true`) |
-| `BACKEND_URL`           | Dirección de la API del backend, por ejemplo `https://backend-agrosense-oyhq.onrender.com`. Opcional |
+| `BACKEND_URL`           | Dirección de la API del backend, por ejemplo `https://backend-agrosense-u5mz.onrender.com`. Opcional |
 | `BACKEND_JWT_SECRET`    | El mismo valor que `JWT_SECRET` del backend. Opcional   |
 | `BACKEND_SIGN_IN`       | `false` para que el inicio de sesión no pase por el backend (por defecto `true`) |
 
