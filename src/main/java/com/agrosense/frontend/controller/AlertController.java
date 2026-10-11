@@ -1,5 +1,10 @@
 package com.agrosense.frontend.controller;
 
+import com.agrosense.frontend.dto.Views.AlertDay;
+import com.agrosense.frontend.dto.Views.AlertView;
+import org.springframework.data.domain.Page;
+import java.util.LinkedHashMap;
+import java.util.stream.Collectors;
 import com.agrosense.frontend.service.AlertService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -26,7 +31,15 @@ public class AlertController {
     public String alerts(@RequestParam(defaultValue = "pendientes") String estado,
             @RequestParam(defaultValue = "0") int page, Principal principal, Model model) {
         boolean onlyOpen = !FILTER_ALL.equals(estado);
-        model.addAttribute("alerts", alertService.findAlerts(principal.getName(), onlyOpen, page));
+        Page<AlertView> alerts = alertService.findAlerts(principal.getName(), onlyOpen, page);
+        model.addAttribute("alerts", alerts);
+        // The page is already newest first, so the days come out in that order too.
+        model.addAttribute("alertDays", alerts.getContent().stream()
+                .collect(Collectors.groupingBy(alert -> alert.createdAt().toLocalDate(), LinkedHashMap::new,
+                        Collectors.toList()))
+                .entrySet().stream()
+                .map(day -> new AlertDay(day.getKey(), day.getValue()))
+                .toList());
         model.addAttribute("onlyOpen", onlyOpen);
         model.addAttribute("pageUrl", "/alertas?estado=" + (onlyOpen ? "pendientes" : FILTER_ALL));
         return "alerts";
