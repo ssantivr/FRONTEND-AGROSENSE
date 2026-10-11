@@ -4,13 +4,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Error · AgroSense</title>
-    <link rel="icon" type="image/svg+xml" th:href="@{/img/logo.svg}">
-    <link rel="stylesheet" th:href="@{/webjars/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css}">
-    <link rel="stylesheet" th:href="@{/css/tokens.css}">
-    <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <th:block th:replace="~{fragments/brand :: head-assets}"></th:block>
 </head>
 <body class="error-page">
-<main class="card error-card">
+<main class="card error-card" data-motion="fade-up">
+    <span th:replace="~{fragments/brand :: logo(32, false)}"></span>
     <p class="error-code" th:text="${status ?: 'Error'}">404</p>
     <div th:replace="~{fragments/error-state :: error-state(
         ${status == 404 ? 'Página no encontrada' : (status == 403 ? 'Acceso denegado' : 'Algo salió mal')},
