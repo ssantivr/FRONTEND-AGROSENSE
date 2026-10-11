@@ -20,9 +20,14 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -46,13 +51,42 @@ public class SensorService {
     private final BackendClient backendClient;
 
     public List<SensorView> findSensors(String email) {
-        return sensorRepository.findByCropEstateUserEmailOrderBySensorCode(email).stream()
-                .map(this::toView)
+        List<Sensor> sensors = sensorRepository.findByCropEstateUserEmailOrderBySensorCode(email);
+        Map<Integer, SensorReading> latest = latestReadings(sensors);
+        return sensors.stream()
+                .map(sensor -> toView(sensor, Optional.ofNullable(latest.get(sensor.getIdSensor()))))
                 .toList();
     }
 
+    /** The newest reading of every sensor, by sensor id, read in one query. */
+    private Map<Integer, SensorReading> latestReadings(List<Sensor> sensors) {
+        if (sensors.isEmpty()) {
+            return Map.of();
+        }
+        // Two readings with the same timestamp are possible; either one describes "the latest".
+        return readingRepository.findLatestOf(sensors.stream().map(Sensor::getIdSensor).toList()).stream()
+                .collect(Collectors.toMap(reading -> reading.getSensor().getIdSensor(), Function.identity(),
+                        (first, second) -> first));
+    }
+
+    /** Summaries without a trend line. */
     public List<SensorSummary> summarize(List<SensorView> sensors) {
-        return DASHBOARD_TYPES.stream().map(type -> summarize(type, sensors)).toList();
+        return summarize(sensors, Map.of());
+    }
+
+    public List<SensorSummary> summarize(List<SensorView> sensors, Map<SensorType, List<BigDecimal>> trends) {
+        return DASHBOARD_TYPES.stream()
+                .map(type -> summarize(type, sensors, Sparkline.points(trends.get(type))))
+                .toList();
+    }
+
+    /** Hourly averages of the last 24 hours for each sensor type, oldest first, read in one query. */
+    public Map<SensorType, List<BigDecimal>> findHourlyTrends(String email) {
+        Map<SensorType, List<BigDecimal>> trends = new EnumMap<>(SensorType.class);
+        readingRepository.findHourlyAverages(email, LocalDateTime.now().minusHours(CHART_WINDOW_HOURS))
+                .forEach(row -> trends.computeIfAbsent((SensorType) row[0], type -> new ArrayList<>())
+                        .add(BigDecimal.valueOf(((Number) row[2]).doubleValue())));
+        return trends;
     }
 
     public ReadingSeries findLast24Hours(String email, Integer sensorId) {
@@ -83,32 +117,34 @@ public class SensorService {
                         .toList());
     }
 
-    private SensorView toView(Sensor sensor) {
-        Optional<SensorReading> latest =
-                readingRepository.findFirstBySensorIdSensorOrderByRecordedAtDesc(sensor.getIdSensor());
+    private static SensorView toView(Sensor sensor, Optional<SensorReading> latest) {
         return new SensorView(
                 sensor.getIdSensor(),
                 sensor.getSensorCode(),
                 sensor.getSensorType(),
                 sensor.getCrop().getName(),
+                sensor.getCrop().getEstate().getIdEstate(),
                 sensor.getCrop().getEstate().getName(),
                 sensor.getLocation(),
                 Boolean.TRUE.equals(sensor.getActive()),
                 latest.map(SensorReading::getValue).orElse(null),
                 latest.map(SensorReading::getUnit).orElse(null),
-                latest.map(SensorReading::getRecordedAt).orElse(sensor.getLastReadingAt()));
+                latest.map(SensorReading::getRecordedAt).orElse(sensor.getLastReadingAt()),
+                sensor.getLatitude(),
+                sensor.getLongitude(),
+                sensor.getCoverageM());
     }
 
-    private static SensorSummary summarize(SensorType type, List<SensorView> sensors) {
+    private static SensorSummary summarize(SensorType type, List<SensorView> sensors, String sparkline) {
         List<SensorView> withData = sensors.stream()
                 .filter(sensor -> sensor.type() == type && sensor.active() && sensor.lastValue() != null)
                 .toList();
         if (withData.isEmpty()) {
-            return new SensorSummary(type, null, null, 0);
+            return new SensorSummary(type, null, null, 0, null);
         }
         BigDecimal total = withData.stream().map(SensorView::lastValue).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal average = total.divide(BigDecimal.valueOf(withData.size()), 1, RoundingMode.HALF_UP);
-        return new SensorSummary(type, average, withData.get(0).unit(), withData.size());
+        return new SensorSummary(type, average, withData.get(0).unit(), withData.size(), sparkline);
     }
 
     /** The crop's acceptable {min, max} for what the sensor measures; both null when it has no range. */
