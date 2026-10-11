@@ -44,6 +44,11 @@ public class AccountService {
     @Transactional
     public void register(RegistrationForm form) {
         String email = form.getEmail().trim().toLowerCase(Locale.ROOT);
+        // The backend creates the account when it is answering; its refusals (409, 400) reach the form as they are.
+        if (backendClient.attempt(() -> backendClient.register(form.getName(), form.getLastName(), email,
+                form.getPassword())).isPresent()) {
+            return;
+        }
         if (userRepository.findByEmail(email).isPresent()) {
             throw new BusinessRuleException(REGISTRATION_REJECTED);
         }

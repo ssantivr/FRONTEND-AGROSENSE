@@ -39,10 +39,13 @@ public class AccountController {
     }
 
     @PostMapping("/registro")
-    public String register(@Valid @ModelAttribute("registrationForm") RegistrationForm form, BindingResult result) {
+    public String register(@Valid @ModelAttribute("registrationForm") RegistrationForm form, BindingResult result,
+            RedirectAttributes redirect) {
         if (!result.hasErrors()) {
             try {
                 accountService.register(form);
+                // The sign-in form opens with the e-mail already typed; only the password is left.
+                redirect.addFlashAttribute("registeredEmail", form.getEmail().trim().toLowerCase(java.util.Locale.ROOT));
                 return "redirect:/login?registered";
             } catch (BusinessRuleException exception) {
                 result.reject("registration.rejected", exception.getMessage());
