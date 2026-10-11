@@ -1,5 +1,6 @@
 // The assistant's chat window, on every signed-in page: written questions, voice messages and answers read
-// aloud. The conversation lives in sessionStorage, so it survives moving between pages and ends with the tab.
+// aloud. The conversation lives in sessionStorage, so it survives moving between pages and ends with the tab;
+// it is kept under the account's name, so signing in as someone else in the same tab starts an empty one.
 import { ApiError, csrfHeaders, isRecord, messageOf } from '../api/client.js';
 import { el, find, icon } from '../core/dom.js';
 import { plainText, renderMarkdown } from './markdown.js';
@@ -26,18 +27,20 @@ const isAiReply = (value) => isRecord(value) &&
     typeof value['reply'] === 'string' &&
     (value['transcript'] === undefined || value['transcript'] === null || typeof value['transcript'] === 'string');
 const isMessage = (value) => isRecord(value) && (value['role'] === 'user' || value['role'] === 'assistant') && typeof value['text'] === 'string';
-function loadMessages() {
+function loadMessages(owner) {
     try {
-        const stored = JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? '[]');
-        return Array.isArray(stored) ? stored.filter(isMessage).slice(-MAX_STORED) : [];
+        const stored = JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? 'null');
+        if (!isRecord(stored) || stored['owner'] !== owner || !Array.isArray(stored['messages']))
+            return [];
+        return stored['messages'].filter(isMessage).slice(-MAX_STORED);
     }
     catch {
         return [];
     }
 }
-function saveMessages(messages) {
+function saveMessages(owner, messages) {
     try {
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-MAX_STORED)));
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ owner, messages: messages.slice(-MAX_STORED) }));
     }
     catch {
         // Storage is full or disabled: the conversation simply lasts until the page is left.
@@ -121,12 +124,16 @@ function init() {
     const voiceUrl = root.dataset['voiceUrl'];
     if (!chatUrl || !voiceUrl)
         return;
-    mount({ root, launcher, panel, log, status, form, input, send, clear, close, mic, speakToggle, chatUrl, voiceUrl });
+    const owner = root.dataset['owner'] ?? '';
+    mount({ root, launcher, panel, log, status, form, input, send, clear, close, mic, speakToggle, chatUrl, voiceUrl, owner });
 }
 function mount(parts) {
     const { root, launcher, panel, log, status, form, input, send, clear, close, mic, speakToggle, chatUrl, voiceUrl } = parts;
-    let messages = loadMessages();
+    const { owner } = parts;
+    let messages = loadMessages(owner);
     let pending = false;
+    /** True while the browser is asking for the microphone, before the recording begins. */
+    let starting = false;
     let readAloud = canSpeak() && readFlag(SPEAK_KEY);
     let typing = null;
     const recorder = new VoiceRecorder();
@@ -175,7 +182,7 @@ function mount(parts) {
     }
     function addMessage(message) {
         messages = [...messages, message].slice(-MAX_STORED);
-        saveMessages(messages);
+        saveMessages(owner, messages);
         const node = bubble(message);
         append(node, message.role === 'user');
         return node;
@@ -186,11 +193,11 @@ function mount(parts) {
     }
     function refreshControls() {
         const recording = recorder.recording;
-        input.disabled = pending || recording;
-        send.disabled = pending || recording || input.value.trim() === '';
-        clear.disabled = pending || recording;
+        input.disabled = pending || recording || starting;
+        send.disabled = pending || recording || starting || input.value.trim() === '';
+        clear.disabled = pending || recording || starting;
         if (mic) {
-            mic.disabled = pending;
+            mic.disabled = pending || starting;
             mic.setAttribute('aria-pressed', String(recording));
             mic.setAttribute('aria-label', recording ? 'Detener y enviar la grabación' : 'Grabar un mensaje de voz');
             mic.classList.toggle('is-recording', recording);
@@ -220,6 +227,9 @@ function mount(parts) {
             const again = el('button', 'ai-chat-retry', 'Reintentar');
             again.type = 'button';
             again.addEventListener('click', () => {
+                // A recording in progress is sent when it ends; asking again now would leave it without an answer.
+                if (pending || starting || recorder.recording)
+                    return;
                 note.remove();
                 retry();
             });
@@ -253,7 +263,7 @@ function mount(parts) {
     async function sendText(text) {
         const question = text.trim().slice(0, MAX_QUESTION);
         // The button is disabled while an answer is on its way; this also stops Enter and double clicks.
-        if (pending || recorder.recording || question === '')
+        if (pending || starting || recorder.recording || question === '')
             return;
         stopSpeaking();
         setStatus('');
@@ -280,7 +290,7 @@ function mount(parts) {
                     index--;
                 if (index >= 0) {
                     messages = messages.map((message, position) => (position === index ? { role: 'user', text: heard } : message));
-                    saveMessages(messages);
+                    saveMessages(owner, messages);
                 }
             }
             showAnswer(answer.reply, true);
@@ -306,20 +316,26 @@ function mount(parts) {
         }
     }
     async function toggleRecording() {
-        if (pending)
+        if (pending || starting)
             return;
         if (recorder.recording) {
             await finishRecording();
             return;
         }
         stopSpeaking();
+        starting = true;
+        refreshControls();
         try {
-            await recorder.start(MAX_RECORDING_MS, () => void finishRecording());
-            setStatus('Grabando… pulsa de nuevo para enviar.');
+            // false: the window was closed while the browser asked for permission, and the microphone was released.
+            if (await recorder.start(MAX_RECORDING_MS, () => void finishRecording())) {
+                setStatus('Grabando… pulsa de nuevo para enviar.');
+            }
         }
         catch (error) {
-            setStatus(RECORDING_MESSAGES[error instanceof RecordingError ? error.reason : 'failed']);
+            if (!panel.hidden)
+                setStatus(RECORDING_MESSAGES[error instanceof RecordingError ? error.reason : 'failed']);
         }
+        starting = false;
         refreshControls();
     }
     function resizeInput() {
@@ -367,11 +383,11 @@ function mount(parts) {
         }
     });
     clear.addEventListener('click', () => {
-        if (pending || recorder.recording)
+        if (pending || starting || recorder.recording)
             return;
         stopSpeaking();
         messages = [];
-        saveMessages(messages);
+        saveMessages(owner, messages);
         setStatus('');
         renderAll();
         input.focus();

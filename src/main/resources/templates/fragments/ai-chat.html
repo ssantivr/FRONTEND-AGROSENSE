@@ -4,7 +4,7 @@
 <!-- The assistant's chat window; js/ai/chat-widget.js fills the conversation and wires the controls.
      The microphone and read-aloud buttons start hidden and are shown only where the browser supports them. -->
 <section class="ai-chat" id="aiChat" th:fragment="ai-chat" aria-label="Asistente de IA"
-         th:attr="data-chat-url=@{/api/ui/ai/chat},data-voice-url=@{/api/ui/ai/voice}">
+         th:attr="data-chat-url=@{/api/ui/ai/chat},data-voice-url=@{/api/ui/ai/voice},data-owner=${#authentication.name}">
     <div class="ai-chat-panel" id="aiChatPanel" role="dialog" aria-modal="false" aria-labelledby="aiChatTitle" hidden>
         <header class="ai-chat-header">
             <div class="ai-chat-heading-text">
