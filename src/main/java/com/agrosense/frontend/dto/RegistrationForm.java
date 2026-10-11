@@ -12,15 +12,18 @@ import lombok.Setter;
 @Setter
 public class RegistrationForm {
 
-    /** BCrypt ignores everything after 72 bytes, so longer passwords are rejected instead of truncated. */
-    public static final int MAX_PASSWORD_LENGTH = 72;
+    /** Lengths are counted on the text as typed, so a space is one more character. Same limits as the backend API. */
+    public static final int MIN_NAME_LENGTH = 2;
+    public static final int MAX_NAME_LENGTH = 18;
+    public static final int MIN_PASSWORD_LENGTH = 8;
+    public static final int MAX_PASSWORD_LENGTH = 32;
 
     @NotBlank(message = "Ingresa tu nombre.")
-    @Size(min = 2, max = 80, message = "El nombre debe tener entre 2 y 80 caracteres.")
+    @Size(min = MIN_NAME_LENGTH, max = MAX_NAME_LENGTH, message = "El nombre debe tener entre 2 y 18 caracteres.")
     private String name;
 
     @NotBlank(message = "Ingresa tu apellido.")
-    @Size(min = 2, max = 80, message = "El apellido debe tener entre 2 y 80 caracteres.")
+    @Size(min = MIN_NAME_LENGTH, max = MAX_NAME_LENGTH, message = "El apellido debe tener entre 2 y 18 caracteres.")
     private String lastName;
 
     @NotBlank(message = "Ingresa tu correo electrónico.")
@@ -29,7 +32,8 @@ public class RegistrationForm {
     private String email;
 
     @NotNull(message = "Ingresa una contraseña.")
-    @Size(min = 8, max = MAX_PASSWORD_LENGTH, message = "La contraseña debe tener entre 8 y 72 caracteres.")
+    @Size(min = MIN_PASSWORD_LENGTH, max = MAX_PASSWORD_LENGTH,
+            message = "La contraseña debe tener entre 8 y 32 caracteres.")
     private String password;
 
     private String confirmPassword;
