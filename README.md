@@ -1,7 +1,7 @@
 # AgroSense · Frontend
 
 Interfaz web de AgroSense, generada en el servidor con Java 21, Spring Boot, Spring MVC y Thymeleaf.
-No usa Node.js ni frameworks de JavaScript.
+Los scripts del navegador están en TypeScript estricto (`src/main/ts`); no usa frameworks de JavaScript.
 
 ## Ejecutar en modo demostración
 
@@ -27,13 +27,31 @@ La contraseña de la demo se puede cambiar con la variable `DEMO_PASSWORD`.
 | `SESSION_COOKIE_SECURE` | `false` solo si se sirve sin HTTPS (por defecto `true`) |
 | `BACKEND_URL`           | Dirección de la API del backend, por ejemplo `https://backend-agrosense-oyhq.onrender.com`. Opcional |
 | `BACKEND_JWT_SECRET`    | El mismo valor que `JWT_SECRET` del backend. Opcional   |
+| `BACKEND_SIGN_IN`       | `false` para que el inicio de sesión no pase por el backend (por defecto `true`) |
 
-Con `BACKEND_URL` y `BACKEND_JWT_SECRET` definidas, atender alertas, registrar sensores y riegos y la
+Con `BACKEND_URL` y `BACKEND_JWT_SECRET` definidas, iniciar sesión, crear cuentas, atender alertas, registrar sensores y riegos y la
 gráfica de lecturas pasan por la API del backend; sin ellas, o mientras el backend no responda, todo se
 hace contra la base de datos.
 
 Las tablas se crean con `../database/schema.sql` (ver [`database/README.md`](../database/README.md));
 con `SQL_INIT_MODE=always` la aplicación lo ejecuta al arrancar.
+
+Al iniciar sesión por el backend todas las peticiones le llegan desde la dirección de este servidor:
+configura en el backend `LOGIN_MAX_ATTEMPTS_PER_ADDRESS=0` para que los fallos de un visitante no bloqueen
+a los demás (el límite por cuenta sigue activo).
+
+## Scripts (TypeScript)
+
+El código fuente está en `src/main/ts` y `tsc` lo compila a `src/main/resources/static/js`, que se guarda
+en el repositorio: Maven y el despliegue no necesitan Node. Solo hace falta para cambiar los scripts:
+
+```bash
+npm install
+npm run build       # o: npm run watch
+npm run typecheck
+```
+
+No edites `static/js` a mano: la siguiente compilación lo sobrescribe.
 
 ## Pruebas
 
