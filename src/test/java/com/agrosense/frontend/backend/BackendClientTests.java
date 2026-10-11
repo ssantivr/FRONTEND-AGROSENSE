@@ -10,6 +10,8 @@ import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.LockedException;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -127,6 +129,52 @@ class BackendClientTests {
         assertThatThrownBy(() -> client.createSensor(EMAIL, 3, SensorType.PH, "AS-001", null))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("Ya existe un sensor con ese código.");
+    }
+
+    @Test
+    void accountsAreCreatedAndCheckedThroughTheBackendWithoutAToken() {
+        client.register("Ana María", "Pérez", "ana@agrosense.test", "a-long-password");
+        responseBody = "{\"exists\":true,\"available\":false}";
+
+        assertThat(client.isEmailAvailable("ana@agrosense.test")).isFalse();
+        assertThat(requests).containsExactly("POST /api/auth/register",
+                "GET /api/auth/check-user?email=ana%40agrosense.test");
+        assertThat(bodies.get(0)).contains("\"name\":\"Ana María\"", "\"lastName\":\"Pérez\"",
+                "\"email\":\"ana@agrosense.test\"", "\"password\":\"a-long-password\"");
+        assertThat(authorizations).containsOnly("null");
+
+        status = 409;
+        responseBody = "{\"message\":\"Ya existe una cuenta con ese correo.\"}";
+        assertThatThrownBy(() -> client.register("Ana", "Pérez", "ana@agrosense.test", "a-long-password"))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("Ya existe una cuenta con ese correo.");
+        status = 400;
+        responseBody = "{\"message\":\"El nombre debe tener entre 2 y 18 caracteres.\",\"fields\":{}}";
+        assertThatThrownBy(() -> client.register("A", "Pérez", "ana@agrosense.test", "a-long-password"))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("El nombre debe tener entre 2 y 18 caracteres.");
+    }
+
+    @Test
+    void signInTellsWrongCredentialsFromALockAndFromABackendThatCannotAnswer() {
+        assertThat(client.signIn(EMAIL, "right-password")).isTrue();
+        assertThat(requests).containsExactly("POST /api/auth/login");
+        assertThat(bodies.get(0)).contains("\"email\":\"" + EMAIL + "\"", "\"password\":\"right-password\"");
+
+        status = 401;
+        responseBody = "{\"message\":\"Credenciales incorrectas.\"}";
+        assertThatThrownBy(() -> client.signIn(EMAIL, "wrong")).isInstanceOf(BadCredentialsException.class);
+        status = 429;
+        responseBody = "{\"message\":\"Demasiados intentos fallidos. Inténtalo de nuevo en 15 minutos.\"}";
+        assertThatThrownBy(() -> client.signIn(EMAIL, "wrong")).isInstanceOf(LockedException.class)
+                .hasMessageContaining("15 minutos");
+
+        // An older backend without the endpoint, or one that fails, lets the caller fall back to the database.
+        status = 404;
+        assertThat(client.attempt(() -> client.register("Ana", "Pérez", "ana@agrosense.test", "a-long-password")))
+                .isEmpty();
+        status = 500;
+        assertThatThrownBy(() -> client.signIn(EMAIL, "any")).isInstanceOf(BackendUnavailableException.class);
     }
 
     @Test
