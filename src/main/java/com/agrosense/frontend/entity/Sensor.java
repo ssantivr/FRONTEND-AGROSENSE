@@ -3,6 +3,7 @@ package com.agrosense.frontend.entity;
 import com.agrosense.frontend.entity.enums.SensorType;
 import jakarta.persistence.*;
 import lombok.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -31,6 +32,15 @@ public class Sensor {
     private SensorType sensorType;
 
     private String location;
+
+    /** Where the sensor stands; null until it is placed on the map. */
+    private BigDecimal latitude;
+
+    private BigDecimal longitude;
+
+    /** Radius, in metres, of the ground the readings are taken to describe. */
+    @Column(name = "coverage_m")
+    private Integer coverageM;
 
     @Column(nullable = false)
     @Builder.Default

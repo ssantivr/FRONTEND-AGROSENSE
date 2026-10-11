@@ -1,5 +1,6 @@
 package com.agrosense.frontend.dto;
 
+import jakarta.validation.Valid;
 import com.agrosense.frontend.entity.enums.SensorType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -25,4 +26,7 @@ public class SensorForm {
 
     @Size(max = 160, message = "La ubicación no puede superar los 160 caracteres.")
     private String location;
+
+    @Valid
+    private SensorPositionForm position = new SensorPositionForm();
 }
