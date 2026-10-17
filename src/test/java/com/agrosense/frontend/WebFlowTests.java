@@ -498,11 +498,11 @@ class WebFlowTests {
 
     @Test
     void anEstateHasItsOwnPageWithItsCropsSensorsAlertsAndIrrigations() throws Exception {
-        Estate esperanza = estateRepository.findByUserEmailOrderByName(DEMO_EMAIL).stream()
+        Estate secondEstate = estateRepository.findByUserEmailOrderByName(DEMO_EMAIL).stream()
                 .filter(estate -> estate.getName().equals("Finca La Esperanza")).findFirst().orElseThrow();
         Sensor foreign = createOtherUsersSensor();
 
-        mvc.perform(get("/parcelas/{id}", esperanza.getIdEstate()).with(user(demoUser)))
+        mvc.perform(get("/parcelas/{id}", secondEstate.getIdEstate()).with(user(demoUser)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Finca La Esperanza")))
                 .andExpect(content().string(containsString("id=\"detailMap\"")))
@@ -516,7 +516,7 @@ class WebFlowTests {
         mvc.perform(get("/parcelas/{id}", foreign.getCrop().getEstate().getIdEstate()).with(user(demoUser)))
                 .andExpect(status().isNotFound());
         mvc.perform(get("/parcelas").with(user(demoUser)))
-                .andExpect(content().string(containsString("href=\"/parcelas/" + esperanza.getIdEstate() + "\"")));
+                .andExpect(content().string(containsString("href=\"/parcelas/" + secondEstate.getIdEstate() + "\"")));
     }
 
     @Test
@@ -770,8 +770,8 @@ class WebFlowTests {
     @Test
     void deletingRemovesDependentRecordsAndNothingElse() throws Exception {
         List<Estate> estates = estateRepository.findByUserEmailOrderByName(DEMO_EMAIL);
-        Estate mirador = estates.get(0);
-        Estate esperanza = estates.get(1);
+        Estate firstEstate = estates.get(0);
+        Estate secondEstate = estates.get(1);
         Sensor coffeeSensor = sensorRepository.findByCropEstateUserEmailOrderBySensorCode(DEMO_EMAIL).get(0);
         Crop plantain = cropRepository.findByEstateUserEmailAndActiveTrueOrderByName(DEMO_EMAIL).stream()
                 .filter(crop -> crop.getName().equals("Plátano")).findFirst().orElseThrow();
@@ -786,10 +786,10 @@ class WebFlowTests {
         assertThat(cropRepository.findById(plantain.getIdCrop())).isEmpty();
         assertThat(sensorRepository.findByCropEstateUserEmailOrderBySensorCode(DEMO_EMAIL)).hasSize(3);
 
-        mvc.perform(post("/parcelas/{id}/eliminar", esperanza.getIdEstate()).with(user(demoUser)).with(csrf()))
+        mvc.perform(post("/parcelas/{id}/eliminar", secondEstate.getIdEstate()).with(user(demoUser)).with(csrf()))
                 .andExpect(redirectedUrl("/parcelas"));
         assertThat(estateRepository.findByUserEmailOrderByName(DEMO_EMAIL)).extracting(Estate::getName)
-                .containsExactly(mirador.getName());
+                .containsExactly(firstEstate.getName());
         assertThat(sensorRepository.findByCropEstateUserEmailOrderBySensorCode(DEMO_EMAIL)).hasSize(1);
         assertThat(alertRepository.countByCropEstateUserEmailAndAcknowledgedFalse(DEMO_EMAIL)).isEqualTo(1);
         mvc.perform(get("/").with(user(demoUser))).andExpect(status().isOk());

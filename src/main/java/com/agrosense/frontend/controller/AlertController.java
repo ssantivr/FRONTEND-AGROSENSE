@@ -28,9 +28,9 @@ public class AlertController {
     private final AlertService alertService;
 
     @GetMapping
-    public String alerts(@RequestParam(defaultValue = "pendientes") String estado,
+    public String alerts(@RequestParam(name = "estado", defaultValue = "pendientes") String status,
             @RequestParam(defaultValue = "0") int page, Principal principal, Model model) {
-        boolean onlyOpen = !FILTER_ALL.equals(estado);
+        boolean onlyOpen = !FILTER_ALL.equals(status);
         Page<AlertView> alerts = alertService.findAlerts(principal.getName(), onlyOpen, page);
         model.addAttribute("alerts", alerts);
         // The page is already newest first, so the days come out in that order too.

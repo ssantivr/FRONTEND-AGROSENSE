@@ -35,22 +35,22 @@ class LiveEventsTests {
     @Test
     void theBrowserGetsTheStreamsAddressAndTheBackendsTokenForItsOwnUser() {
         when(backend.isAvailable()).thenReturn(true);
-        when(backend.eventStreamToken(EMAIL)).thenReturn(new EventStreamToken("token-firmado", 300));
+        when(backend.eventStreamToken(EMAIL)).thenReturn(new EventStreamToken("signed-token", 300));
 
         ResponseEntity<Map<String, Object>> answer =
-                new LiveEventsController(backend, "https://eventos.example/").token(USER);
+                new LiveEventsController(backend, "https://events.example/").token(USER);
 
         assertThat(answer.getStatusCode().value()).isEqualTo(200);
         assertThat(answer.getHeaders().getCacheControl()).contains("no-store");
         assertThat(answer.getBody()).containsEntry("enabled", true)
-                .containsEntry("token", "token-firmado")
-                .containsEntry("streamUrl", "https://eventos.example/stream")
+                .containsEntry("token", "signed-token")
+                .containsEntry("streamUrl", "https://events.example/stream")
                 .containsEntry("expiresInSeconds", 300L);
     }
 
     @Test
     void whileTheBackendDoesNotAnswerTheScriptIsToldToTryLater() {
-        LiveEventsController controller = new LiveEventsController(backend, "https://eventos.example");
+        LiveEventsController controller = new LiveEventsController(backend, "https://events.example");
 
         when(backend.isAvailable()).thenReturn(false);
         assertThat(controller.token(USER).getStatusCode().value()).isEqualTo(503);

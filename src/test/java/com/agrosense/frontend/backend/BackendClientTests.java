@@ -286,13 +286,13 @@ class BackendClientTests {
 
     @Test
     void theLiveStreamsTokenIsAskedForTheSignedInUser() {
-        responseBody = "{\"token\":\"token-del-canal\",\"expiresInSeconds\":300}";
+        responseBody = "{\"token\":\"channel-token\",\"expiresInSeconds\":300}";
 
         BackendClient.EventStreamToken token = client.eventStreamToken(EMAIL);
 
         assertThat(requests).containsExactly("GET /api/events/token");
         assertThat(authorizations.get(0)).startsWith("Bearer ");
-        assertThat(token.token()).isEqualTo("token-del-canal");
+        assertThat(token.token()).isEqualTo("channel-token");
         assertThat(token.expiresInSeconds()).isEqualTo(300);
 
         status = 503;
