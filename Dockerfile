@@ -24,7 +24,7 @@ ENV DATABASE_DIR=/app/database
 ENV PORT=8080
 USER agrosense
 EXPOSE 8080
-# /login is public and needs the database (the session table), so it says the frontend can serve pages.
+# /health is public and touches neither the session table nor the database: it only says the app is up.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
-  CMD wget -qO- "http://127.0.0.1:${PORT}/login" > /dev/null || exit 1
+  CMD wget -qO- "http://127.0.0.1:${PORT}/health" > /dev/null || exit 1
 ENTRYPOINT ["java", "-jar", "app.jar"]

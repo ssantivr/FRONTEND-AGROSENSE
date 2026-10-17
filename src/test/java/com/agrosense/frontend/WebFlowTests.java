@@ -111,6 +111,15 @@ class WebFlowTests {
     }
 
     @Test
+    void healthIsPublicAndOpensNoSession() throws Exception {
+        var result = mvc.perform(get("/health"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("{\"status\":\"UP\"}", true))
+                .andReturn();
+        assertThat(result.getRequest().getSession(false)).isNull();
+    }
+
+    @Test
     void liveEventsAreWiredIntoEveryPageAndOffWithoutTheEventService() throws Exception {
         mvc.perform(get("/sensores").with(user(demoUser)))
                 .andExpect(status().isOk())
