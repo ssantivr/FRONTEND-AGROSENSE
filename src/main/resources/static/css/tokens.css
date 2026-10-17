@@ -19,6 +19,8 @@
   --leading-h3: 1.625rem;
   --text-body: 0.9375rem;
   --leading-body: 1.5rem;
+  --text-lead: 1.0625rem;
+  --leading-lead: 1.625rem;
   --text-small: 0.8125rem;
   --leading-small: 1.25rem;
   --text-micro: 0.75rem;
@@ -46,6 +48,7 @@
   --radius-pill: 999px;
   --touch-target: 44px;
   --control-height: 44px;
+  --control-height-sm: 40px;
 
   --icon-xs: 0.875rem;
   --icon-sm: 1rem;
@@ -178,6 +181,8 @@
   --status-warning-text: #735400;
   --status-danger-bg: #fbe6e6;
   --status-danger-text: #a52a2a;
+  --status-critical-bg: #b42318;
+  --status-critical-text: #ffffff;
   --status-info-bg: #e4eff9;
   --status-info-text: #22578a;
   --status-neutral-bg: #eeede7;
@@ -261,6 +266,8 @@
   --status-warning-text: #0a0a0a;
   --status-danger-bg: #0a0a0a;
   --status-danger-text: #ffffff;
+  --status-critical-bg: #0a0a0a;
+  --status-critical-text: #ffffff;
   --status-info-bg: #ffffff;
   --status-info-text: #0a0a0a;
   --status-neutral-bg: #ebebeb;
@@ -344,6 +351,8 @@
   --status-warning-text: #f3d376;
   --status-danger-bg: #3a1a1a;
   --status-danger-text: #ffb0b0;
+  --status-critical-bg: #e5534b;
+  --status-critical-text: #1a0605;
   --status-info-bg: #13283b;
   --status-info-text: #a9cff3;
   --status-neutral-bg: #1c2822;

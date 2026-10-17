@@ -1128,7 +1128,7 @@ code {
 }
 
 .button--small {
-  min-height: 36px;
+  min-height: var(--control-height-sm);
   padding: 0 var(--space-3);
   font-size: var(--text-small);
 }
@@ -3204,7 +3204,7 @@ code {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 36px;
+  min-height: var(--control-height-sm);
   padding: 0 var(--space-3);
   border: 0;
   border-radius: var(--radius-sm);
@@ -3867,6 +3867,7 @@ a.segmented-option {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-height: var(--control-height-sm);
   padding: 0;
   border: 0;
   background: transparent;
@@ -5002,5 +5003,18 @@ kbd {
   .sidebar-marker,
   .toast-timer {
     background: Highlight;
+  }
+}
+
+@media (pointer: coarse) {
+  .button--small,
+  .segmented-option,
+  .table-sort,
+  .theme-toggle-option {
+    min-height: var(--touch-target);
+  }
+
+  .theme-toggle-thumb {
+    height: var(--touch-target);
   }
 }
