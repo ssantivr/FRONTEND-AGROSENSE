@@ -27,10 +27,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * How many SQL statements each page costs with the sample data (2 estates, 3 crops, 6 sensors). A budget
- * that grows with the number of rows is an N+1 query coming back.
- */
 @SpringBootTest
 @ActiveProfiles("demo")
 class QueryBudgetTests {
@@ -72,7 +68,6 @@ class QueryBudgetTests {
                 .andExpect(header().string("Cache-Control", "max-age=2592000, public"));
         mvc.perform(get("/webjars/chart.js/4.4.1/dist/chart.umd.js"))
                 .andExpect(header().string("Cache-Control", "max-age=31536000, public, immutable"));
-        // Revalidated on every use, so a new version is never mixed with an old page.
         mvc.perform(get("/js/app.js")).andExpect(header().string("Cache-Control", "no-cache"));
         mvc.perform(get("/css/styles.css")).andExpect(header().string("Cache-Control", "no-cache"));
         mvc.perform(get("/login")).andExpect(header().string("Cache-Control", containsString("no-store")));
@@ -83,21 +78,15 @@ class QueryBudgetTests {
         Integer sensorId = sensorRepository.findByCropEstateUserEmailOrderBySensorCode("demo@agrosense.co").get(0)
                 .getIdSensor();
         Map<String, Integer> budgets = new LinkedHashMap<>();
-        // Dashboard: estates, sensors, their latest readings, hourly trends, the week's irrigations, open
-        // alerts, alerts per estate, alert count.
         budgets.put("/", 8);
         budgets.put("/parcelas", 2);
-        // One estate: estates, sensors, their latest readings, its open alerts, its irrigations, alert count.
         budgets.put("/parcelas/1", 6);
         budgets.put("/sensores", 3);
         budgets.put("/riego", 3);
         budgets.put("/alertas", 2);
-        // Reports: irrigations, estates, sensors, their latest readings, reading statistics, alert counts,
-        // alert count of the layout.
         budgets.put("/reportes", 7);
         budgets.put("/configuracion", 2);
         budgets.put("/api/ui/water-usage", 1);
-        // Estates, sensors, their latest readings, open alerts per estate.
         budgets.put("/api/ui/estates/markers", 4);
         budgets.put("/api/ui/sensors/" + sensorId + "/readings", 2);
 

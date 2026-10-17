@@ -6,7 +6,6 @@ import org.springframework.security.core.userdetails.User;
 
 import java.util.Collection;
 
-/** Authenticated user, exposing the display data the top bar needs. */
 @Getter
 public class AgroUserPrincipal extends User {
 

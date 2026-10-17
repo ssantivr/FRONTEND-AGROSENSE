@@ -7,10 +7,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Starts without the demo profile: tables come only from database/schema.sql and Hibernate validates the
- * frontend entities against them. H2 runs in PostgreSQL compatibility mode.
- */
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:agrosense-frontend-schema;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1",
         "spring.datasource.username=sa",

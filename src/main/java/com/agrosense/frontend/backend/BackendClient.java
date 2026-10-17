@@ -39,14 +39,6 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Calls the AgroSense backend API on behalf of the signed-in user. The frontend still reads the database
- * itself for everything the API does not offer; this client covers the operations it does.
- *
- * <p>It is off unless both {@code BACKEND_URL} and {@code BACKEND_JWT_SECRET} are set. The backend may be
- * asleep (free hosting stops idle services and takes minutes to start them), so callers ask
- * {@link #isAvailable()} first and keep using the database until it answers.
- */
 @Slf4j
 @Component
 public class BackendClient {
@@ -57,7 +49,6 @@ public class BackendClient {
 
     private final RestClient api;
     private final RestClient health;
-    /** For the assistant, whose answers come from an AI service and take longer than the other calls. */
     private final RestClient assistant;
     private final BackendToken token;
 
@@ -86,10 +77,6 @@ public class BackendClient {
         log.info("Backend API configured at {}", baseUrl);
     }
 
-    /**
-     * Whether the backend answered its health check a moment ago. A sleeping backend starts waking up
-     * with this request, so a later call finds it ready.
-     */
     public boolean isAvailable() {
         if (api == null) {
             return false;
@@ -103,10 +90,6 @@ public class BackendClient {
         return up;
     }
 
-    /**
-     * Runs a call that is safe to replace with a database operation: empty when the backend is not
-     * available or stops answering, so the caller falls back.
-     */
     public <T> Optional<T> attempt(Supplier<T> call) {
         if (!isAvailable()) {
             return Optional.empty();
@@ -142,7 +125,6 @@ public class BackendClient {
                 .retrieve().onStatus(HttpStatusCode::isError, BackendClient::fail).body(IrrigationResponse.class));
     }
 
-    /** The newest readings of a sensor, newest first. */
     public List<ReadingResponse> latestReadings(String email, Integer sensorId, int limit) {
         return execute(() -> api.get().uri("/api/sensors/{sensorId}/readings?limit={limit}", sensorId, limit)
                 .header(HttpHeaders.AUTHORIZATION, token.bearerFor(email))
@@ -151,29 +133,18 @@ public class BackendClient {
                 }));
     }
 
-    /**
-     * A short token that opens the user's live event stream in the event service. The backend signs it with
-     * a secret this server does not know; it is handed to the user's own browser and nowhere else.
-     */
     public EventStreamToken eventStreamToken(String email) {
         return execute(() -> api.get().uri("/api/events/token")
                 .header(HttpHeaders.AUTHORIZATION, token.bearerFor(email))
                 .retrieve().onStatus(HttpStatusCode::isError, BackendClient::fail).body(EventStreamToken.class));
     }
 
-    /** Whether nobody has signed up with this e-mail address yet. Public: there is no user to sign for. */
     public boolean isEmailAvailable(String email) {
         return execute(() -> api.get().uri("/api/auth/check-user?email={email}", email)
                 .retrieve().onStatus(HttpStatusCode::isError, BackendClient::failAccount)
                 .body(EmailAvailabilityResponse.class)).available();
     }
 
-    /**
-     * Creates the account through the backend.
-     *
-     * @throws BusinessRuleException with the backend's message when it refuses the data (400) or the
-     *         e-mail already has an account (409)
-     */
     public boolean register(String name, String lastName, String email, String password) {
         execute(() -> api.post().uri("/api/auth/register")
                 .body(new RegisterRequest(name, lastName, email, password))
@@ -181,12 +152,6 @@ public class BackendClient {
         return true;
     }
 
-    /**
-     * Checks the credentials with the backend, which also counts failed attempts.
-     *
-     * @throws BadCredentialsException when they are wrong (401)
-     * @throws LockedException while sign-in is locked after too many failures (429)
-     */
     public boolean signIn(String email, String password) {
         execute(() -> api.post().uri("/api/auth/login")
                 .body(new LoginRequest(email, password))
@@ -194,11 +159,6 @@ public class BackendClient {
         return true;
     }
 
-    /**
-     * Asks the assistant a written question.
-     *
-     * @throws AiAssistantException with the backend's status and message when it cannot answer
-     */
     public AiReply askAssistant(String email, AiChatForm form) {
         return assistantCall(() -> assistant.post().uri("/api/ai/chat")
                 .header(HttpHeaders.AUTHORIZATION, token.bearerFor(email))
@@ -206,14 +166,12 @@ public class BackendClient {
                 .retrieve().onStatus(HttpStatusCode::isError, BackendClient::failAssistant).body(AiReply.class));
     }
 
-    /** Asks the assistant with a recording, with the text of what was said, or with both. */
     public AiReply askAssistantByVoice(String email, byte[] audio, String contentType, String transcript) {
         MultiValueMap<String, Object> form = new LinkedMultiValueMap<>();
         if (audio != null) {
             HttpHeaders part = new HttpHeaders();
             part.setContentType(contentType == null
                     ? MediaType.APPLICATION_OCTET_STREAM : MediaType.parseMediaType(contentType));
-            // A part only counts as a file when it has a name; the backend ignores which one.
             form.add("audio", new HttpEntity<>(new ByteArrayResource(audio) {
                 @Override
                 public String getFilename() {
@@ -231,7 +189,6 @@ public class BackendClient {
                 .retrieve().onStatus(HttpStatusCode::isError, BackendClient::failAssistant).body(AiReply.class));
     }
 
-    /** An assistant that gives no usable answer is reported to the user; nothing can stand in for it. */
     private AiReply assistantCall(Supplier<AiReply> call) {
         try {
             AiReply reply = call.get();
@@ -247,12 +204,10 @@ public class BackendClient {
         }
     }
 
-    /** The backend words these answers for the user, so its status and message are passed on as they are. */
     private static void failAssistant(org.springframework.http.HttpRequest request, ClientHttpResponse response)
             throws IOException {
         int status = response.getStatusCode().value();
         String message = messageOf(response);
-        // 401 and 403 here mean this server's token was refused: a fault of the deployment, not of the user.
         if (status == 401 || status == 403 || status == 404 || message == null) {
             log.warn("Assistant: HTTP {} from {}", status, request.getURI().getPath());
             throw new AiAssistantException(HttpStatus.SERVICE_UNAVAILABLE,
@@ -272,7 +227,6 @@ public class BackendClient {
         }
     }
 
-    /** Timeouts and connection failures mean the backend cannot be relied on right now. */
     private <T> T execute(Supplier<T> call) {
         try {
             return call.get();
@@ -282,7 +236,6 @@ public class BackendClient {
         }
     }
 
-    /** The backend's own answers keep their meaning; anything else counts as the backend being unusable. */
     private static void fail(org.springframework.http.HttpRequest request, ClientHttpResponse response)
             throws IOException {
         int status = response.getStatusCode().value();
@@ -296,10 +249,6 @@ public class BackendClient {
         }
     }
 
-    /**
-     * Answers of the public account endpoints. A missing endpoint (an older backend) counts as the backend
-     * being unusable, so the caller falls back to the database instead of failing.
-     */
     private static void failAccount(org.springframework.http.HttpRequest request, ClientHttpResponse response)
             throws IOException {
         int status = response.getStatusCode().value();

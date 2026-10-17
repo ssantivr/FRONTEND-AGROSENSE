@@ -18,11 +18,6 @@ import java.net.URI;
 @Configuration
 public class SecurityConfig {
 
-    /**
-     * Everything is same-origin except map tiles (OpenStreetMap streets, Esri satellite imagery) and, when
-     * live events are on, the event service's stream. Inline scripts and styles are blocked.
-     * The referrer policy sends only the origin to other sites: tile providers reject requests without one.
-     */
     static String contentSecurityPolicy(String eventsUrl) {
         String events = originOf(eventsUrl);
         return String.join("; ",
@@ -38,7 +33,6 @@ public class SecurityConfig {
                 "frame-ancestors 'none'");
     }
 
-    /** {@code https://events.example:8443/any/path} is {@code https://events.example:8443}; nothing usable is empty. */
     static String originOf(String url) {
         try {
             URI uri = URI.create(url == null ? "" : url.strip());
@@ -57,7 +51,6 @@ public class SecurityConfig {
             @Value("${agrosense.backend.sign-in:true}") boolean signInThroughBackend,
             @Value("${agrosense.events.public-url:}") String eventsUrl) throws Exception {
         if (signInThroughBackend) {
-            // Tried first; the database provider Spring builds from the UserDetailsService stays as the fallback.
             http.authenticationProvider(new BackendAuthenticationProvider(backendClient, userDetailsService));
         }
         http
@@ -70,7 +63,6 @@ public class SecurityConfig {
                         .loginPage("/login")
                         .usernameParameter("email")
                         .defaultSuccessUrl("/", true)
-                        // A lock after too many failed attempts is told apart from wrong credentials.
                         .failureHandler((request, response, exception) -> response.sendRedirect(
                                 request.getContextPath()
                                         + (exception instanceof LockedException ? "/login?locked" : "/login?error"))))

@@ -7,11 +7,6 @@ import java.security.GeneralSecurityException;
 import java.time.Instant;
 import java.util.Base64;
 
-/**
- * Signs the short-lived tokens the backend accepts (HS512, subject = the user's e-mail), with the secret
- * both applications share. The user already proved who they are to the frontend, which reads the same
- * database, so this grants the backend call nothing the frontend could not do itself.
- */
 class BackendToken {
 
     private static final String ALGORITHM = "HmacSHA512";
@@ -24,7 +19,6 @@ class BackendToken {
         this.key = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), ALGORITHM);
     }
 
-    /** The value of the Authorization header for a call made for this user. */
     String bearerFor(String email) {
         long now = Instant.now().getEpochSecond();
         String payload = "{\"sub\":\"" + email.replace("\\", "\\\\").replace("\"", "\\\"") + "\",\"iat\":" + now

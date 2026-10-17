@@ -15,7 +15,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/** What the live-events script is told: off, where to connect and with which token, or to try later. */
 class LiveEventsTests {
 
     private static final String EMAIL = "demo@agrosense.co";

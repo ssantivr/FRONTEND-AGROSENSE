@@ -41,7 +41,6 @@ public class DashboardService {
 
         List<SensorSummary> summaries = sensorService.summarize(sensors, sensorService.findHourlyTrends(email));
 
-        // The sensors of each estate come from the list above; only the open alerts per estate need a query.
         List<EstateMarker> estateCards =
                 estateService.cardsOf(estates, sensors, alertService.countOpenByEstate(email));
 
@@ -60,7 +59,6 @@ public class DashboardService {
                 summaries,
                 sensors.stream().filter(sensor -> sensor.active() && sensor.lastValue() != null).toList(),
                 alertService.findRecentOpen(email, RECENT_ALERTS),
-                // Derived from the estates above instead of being queried again.
                 estateService.activeCropOptionsOf(estates),
                 irrigationService.findRunning(irrigations).orElse(null),
                 estateCards,
@@ -76,10 +74,6 @@ public class DashboardService {
         return irrigationService.dailyWater(irrigationService.findSince(email, windowStart()), WATER_WINDOW_DAYS);
     }
 
-    /**
-     * Where the average soil moisture falls against the crops' acceptable range. Only when every active crop
-     * shares one range: an average over crops with different ranges cannot be judged against any of them.
-     */
     private static RangeBar humidityRange(List<EstateView> estates, List<SensorSummary> summaries) {
         BigDecimal value = summaries.stream()
                 .filter(summary -> summary.type() == SensorType.SOIL_MOISTURE)
@@ -98,14 +92,12 @@ public class DashboardService {
         }
         BigDecimal min = ranges.get(0).get(0);
         BigDecimal max = ranges.get(0).get(1);
-        // Soil moisture is a percentage, so the bar runs from 0 to 100.
         return new RangeBar(min.doubleValue(), max.doubleValue(),
                 Math.max(0, Math.min(100, value.doubleValue())),
                 min.toPlainString(), max.toPlainString(),
                 value.compareTo(min) >= 0 && value.compareTo(max) <= 0);
     }
 
-    /** Midnight of the first day of the water window. A running irrigation always started after it. */
     private static LocalDateTime windowStart() {
         return LocalDate.now().minusDays(WATER_WINDOW_DAYS - 1L).atStartOfDay();
     }

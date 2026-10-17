@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** The event service is the only other place pages may connect to, and only its origin. */
 class ContentSecurityPolicyTests {
 
     @Test

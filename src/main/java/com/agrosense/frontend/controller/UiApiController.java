@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.security.Principal;
 import java.util.List;
 
-/** JSON consumed by the dashboard's own scripts (charts, map, irrigation button). Session-authenticated. */
 @RestController
 @RequestMapping("/api/ui")
 @RequiredArgsConstructor

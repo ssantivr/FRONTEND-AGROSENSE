@@ -12,7 +12,6 @@ import lombok.Setter;
 @Setter
 public class RegistrationForm {
 
-    /** Lengths are counted on the text as typed, so a space is one more character. Same limits as the backend API. */
     public static final int MIN_NAME_LENGTH = 2;
     public static final int MAX_NAME_LENGTH = 18;
     public static final int MIN_PASSWORD_LENGTH = 8;
@@ -38,7 +37,6 @@ public class RegistrationForm {
 
     private String confirmPassword;
 
-    /** Surrounding spaces are a common paste artefact, so they are dropped before validation. */
     public void setEmail(String email) {
         this.email = email == null ? null : email.trim();
     }

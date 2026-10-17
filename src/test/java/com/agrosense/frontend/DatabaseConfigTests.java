@@ -7,7 +7,6 @@ import org.springframework.core.io.DefaultResourceLoader;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Checks what database/datasource.properties resolves to with and without the "demo" profile. */
 class DatabaseConfigTests {
 
     @Test

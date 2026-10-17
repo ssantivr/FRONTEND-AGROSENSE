@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import java.security.Principal;
 import java.util.List;
 
-/** Adds the data every page layout needs: navigation, open-alert count and the demo flag. */
 @ControllerAdvice(annotations = Controller.class)
 @RequiredArgsConstructor
 public class GlobalModelAttributes {
@@ -34,7 +33,6 @@ public class GlobalModelAttributes {
     @ModelAttribute
     public void addLayoutAttributes(Model model, HttpServletRequest request, Principal principal) {
         String path = request.getRequestURI().substring(request.getContextPath().length());
-        // JSON endpoints render no layout: skip the navigation and, above all, the alert count query.
         if (path.startsWith("/api/")) {
             return;
         }

@@ -27,7 +27,6 @@ import tools.jackson.databind.ObjectMapper;
 import java.security.Principal;
 import java.util.List;
 
-/** Read-only pages. Pages that accept form posts have their own controllers. */
 @Controller
 @RequiredArgsConstructor
 public class PageController {
@@ -51,7 +50,6 @@ public class PageController {
         return "login";
     }
 
-    /** The dashboard for a signed-in user; the public front page for everybody else. */
     @GetMapping("/")
     public String dashboard(Principal principal, Model model) {
         if (principal == null) {
@@ -59,7 +57,6 @@ public class PageController {
         }
         DashboardView dashboard = dashboardService.build(principal.getName());
         model.addAttribute("dashboard", dashboard);
-        // The map and the water chart draw from these, in the shape /api/ui sends, without asking again.
         model.addAttribute("markersJson", objectMapper.writeValueAsString(dashboard.markers()));
         model.addAttribute("waterUsageJson", objectMapper.writeValueAsString(dashboard.waterUsage()));
         model.addAttribute("irrigationForm", new IrrigationForm());
@@ -72,7 +69,6 @@ public class PageController {
         return "estates";
     }
 
-    /** Everything about one estate in one place: its map, crops, sensors, irrigations and open alerts. */
     @GetMapping("/parcelas/{estateId}")
     public String estate(@PathVariable Integer estateId, Principal principal, Model model) {
         String email = principal.getName();
@@ -89,7 +85,6 @@ public class PageController {
         model.addAttribute("sensors", sensors);
         model.addAttribute("alerts", alerts);
         model.addAttribute("irrigations", irrigationService.findByEstate(email, estateId, ESTATE_IRRIGATIONS));
-        // One marker, in the shape the dashboard map uses, so the same drawing code serves both pages.
         model.addAttribute("estateJson", objectMapper.writeValueAsString(
                 estateService.cardsOf(List.of(estate), sensors, Map.of(estateId, alerts.size())).get(0)));
         return "estate";
@@ -107,7 +102,6 @@ public class PageController {
         ReportView report = reportService.build(principal.getName(), days == null ? ReportService.DEFAULT_PERIOD : days);
         model.addAttribute("report", report);
         model.addAttribute("periods", ReportService.PERIODS);
-        // The same figures the tables show, for the charts.
         Map<String, Object> charts = new LinkedHashMap<>();
         charts.put("byCrop", report.byCrop().stream()
                 .map(row -> Map.of("label", row.cropName(), "estate", row.estateName(), "liters", row.totalLiters(),

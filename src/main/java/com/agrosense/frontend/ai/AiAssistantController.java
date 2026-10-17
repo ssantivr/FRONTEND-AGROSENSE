@@ -15,10 +15,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.security.Principal;
 
-/**
- * What the chat widget calls. The assistant itself lives in the backend, which holds the key of the AI
- * service; this controller only forwards the signed-in user's question, so the key never reaches a browser.
- */
 @RestController
 @RequestMapping("/api/ui/ai")
 @RequiredArgsConstructor
@@ -32,7 +28,6 @@ public class AiAssistantController {
         return backend.askAssistant(principal.getName(), form);
     }
 
-    /** Multipart form with {@code audio} (the recording), {@code transcript} (its text), or both. */
     @PostMapping(value = "/voice", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public AiReply voice(@RequestParam(value = "audio", required = false) MultipartFile audio,
             @RequestParam(value = "transcript", required = false) String transcript, Principal principal)
@@ -48,7 +43,6 @@ public class AiAssistantController {
                 transcript);
     }
 
-    /** There is no database fallback for the assistant: without the backend it cannot answer. */
     private void requireBackend() {
         if (!backend.isAvailable()) {
             throw new AiAssistantException(HttpStatus.SERVICE_UNAVAILABLE,

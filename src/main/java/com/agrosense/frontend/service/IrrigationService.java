@@ -35,7 +35,6 @@ import java.util.stream.IntStream;
 @Transactional(readOnly = true)
 public class IrrigationService {
 
-    /** The backend requires a reason for every manual irrigation; the form does not ask for one. */
     private static final String MANUAL_REASON = "Riego manual desde la aplicación web";
 
     private final IrrigationRepository irrigationRepository;
@@ -50,7 +49,6 @@ public class IrrigationService {
                 .toList();
     }
 
-    /** Irrigations started on or after {@code since}, newest first: what the dashboard needs, not the whole history. */
     public List<IrrigationView> findSince(String email, LocalDateTime since) {
         LocalDateTime now = LocalDateTime.now();
         return irrigationRepository
@@ -59,7 +57,6 @@ public class IrrigationService {
                 .toList();
     }
 
-    /** The newest irrigations of one of the user's estates. */
     public List<IrrigationView> findByEstate(String email, Integer estateId, int limit) {
         LocalDateTime now = LocalDateTime.now();
         return irrigationRepository
@@ -71,7 +68,6 @@ public class IrrigationService {
         return history.stream().filter(IrrigationView::running).findFirst();
     }
 
-    /** Litres applied per day over the last {@code days} days, oldest first, including days with none. */
     public List<DailyWater> dailyWater(List<IrrigationView> history, int days) {
         LocalDate today = LocalDate.now();
         return IntStream.rangeClosed(1, days)
@@ -99,10 +95,6 @@ public class IrrigationService {
                 .toList();
     }
 
-    /**
-     * Records a manual irrigation for one of the user's crops. It only stores the request: nothing in this
-     * project drives a physical pump yet.
-     */
     @Transactional
     public IrrigationView start(String email, IrrigationForm form) {
         Crop crop = cropRepository.findByIdCropAndEstateUserEmail(form.getCropId(), email)
@@ -117,7 +109,6 @@ public class IrrigationService {
             throw new BusinessRuleException("Ya hay un riego en curso para este cultivo.");
         }
         if (backendClient.isAvailable()) {
-            // Not repeated against the database on failure: the backend may have registered it already.
             try {
                 IrrigationResponse registered = backendClient.startIrrigation(email, crop.getIdCrop(),
                         form.getWaterLiters(), form.getDurationMin(), MANUAL_REASON);
@@ -166,7 +157,6 @@ public class IrrigationService {
         return irrigation.getStartedAt().plusMinutes(irrigation.getDurationMin());
     }
 
-    /** The backend stores the planned end when the irrigation starts, so an end in the future still runs. */
     private static boolean isRunning(Irrigation irrigation, LocalDateTime now) {
         LocalDateTime end = expectedEnd(irrigation);
         return irrigation.getStartedAt() != null

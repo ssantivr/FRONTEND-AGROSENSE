@@ -43,7 +43,6 @@ public class AlertService {
                 .toList();
     }
 
-    /** The newest open alerts of one of the user's estates. */
     public List<AlertView> findOpenByEstate(String email, Integer estateId, int limit) {
         return alertRepository
                 .findByCropEstateIdEstateAndCropEstateUserEmailAndAcknowledgedFalseOrderByCreatedAtDesc(estateId, email,
@@ -51,7 +50,6 @@ public class AlertService {
                 .stream().map(AlertService::toView).toList();
     }
 
-    /** Open alerts by estate id; estates without any are absent. */
     public Map<Integer, Integer> countOpenByEstate(String email) {
         return alertRepository.countOpenByEstate(email).stream()
                 .collect(Collectors.toMap(row -> (Integer) row[0], row -> ((Number) row[1]).intValue()));
@@ -65,7 +63,6 @@ public class AlertService {
     public void acknowledge(String email, Integer alertId) {
         Alert alert = alertRepository.findByIdAlertAndCropEstateUserEmail(alertId, email)
                 .orElseThrow(() -> new NotFoundException("Alert not found"));
-        // Acknowledging twice changes nothing, so the database can take over if the backend does not answer.
         if (backendClient.attempt(() -> backendClient.acknowledgeAlert(email, alertId)).isEmpty()) {
             alert.setAcknowledged(true);
         }

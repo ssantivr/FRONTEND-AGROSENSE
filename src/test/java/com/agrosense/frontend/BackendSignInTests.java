@@ -32,7 +32,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** Sign-in and sign-up when the backend API answers; WebFlowTests covers the same pages without it. */
 @SpringBootTest
 @ActiveProfiles("demo")
 @Transactional

@@ -31,16 +31,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-/** Figures of the reports page: water, sensor readings and alerts over a chosen period. */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ReportService {
 
-    /** The periods the page offers, in days; 0 stands for everything on record. */
     public static final List<Integer> PERIODS = List.of(7, 30, 90, 0);
     public static final int DEFAULT_PERIOD = 30;
-    /** Days drawn in the daily chart when the period is "everything". */
     private static final int LONGEST_DAILY_CHART = 90;
     private static final LocalDateTime BEGINNING = LocalDateTime.of(1970, 1, 1, 0, 0);
 
@@ -50,10 +47,8 @@ public class ReportService {
     private final SensorReadingRepository readingRepository;
     private final AlertRepository alertRepository;
 
-    /** @param days one of {@link #PERIODS}; anything else falls back to the default period */
     public ReportView build(String email, int days) {
         int period = PERIODS.contains(days) ? days : DEFAULT_PERIOD;
-        // Whole days: a 7-day period is today and the six days before it.
         LocalDateTime since = period == 0 ? BEGINNING : LocalDate.now().minusDays(period - 1L).atStartOfDay();
         List<IrrigationView> history = irrigationService.findHistory(email);
         List<IrrigationView> current = history.stream()
@@ -72,7 +67,6 @@ public class ReportService {
                 alertStats(email, since));
     }
 
-    /** The irrigations of the period of the same length right before this one. */
     private static List<IrrigationView> previous(List<IrrigationView> history, LocalDateTime since, int days) {
         LocalDateTime from = since.minusDays(days);
         return history.stream()
@@ -87,7 +81,6 @@ public class ReportService {
         BigDecimal average = current.isEmpty()
                 ? BigDecimal.ZERO
                 : liters.divide(BigDecimal.valueOf(current.size()), 1, RoundingMode.HALF_UP);
-        // A change can only be stated against a period that had water; "from nothing" is not a percentage.
         BigDecimal before = previous == null ? BigDecimal.ZERO : liters(previous);
         Integer change = before.signum() == 0
                 ? null
@@ -143,7 +136,6 @@ public class ReportService {
         return stats;
     }
 
-    /** The acceptable {min, max} of the sensor's crop for what it measures; both null when there is none. */
     private static BigDecimal[] range(SensorView sensor, List<EstateView> estates) {
         CropView crop = estates.stream()
                 .filter(estate -> estate.id().equals(sensor.estateId()))
@@ -162,7 +154,6 @@ public class ReportService {
     }
 
     private List<AlertStat> alertStats(String email, LocalDateTime since) {
-        // Open and acknowledged alerts of one kind arrive as two rows; they are added up here.
         Map<List<Object>, long[]> counts = new LinkedHashMap<>();
         alertRepository.countByKindSince(email, since).forEach(row -> {
             long[] count = counts.computeIfAbsent(List.of(row[0], row[1]), kind -> new long[2]);

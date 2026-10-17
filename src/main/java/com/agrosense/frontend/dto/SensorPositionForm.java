@@ -11,10 +11,6 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 
-/**
- * Where a sensor stands and how much ground its readings stand for. Everything is optional, but a point
- * needs both coordinates and a radius: without the three the sensor is not drawn on the map.
- */
 @Getter
 @Setter
 public class SensorPositionForm {

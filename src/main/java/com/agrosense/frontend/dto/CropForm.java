@@ -80,7 +80,6 @@ public class CropForm {
         return isAscending(phMin, phMax);
     }
 
-    /** Missing values are reported by @NotNull, so they do not also fail the range check. */
     private static boolean isAscending(BigDecimal min, BigDecimal max) {
         return min == null || max == null || min.compareTo(max) < 0;
     }

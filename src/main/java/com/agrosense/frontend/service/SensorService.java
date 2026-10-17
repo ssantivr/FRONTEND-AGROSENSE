@@ -34,7 +34,6 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class SensorService {
 
-    /** Sensor types summarised on the dashboard, in display order. */
     public static final List<SensorType> DASHBOARD_TYPES = List.of(
             SensorType.SOIL_MOISTURE,
             SensorType.AIR_TEMPERATURE,
@@ -43,7 +42,6 @@ public class SensorService {
             SensorType.CONDUCTIVITY);
 
     private static final int CHART_WINDOW_HOURS = 24;
-    /** The most readings the backend returns in one call. */
     private static final int BACKEND_READING_LIMIT = 500;
 
     private final SensorRepository sensorRepository;
@@ -58,18 +56,15 @@ public class SensorService {
                 .toList();
     }
 
-    /** The newest reading of every sensor, by sensor id, read in one query. */
     private Map<Integer, SensorReading> latestReadings(List<Sensor> sensors) {
         if (sensors.isEmpty()) {
             return Map.of();
         }
-        // Two readings with the same timestamp are possible; either one describes "the latest".
         return readingRepository.findLatestOf(sensors.stream().map(Sensor::getIdSensor).toList()).stream()
                 .collect(Collectors.toMap(reading -> reading.getSensor().getIdSensor(), Function.identity(),
                         (first, second) -> first));
     }
 
-    /** Summaries without a trend line. */
     public List<SensorSummary> summarize(List<SensorView> sensors) {
         return summarize(sensors, Map.of());
     }
@@ -80,7 +75,6 @@ public class SensorService {
                 .toList();
     }
 
-    /** Hourly averages of the last 24 hours for each sensor type, oldest first, read in one query. */
     public Map<SensorType, List<BigDecimal>> findHourlyTrends(String email) {
         Map<SensorType, List<BigDecimal>> trends = new EnumMap<>(SensorType.class);
         readingRepository.findHourlyAverages(email, LocalDateTime.now().minusHours(CHART_WINDOW_HOURS))
@@ -93,7 +87,6 @@ public class SensorService {
         Sensor sensor = sensorRepository.findByIdSensorAndCropEstateUserEmail(sensorId, email)
                 .orElseThrow(() -> new NotFoundException("Sensor not found"));
         LocalDateTime since = LocalDateTime.now().minusHours(CHART_WINDOW_HOURS);
-        // The series comes from the backend API when it answers; the sensor and its range are read here.
         List<ReadingResponse> readings = backendClient
                 .attempt(() -> backendClient.latestReadings(email, sensorId, BACKEND_READING_LIMIT))
                 .map(latest -> latest.stream()
@@ -147,7 +140,6 @@ public class SensorService {
         return new SensorSummary(type, average, withData.get(0).unit(), withData.size(), sparkline);
     }
 
-    /** The crop's acceptable {min, max} for what the sensor measures; both null when it has no range. */
     private static BigDecimal[] thresholds(SensorType type, Crop crop) {
         return switch (type) {
             case SOIL_MOISTURE, RELATIVE_HUMIDITY ->

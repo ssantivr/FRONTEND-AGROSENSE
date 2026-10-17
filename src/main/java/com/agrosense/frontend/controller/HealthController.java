@@ -5,7 +5,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
-/** Public liveness check for container health checks: no session, no database, no backend call. */
 @RestController
 public class HealthController {
 

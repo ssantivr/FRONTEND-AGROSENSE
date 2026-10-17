@@ -28,7 +28,6 @@ import java.math.RoundingMode;
 import java.math.BigDecimal;
 import java.util.Locale;
 
-/** Creates, edits and removes the user's own estates, crops and sensors. */
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -42,8 +41,6 @@ public class CatalogService {
     private final AlertRepository alertRepository;
     private final IrrigationRepository irrigationRepository;
     private final BackendClient backendClient;
-
-    // ---------- Estates ----------
 
     @Transactional(readOnly = true)
     public EstateForm findEstateForm(String email, Integer estateId) {
@@ -63,7 +60,6 @@ public class CatalogService {
         return findEstate(email, estateId).getName();
     }
 
-    /** @return the id of the new estate */
     public Integer createEstate(String email, EstateForm form) {
         User owner = userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("User not found"));
@@ -78,14 +74,11 @@ public class CatalogService {
 
     public void deleteEstate(String email, Integer estateId) {
         findEstate(email, estateId);
-        // Readings, alerts and irrigations have no cascade from crops, so they go first.
         readingRepository.deleteByEstate(estateId);
         alertRepository.deleteByEstate(estateId);
         irrigationRepository.deleteByEstate(estateId);
         estateRepository.delete(findEstate(email, estateId));
     }
-
-    // ---------- Crops ----------
 
     @Transactional(readOnly = true)
     public CropForm findCropForm(String email, Integer cropId) {
@@ -105,7 +98,6 @@ public class CatalogService {
         return form;
     }
 
-    /** @return the id of the new crop */
     public Integer createCrop(String email, Integer estateId, CropForm form) {
         Crop crop = Crop.builder().estate(findEstate(email, estateId)).build();
         apply(form, crop);
@@ -122,17 +114,13 @@ public class CatalogService {
         alertRepository.deleteByCrop(cropId);
         irrigationRepository.deleteByCrop(cropId);
         Crop crop = findCrop(email, cropId);
-        // Removing it from the estate's collection lets orphan removal delete the crop and its sensors.
         crop.getEstate().getCrops().remove(crop);
         cropRepository.delete(crop);
     }
 
-    // ---------- Sensors ----------
-
     public void createSensor(String email, SensorForm form) {
         Crop crop = findCrop(email, form.getCropId());
         if (!Boolean.TRUE.equals(crop.getActive())) {
-            // The form only offers active crops, so this is a stale or hand-made request.
             throw new NotFoundException("Crop is not active");
         }
         String code = form.getSensorCode().trim().toUpperCase(Locale.ROOT);
@@ -140,7 +128,6 @@ public class CatalogService {
             throw new BusinessRuleException("Ese código de sensor ya está en uso.");
         }
         if (backendClient.isAvailable()) {
-            // Not repeated against the database on failure: the backend may have created it already.
             try {
                 backendClient.createSensor(email, crop.getIdCrop(), form.getSensorType(), code,
                         blankToNull(form.getLocation()));
@@ -148,7 +135,6 @@ public class CatalogService {
                 throw new BusinessRuleException(
                         "El servidor no respondió a tiempo. Revisa la lista de sensores antes de intentarlo de nuevo.");
             }
-            // The API knows nothing about positions: the row it created is completed here, in the same database.
             sensorRepository.findBySensorCodeIgnoreCase(code).ifPresent(sensor -> place(sensor, form.getPosition()));
             return;
         }
@@ -162,7 +148,6 @@ public class CatalogService {
         sensorRepository.save(sensor);
     }
 
-    /** Moves one of the user's sensors, changes its coverage, or takes it off the map when the form is empty. */
     public void placeSensor(String email, Integer sensorId, SensorPositionForm position) {
         place(findSensor(email, sensorId), position);
     }
@@ -191,8 +176,6 @@ public class CatalogService {
         sensorRepository.delete(sensor);
     }
 
-    // ---------- Helpers ----------
-
     private Estate findEstate(String email, Integer estateId) {
         return estateRepository.findByIdEstateAndUserEmail(estateId, email)
                 .orElseThrow(() -> new NotFoundException("Estate not found"));
@@ -213,7 +196,6 @@ public class CatalogService {
         estate.setLocation(blankToNull(form.getLocation()));
         Boundary boundary = Boundary.parse(form.getBoundary());
         estate.setBoundary(boundary == null ? null : boundary.toJson());
-        // A drawn outline answers what was left empty: its area, and its middle as the estate's point.
         estate.setAreaHa(form.getAreaHa() == null && boundary != null ? boundary.areaHa() : form.getAreaHa());
         if (form.getLatitude() == null && boundary != null) {
             estate.setLatitude(BigDecimal.valueOf(boundary.centre()[0]).setScale(7, RoundingMode.HALF_UP));

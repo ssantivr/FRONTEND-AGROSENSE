@@ -33,7 +33,6 @@ public class AlertController {
         boolean onlyOpen = !FILTER_ALL.equals(status);
         Page<AlertView> alerts = alertService.findAlerts(principal.getName(), onlyOpen, page);
         model.addAttribute("alerts", alerts);
-        // The page is already newest first, so the days come out in that order too.
         model.addAttribute("alertDays", alerts.getContent().stream()
                 .collect(Collectors.groupingBy(alert -> alert.createdAt().toLocalDate(), LinkedHashMap::new,
                         Collectors.toList()))

@@ -40,7 +40,6 @@ public class IrrigationController {
         List<IrrigationView> history = irrigationService.findHistory(principal.getName());
         model.addAttribute("irrigations", history);
         model.addAttribute("running", history.stream().filter(IrrigationView::running).toList());
-        // The history is newest first, so the days come out in that order too.
         List<IrrigationDay> days = history.stream()
                 .filter(irrigation -> irrigation.startedAt() != null)
                 .collect(Collectors.groupingBy(irrigation -> irrigation.startedAt().toLocalDate(), LinkedHashMap::new,
@@ -51,7 +50,6 @@ public class IrrigationController {
                         .reduce(BigDecimal.ZERO, BigDecimal::add)))
                 .toList();
         model.addAttribute("irrigationDays", days);
-        // The longest bar of the timeline: the day with the most litres.
         model.addAttribute("maxDayLiters", days.stream().map(IrrigationDay::liters).max(BigDecimal::compareTo)
                 .filter(liters -> liters.signum() > 0).orElse(BigDecimal.ONE));
         return "irrigation";

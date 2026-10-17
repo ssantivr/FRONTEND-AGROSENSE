@@ -15,13 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.security.Principal;
 import java.util.Map;
 
-/**
- * What the live-events script asks for: where the event service is and a 5-minute token, signed by the
- * backend, that opens the signed-in user's stream there. No key of any service reaches the browser.
- *
- * <p>Without {@code EVENTS_PUBLIC_URL} live events are off ({@code enabled: false}) and pages show what they
- * loaded, as they always did. While the backend does not answer the script waits and asks again (503).
- */
 @Slf4j
 @RestController
 @RequestMapping("/api/ui/events")

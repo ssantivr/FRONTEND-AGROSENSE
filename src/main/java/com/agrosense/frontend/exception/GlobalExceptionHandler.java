@@ -35,7 +35,6 @@ public class GlobalExceptionHandler {
         return respond(request, HttpStatus.CONFLICT, exception.getMessage());
     }
 
-    /** The assistant could not answer; the exception carries the status and a message for the user. */
     @ExceptionHandler(AiAssistantException.class)
     public Object handleAssistant(AiAssistantException exception, HttpServletRequest request) {
         return respond(request, exception.getStatus(), exception.getMessage());
@@ -57,11 +56,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public Object handleUnexpected(Exception exception, HttpServletRequest request) throws Exception {
-        // Spring Security turns its own exceptions into redirects and 403 responses.
         if (exception instanceof AccessDeniedException || exception instanceof AuthenticationException) {
             throw exception;
         }
-        // Spring MVC's own client errors (405, 415, missing parameters...) carry their status code.
         if (exception instanceof ErrorResponse response && response.getStatusCode().is4xxClientError()) {
             return respond(request, HttpStatus.valueOf(response.getStatusCode().value()),
                     "La solicitud no es válida.");
