@@ -28,6 +28,7 @@ La contraseña de la demo se puede cambiar con la variable `DEMO_PASSWORD`.
 | `BACKEND_URL`           | Dirección de la API del backend, por ejemplo `https://backend-agrosense-u5mz.onrender.com`. Opcional |
 | `BACKEND_JWT_SECRET`    | El mismo valor que `JWT_SECRET` del backend. Opcional   |
 | `BACKEND_SIGN_IN`       | `false` para que el inicio de sesión no pase por el backend (por defecto `true`) |
+| `EVENTS_PUBLIC_URL`     | Dirección pública del manejador de eventos (`event-service/`), tal como la alcanza el navegador, por ejemplo `http://localhost:8100`. Opcional: sin ella no hay datos en vivo |
 
 Con `BACKEND_URL` y `BACKEND_JWT_SECRET` definidas, iniciar sesión, crear cuentas, atender alertas, registrar sensores y riegos y la
 gráfica de lecturas pasan por la API del backend; sin ellas, o mientras el backend no responda, todo se
@@ -35,7 +36,18 @@ hace contra la base de datos.
 
 El asistente de IA (la ventana de chat de las páginas con sesión, por texto y por voz) solo funciona con
 el backend: sus scripts están en `src/main/ts/ai`, llaman a `/api/ui/ai/chat` y `/api/ui/ai/voice`, y el
-servidor reenvía la pregunta al backend, que es quien guarda la llave de Gemini (`GEMINI_API_KEY`).
+servidor reenvía la pregunta al backend, que la responde (o la pasa al servicio de IA) con las llaves que
+solo él conoce. Para el usuario no cambia nada.
+
+**Lecturas y alertas en vivo.** Con `EVENTS_PUBLIC_URL`, `src/main/ts/events/live.ts` pide a
+`/api/ui/events/token` un token de 5 minutos (lo firma el backend), abre el canal del manejador de eventos
+(`EventSource`) y, a medida que llegan eventos de las Raspberry, actualiza la última lectura de cada sensor
+(tarjetas y tabla de Sensores, marcadas con `data-sensor-code`) y avisa de cada alerta nueva, sumándola a
+los contadores del menú y de la barra superior. Renueva el token antes de que venza y, si se corta, vuelve
+a conectar con una espera creciente (1 s, 2 s, 4 s… hasta 1 min). «En vivo», junto al reloj, indica que el
+canal está abierto. Sin la variable, o si el manejador de eventos o el backend fallan, las páginas muestran
+lo que cargaron, como siempre. La CSP solo añade a `connect-src` el origen de esa dirección, y el navegador
+nunca recibe una llave de servicio.
 
 Las tablas se crean con `../database/schema.sql` (ver [`database/README.md`](../database/README.md));
 con `SQL_INIT_MODE=always` la aplicación lo ejecuta al arrancar.
