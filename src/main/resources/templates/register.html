@@ -23,7 +23,7 @@
                     <span class="field-counter" id="nameCounter" aria-hidden="true"
                           th:text="|${registrationForm.name == null ? 0 : registrationForm.name.length()}/18|">0/18</span>
                 </span>
-                <input type="text" th:field="*{name}" autocomplete="given-name" autocapitalize="words" minlength="2" maxlength="18" required
+                <input type="text" th:field="*{name}" autocomplete="given-name" autocapitalize="words" enterkeyhint="next" minlength="2" maxlength="18" required
                        autofocus data-counter="nameCounter" aria-describedby="nameHint nameError"
                        th:attr="aria-invalid=${#fields.hasErrors('name')}">
                 <span class="field-hint" id="nameHint">Entre 2 y 18 caracteres.</span>
@@ -36,7 +36,7 @@
                     <span class="field-counter" id="lastNameCounter" aria-hidden="true"
                           th:text="|${registrationForm.lastName == null ? 0 : registrationForm.lastName.length()}/18|">0/18</span>
                 </span>
-                <input type="text" th:field="*{lastName}" autocomplete="family-name" autocapitalize="words" minlength="2" maxlength="18" required
+                <input type="text" th:field="*{lastName}" autocomplete="family-name" autocapitalize="words" enterkeyhint="next" minlength="2" maxlength="18" required
                        data-counter="lastNameCounter" aria-describedby="lastNameHint lastNameError"
                        th:attr="aria-invalid=${#fields.hasErrors('lastName')}">
                 <span class="field-hint" id="lastNameHint">Entre 2 y 18 caracteres.</span>
@@ -50,7 +50,7 @@
         <legend>Tu acceso</legend>
         <label class="field">
             <span class="field-label">Correo electrónico</span>
-            <input type="email" th:field="*{email}" autocomplete="username" inputmode="email" autocapitalize="none"
+            <input type="email" th:field="*{email}" autocomplete="username" inputmode="email" enterkeyhint="next" autocapitalize="none"
                    spellcheck="false" minlength="6" maxlength="160" required placeholder="nombre@ejemplo.com"
                    aria-describedby="emailHint emailAvailability emailError"
                    th:attr="aria-invalid=${#fields.hasErrors('email')},data-email-availability=@{/registro/disponibilidad}">
@@ -66,7 +66,7 @@
                 <span class="field-counter" id="passwordCounter" aria-hidden="true">0/32</span>
             </span>
             <span class="field-with-action">
-                <input type="password" name="password" id="password" autocomplete="new-password" minlength="8"
+                <input type="password" name="password" id="password" autocomplete="new-password" enterkeyhint="next" minlength="8"
                        maxlength="32" required data-counter="passwordCounter" data-caps-warning="passwordCaps"
                        aria-describedby="passwordStrengthLabel passwordRules passwordError"
                        th:attr="aria-invalid=${#fields.hasErrors('password')}">
@@ -95,7 +95,7 @@
         <label class="field">
             <span class="field-label">Confirmar contraseña</span>
             <span class="field-with-action">
-                <input type="password" name="confirmPassword" id="confirmPassword" autocomplete="new-password"
+                <input type="password" name="confirmPassword" id="confirmPassword" autocomplete="new-password" enterkeyhint="done"
                        minlength="8" maxlength="32" required data-caps-warning="passwordCaps"
                        aria-describedby="confirmPasswordMatch confirmPasswordError"
                        th:attr="aria-invalid=${#fields.hasErrors('passwordConfirmed')}">
