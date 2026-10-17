@@ -1,15 +1,11 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <body>
-<!-- featured: true for the one indicator the page leads with.
-     spark: points of an SVG polyline (see Sparkline), or null for no trend line.
-     range: a Views.RangeBar placing the value against an acceptable range, or null. -->
 <article class="card stat-card" th:fragment="stat-card(label, value, unit, hint, icon, featured, spark, range)"
          th:classappend="${featured} ? 'stat-card--featured'">
     <span class="stat-icon" aria-hidden="true"><i class="bi" th:classappend="${icon}"></i></span>
     <span class="stat-label" th:text="${label}">Indicador</span>
     <span class="stat-value">
-        <!-- data-countup: app.ts counts from the value last shown in this browser to this one, when it changed. -->
         <span th:text="${value != null ? value : '—'}" th:attr="data-countup=${value != null} ? ${label} : null">0</span>
         <span class="stat-unit" th:if="${value != null and unit != null}" th:text="${unit}">%</span>
     </span>
@@ -18,7 +14,6 @@
          aria-hidden="true" focusable="false">
         <polyline th:points="${spark}" points="0,14 100,14"/>
     </svg>
-    <!-- The band is the acceptable range and the mark is the value; the text says the same in words. -->
     <span class="range" th:if="${range != null}">
         <svg class="range-bar" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true" focusable="false">
             <rect class="range-track" x="0" y="3" width="100" height="2"/>

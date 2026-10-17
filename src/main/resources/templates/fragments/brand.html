@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <!-- Favicon, theme, font and stylesheets shared by every page. theme-init.js must stay a blocking script. -->
     <th:block th:fragment="head-assets">
         <meta name="theme-color" content="#10291f">
         <link rel="icon" type="image/svg+xml" th:href="@{/img/brand/favicon.svg}">
@@ -13,9 +12,6 @@
     </th:block>
 </head>
 <body>
-<!-- The symbol: a leaf in two tones, split by a midrib that branches like a circuit and ends in three
-     sensor nodes. It is drawn inline so CSS can colour it per theme and animate it. `draw` traces the
-     circuit on load (sign-in and front page only). -->
 <svg th:fragment="mark(size, draw)" class="brand-mark" th:classappend="${draw} ? 'brand-mark--draw'"
      th:width="${size}" th:height="${size}" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
     <path class="brand-mark-stem" d="M9 39l-4 4"/>
@@ -29,7 +25,6 @@
     </g>
 </svg>
 
-<!-- Symbol plus wordmark. The name is real text in the display face; "Sense" takes the accent colour. -->
 <span th:fragment="logo(size, draw)" class="brand-logo">
     <svg th:replace="~{fragments/brand :: mark(${size}, ${draw})}"></svg>
     <span class="brand-logo-name">Agro<span class="brand-logo-accent">Sense</span></span>

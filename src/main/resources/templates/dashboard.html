@@ -35,7 +35,6 @@
         </section>
     </section>
 
-    <!-- Soil moisture leads: it is the reading irrigation decisions depend on. -->
     <section class="kpi-grid" aria-label="Indicadores" data-motion-stagger>
         <th:block th:with="summary=${dashboard.summary('SOIL_MOISTURE')}">
             <article th:replace="~{fragments/stat-card :: stat-card('Humedad del suelo',
@@ -56,7 +55,6 @@
             ${dashboard.activeCropCount + ' cultivos activos'}, 'bi-map', false, null, null)}"></article>
     </section>
 
-    <!-- A new account has nothing to show yet: lead it through the first estate, crop and sensor. -->
     <section class="card onboarding" th:if="${dashboard.estateCards.isEmpty()}" aria-labelledby="onboardingTitle">
         <div>
             <h2 id="onboardingTitle">Empieza en tres pasos</h2>
@@ -68,7 +66,6 @@
         </a>
     </section>
 
-    <!-- Wide screens: the map and the readings on the left; what needs attention or action on the right. -->
     <div class="dash-grid">
         <div class="dash-main">
             <section class="card map-section" id="mapSection" aria-labelledby="mapTitle">
@@ -97,10 +94,8 @@
             
             <div class="map-layout">
             <div class="map-stage">
-            <!-- data-markers carries what /api/ui/estates/markers would answer, so the map needs no request. -->
             <div th:if="${dashboard.hasMapData}" id="estateMap" class="map skeleton" role="application"
             aria-label="Mapa con la ubicación de las parcelas" th:attr="data-markers=${markersJson}"></div>
-            <!-- Streets or satellite imagery; dashboard.ts remembers the choice in this browser. -->
             <div class="segmented map-layers" role="group" aria-label="Tipo de mapa" id="mapLayers"
             th:if="${dashboard.hasMapData}">
             <button type="button" class="segmented-option" data-map-layer="streets" aria-pressed="true">
@@ -110,7 +105,6 @@
             <i class="bi bi-globe-americas" aria-hidden="true"></i> Satélite
             </button>
             </div>
-            <!-- What the shapes drawn around each estate mean. -->
             <ul class="map-legend" th:if="${dashboard.hasMapData}" aria-label="Leyenda del mapa">
             <li><span class="map-legend-swatch map-legend-swatch--boundary" aria-hidden="true"></span> Contorno de la parcela</li>
             <li><span class="map-legend-swatch map-legend-swatch--area" aria-hidden="true"></span> Área aproximada (sin contorno)</li>
@@ -120,7 +114,6 @@
             <p class="map-hint" th:if="${dashboard.hasMapData}" aria-hidden="true">
             <i class="bi bi-mouse" aria-hidden="true"></i> Haz clic en el mapa para acercar con la rueda
             </p>
-            <!-- Shown when no estate has coordinates, or when the map cannot be drawn. -->
             <div id="estateMapFallback" class="map-fallback" th:hidden="${dashboard.hasMapData}">
             <i class="bi bi-geo-alt map-fallback-icon" aria-hidden="true"></i>
             <p class="map-fallback-notice" role="status">
@@ -170,7 +163,6 @@
             </li>
             </ul>
             
-            <!-- No estates yet: point to the first step instead of leaving an empty list. -->
             <div class="estate-list estate-list--empty" th:if="${dashboard.estateCards.isEmpty()}">
             <p class="text-muted">Aún no tienes parcelas registradas.</p>
             <a class="button button--small" th:href="@{/parcelas/nueva}">

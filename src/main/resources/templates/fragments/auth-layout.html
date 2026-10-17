@@ -1,6 +1,4 @@
 <!DOCTYPE html>
-<!-- Two-panel shell shared by the sign-in and sign-up pages: brand and photograph on one side, the form on the other.
-     photo: file name in /img/photos without size or extension. credit: its author and licence, shown under it. -->
 <html lang="es" xmlns:th="http://www.thymeleaf.org" th:fragment="auth(title, content, photo, credit)">
 <head>
     <meta charset="utf-8">
@@ -10,7 +8,6 @@
 </head>
 <body class="auth-page">
 <main class="auth">
-    <!-- data-state: loading until the photograph has decoded, then loaded; error keeps the brand background. -->
     <section class="auth-hero on-panel" id="authHero" data-state="loading" aria-label="AgroSense">
         <div class="auth-hero-placeholder" aria-hidden="true"></div>
         <img class="auth-hero-photo" id="authHeroPhoto" alt="" width="1600" height="1200"
@@ -24,7 +21,6 @@
         <div class="auth-hero-content auth-hero-content--bottom">
             <p class="auth-hero-title">Tecnología que cultiva un mejor futuro.</p>
             <p class="auth-hero-lead">Monitoreo inteligente para una agricultura más productiva, sostenible y rentable.</p>
-            <!-- Signing up: what comes next. Signing in: what the application does. -->
             <ol class="auth-next" th:if="${title == 'Crear cuenta'}">
                 <li><span class="stepper-number" aria-hidden="true">1</span> Dibuja tu parcela en el mapa</li>
                 <li><span class="stepper-number" aria-hidden="true">2</span> Registra sus cultivos y sus rangos</li>

@@ -2,7 +2,6 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{fragments/auth-layout :: auth('Iniciar sesión', ~{::form}, 'coffee', 'Ricohin · CC BY 3.0 · Chinchiná, Colombia')}">
 <body>
-<!-- login.js sends this form with fetch to show the real state of the request; without it, it posts normally. -->
 <form class="auth-card" id="loginForm" th:action="@{/login}" method="post" novalidate>
     <span class="auth-progress" aria-hidden="true"></span>
     <div class="auth-card-intro">
@@ -30,7 +29,6 @@
         <i class="bi bi-check-circle" aria-hidden="true"></i>
         Tu cuenta y sus datos fueron eliminados.
     </p>
-    <!-- Filled by login.js with the outcome of the request. -->
     <div class="form-alert form-alert--error" id="authStatus" role="alert" hidden>
         <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
         <span class="form-alert-body">

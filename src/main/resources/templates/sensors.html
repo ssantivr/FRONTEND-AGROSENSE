@@ -6,7 +6,6 @@
     <div class="page-toolbar">
         <header th:replace="~{fragments/page-header :: page-header('Sensores', 'Sensores instalados y su última lectura recibida.')}"></header>
         <div class="row-actions">
-            <!-- Cards or table; tables.ts remembers the choice in this browser. -->
             <div class="segmented" role="group" aria-label="Vista" th:if="${!sensors.isEmpty()}" data-view-toggle="sensorsView">
                 <button type="button" class="segmented-option" data-view="cards" aria-pressed="true">
                     <i class="bi bi-grid" aria-hidden="true"></i> Tarjetas
@@ -28,7 +27,6 @@
             '/sensores/nuevo', 'Registrar tu primer sensor')}"></div>
     </section>
 
-    <!-- Both views hold the same sensors; data-view on this element decides which one shows. -->
     <div id="sensorsView" data-view="cards" th:if="${!sensors.isEmpty()}">
         <ul class="sensor-cards" data-view-panel="cards">
             <li class="card sensor-card" th:each="sensor : ${sensors}" data-search-row th:data-sensor-code="${sensor.code}"

@@ -44,7 +44,6 @@
                        th:text="${estate.boundary != null} ? 'Editar contorno' : 'Dibujar contorno'">Dibujar contorno</a>
                 </div>
                 <div class="map-stage" th:if="${estate.latitude != null}">
-                    <!-- The same marker the dashboard map uses, for this estate only (estate-detail.ts). -->
                     <div id="detailMap" class="map skeleton" role="application"
                          th:aria-label="|Mapa de ${estate.name}|" th:attr="data-estate=${estateJson}"></div>
                     <div class="segmented map-layers" role="group" aria-label="Tipo de mapa" id="mapLayers">

@@ -7,7 +7,6 @@
     <p th:text="${text}">Aún no hay información para mostrar.</p>
 </div>
 
-<!-- The same, with the one action that gets the user out of the empty state. -->
 <div class="state state--empty" th:fragment="empty-state-action(icon, title, text, url, label)">
     <span th:replace="~{fragments/empty-state :: art(${icon})}"></span>
     <h2 th:text="${title}">Sin datos</h2>
@@ -15,8 +14,6 @@
     <a class="button" th:href="@{${url}}"><i class="bi bi-plus-lg" aria-hidden="true"></i> <span th:text="${label}">Crear</span></a>
 </div>
 
-<!-- Brand illustration: a seedling on a furrow, its leaves traced like the logo's circuit, with the
-     section's icon as a badge. Drawn with the theme's colours. -->
 <span class="state-art" th:fragment="art(icon)" aria-hidden="true">
     <svg viewBox="0 0 160 120" focusable="false">
         <ellipse class="state-art-ground" cx="80" cy="102" rx="62" ry="9"/>

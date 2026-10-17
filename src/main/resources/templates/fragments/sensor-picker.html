@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <body>
-<!-- Where a sensor stands and how far its readings reach, chosen on a map (sensor-map.ts) or typed.
-     position: a SensorPositionForm. prefix: put before the field names ("position." inside SensorForm).
-     sites: JSON of estates by crop id, when a crop select decides the estate; site: JSON of one estate. -->
 <fieldset class="fieldset sensor-picker" id="sensorPicker" th:fragment="picker(position, prefix, sites, site)"
           th:attr="data-sites=${sites},data-site=${site}">
     <legend>Ubicación y cobertura (opcional)</legend>

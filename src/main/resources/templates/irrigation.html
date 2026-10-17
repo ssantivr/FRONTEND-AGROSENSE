@@ -11,7 +11,6 @@
         </div>
     </header>
 
-    <!-- Irrigations under way: how far along each one is and how long is left (app.ts counts it down). -->
     <section class="card running-card" aria-labelledby="runningTitle" th:if="${!running.isEmpty()}">
         <h2 id="runningTitle" th:text="${running.size() == 1} ? 'Riego en curso' : |${running.size()} riegos en curso|">Riego en curso</h2>
         <ul class="running-list">
@@ -96,7 +95,6 @@
              'Aún no hay riegos registrados.')}"></div></th:block>
 
         <div id="irrigationView" data-view="cards" th:if="${!irrigations.isEmpty()}">
-            <!-- One block per day, newest first. The bar compares the day's litres with the busiest day. -->
             <div class="timeline" data-view-panel="cards">
                 <section class="timeline-day" th:each="day : ${irrigationDays}">
                     <div class="day-head">

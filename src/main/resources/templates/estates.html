@@ -19,7 +19,6 @@
     </div>
 
     <section class="card estate-card" th:each="estate : ${estates}" th:with="thumb=${estate.thumb()}" data-search-row>
-        <!-- One OpenStreetMap tile around the estate, with a mark where it is. -->
         <svg class="estate-thumb" th:if="${thumb != null}" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid slice"
              role="img" th:aria-label="|Mapa de la zona de ${estate.name}|">
             <image class="estate-thumb-tile" width="256" height="256" th:href="${thumb.tileUrl}"/>

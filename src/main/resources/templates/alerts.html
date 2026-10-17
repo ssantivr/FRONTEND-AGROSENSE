@@ -16,7 +16,6 @@
         <th:block th:if="${alerts.isEmpty()}"><div th:replace="~{fragments/empty-state :: empty-state('bi-check2-circle', 'Sin alertas',
              'No hay alertas para mostrar con este filtro.')}"></div></th:block>
 
-        <!-- A timeline, newest day first. The stripe and the pill both carry the severity. -->
         <div class="timeline" th:if="${!alerts.isEmpty()}">
             <section class="timeline-day" th:each="day : ${alertDays}">
                 <h2 class="timeline-date">

@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <body>
-<!-- Phones only: the four modules used most, one thumb away. "Más" opens the full menu (app.ts). -->
 <nav class="bottom-nav on-panel" th:fragment="bottom-nav" aria-label="Navegación rápida">
     <th:block th:each="item : ${navigation}">
         <a class="bottom-nav-link" th:if="${item.path == '/' or item.path == '/parcelas' or item.path == '/sensores' or item.path == '/alertas'}"
