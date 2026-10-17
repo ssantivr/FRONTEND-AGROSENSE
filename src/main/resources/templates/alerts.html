@@ -3,19 +3,29 @@
       th:replace="~{fragments/layout :: layout('Alertas', ~{::main}, null)}">
 <body>
 <main id="main" class="app-content" tabindex="-1" data-motion-stagger>
-    <header th:replace="~{fragments/page-header :: page-header('Alertas', 'Avisos generados por los sensores y el sistema.')}"></header>
-
+    <header th:replace="~{fragments/page-header :: page-header('Alertas', 'Avisos generados por los sensores y el sistema, de la más reciente a la más antigua.')}"></header>
     <section class="card">
-        <nav class="tabs" aria-label="Filtro de alertas">
-            <a class="tab" th:href="@{/alertas(estado='pendientes')}"
-               th:attr="aria-current=${onlyOpen ? 'page' : null}">Sin atender</a>
-            <a class="tab" th:href="@{/alertas(estado='todas')}"
-               th:attr="aria-current=${onlyOpen ? null : 'page'}">Todas</a>
-        </nav>
-
-        <th:block th:if="${alerts.isEmpty()}"><div th:replace="~{fragments/empty-state :: empty-state('bi-check2-circle', 'Sin alertas',
-             'No hay alertas para mostrar con este filtro.')}"></div></th:block>
-
+        <div class="alert-filters">
+            <nav class="tabs" aria-label="Estado de las alertas">
+                <a class="tab" th:href="@{/alertas(estado='pendientes', severidad=${severityValue})}"
+                   th:attr="aria-current=${onlyOpen ? 'page' : null}">Sin atender</a>
+                <a class="tab" th:href="@{/alertas(estado='todas', severidad=${severityValue})}"
+                   th:attr="aria-current=${onlyOpen ? null : 'page'}">Todas</a>
+            </nav>
+            <nav class="chip-row" aria-label="Severidad">
+                <a class="chip-link" th:href="@{/alertas(estado=${statusValue})}"
+                   th:attr="aria-current=${severityValue == null ? 'true' : null}">Todas las severidades</a>
+                <a class="chip-link" th:each="option : ${severityFilters}"
+                   th:href="@{/alertas(estado=${statusValue}, severidad=${option.value})}"
+                   th:classappend="|chip-link--${T(com.agrosense.frontend.dto.Views).levelOf(option.severity)}|"
+                   th:attr="aria-current=${option.selected ? 'true' : null}"
+                   th:text="#{${'severity.' + option.severity}}">Crítica</a>
+            </nav>
+        </div>
+        <th:block th:if="${alerts.isEmpty()}">
+            <div th:replace="~{fragments/empty-state :: empty-state('bi-check2-circle', 'Sin alertas',
+                ${onlyOpen} ? 'No hay alertas pendientes con este filtro. Cuando un sensor salga del rango de su cultivo aparecerá aquí.' : 'No hay alertas con este filtro.')}"></div>
+        </th:block>
         <div class="timeline" th:if="${!alerts.isEmpty()}">
             <section class="timeline-day" th:each="day : ${alertDays}">
                 <h2 class="timeline-date">
@@ -23,8 +33,7 @@
                 </h2>
                 <ol class="timeline-list">
                     <li class="timeline-item" th:each="alert : ${day.alerts}" data-search-row
-                        th:with="level=${alert.severity.name()}"
-                        th:classappend="|timeline-item--${level == 'VERY_HIGH' or level == 'HIGH' ? 'danger' : (level == 'MEDIUM' ? 'warning' : 'neutral')}${alert.acknowledged ? ' timeline-item--done' : ''}|">
+                        th:classappend="|timeline-item--${alert.level()}${alert.acknowledged ? ' timeline-item--done' : ''}|">
                         <time class="timeline-time" th:datetime="${alert.createdAt}"
                               th:text="${#temporals.format(alert.createdAt, 'HH:mm')}">10:00</time>
                         <div class="timeline-body">
@@ -34,11 +43,18 @@
                             </div>
                             <p th:text="${alert.message}">Mensaje</p>
                             <p class="timeline-meta">
-                                <span><i class="bi bi-flower1" aria-hidden="true"></i> <span th:text="|${alert.cropName} · ${alert.estateName}|">Café · Finca</span></span>
+                                <a class="link" th:href="@{/cultivos/{id}(id=${alert.cropId})}">
+                                    <i class="bi bi-flower1" aria-hidden="true"></i>
+                                    <span th:text="|${alert.cropName} · ${alert.estateName}|">Café · Finca</span>
+                                </a>
                                 <span th:if="${alert.detectedValue != null}">
                                     <i class="bi bi-speedometer2" aria-hidden="true"></i>
                                     Valor detectado: <span th:text="${#numbers.formatDecimal(alert.detectedValue, 1, 1, 'COMMA')}">37,4</span>
                                 </span>
+                            </p>
+                            <p class="alert-recommendation" th:unless="${alert.acknowledged}">
+                                <i class="bi bi-lightbulb" aria-hidden="true"></i>
+                                <span th:text="#{${'alertAction.' + alert.type}}">Revisa la humedad del suelo.</span>
                             </p>
                         </div>
                         <div class="timeline-action">
@@ -54,7 +70,6 @@
                 </ol>
             </section>
         </div>
-
         <nav th:replace="~{fragments/pagination :: pagination(${alerts}, ${pageUrl})}"></nav>
     </section>
 </main>

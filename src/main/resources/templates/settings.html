@@ -17,8 +17,19 @@
         </dl>
         <p class="note">
             <i class="bi bi-info-circle" aria-hidden="true"></i>
-            La edición del perfil y el cambio de contraseña aún no están disponibles.
+            Editar el perfil y cambiar la contraseña aún no están disponibles: el servidor todavía no ofrece esas operaciones.
         </p>
+    </section>
+
+    <section class="card" aria-labelledby="appearanceTitle">
+        <h2 id="appearanceTitle">Apariencia</h2>
+        <div class="setting-row">
+            <span>
+                <strong id="themeLabel">Tema</strong>
+                <span class="text-muted">Claro, oscuro o el mismo que usa tu dispositivo.</span>
+            </span>
+            <div th:replace="~{fragments/brand :: theme-toggle}"></div>
+        </div>
     </section>
 
     <section class="card" aria-labelledby="preferencesTitle">

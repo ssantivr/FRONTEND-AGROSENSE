@@ -152,7 +152,7 @@ class WebFlowTests {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"/parcelas|Finca La Esperanza", "/sensores|AS-001", "/riego|Iniciar riego manual",
+    @ValueSource(strings = {"/parcelas|Finca La Esperanza", "/sensores|AS-001", "/riego|Registrar un riego manual",
             "/alertas|Humedad baja", "/reportes|Consumo de agua por cultivo",
             "/configuracion|demo@agrosense.co"})
     void everyMenuPageRendersForTheSignedInUser(String pathAndText) throws Exception {
@@ -164,12 +164,64 @@ class WebFlowTests {
     }
 
     @Test
+    void cropsPageListsEveryCropAndFiltersThem() throws Exception {
+        mvc.perform(get("/cultivos").with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(">Café</a>")))
+                .andExpect(content().string(containsString(">Plátano</a>")))
+                .andExpect(content().string(containsString(">Papa</a>")));
+        mvc.perform(get("/cultivos").param("q", "platano").with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(">Plátano</a>")))
+                .andExpect(content().string(not(containsString(">Café</a>"))));
+        mvc.perform(get("/cultivos").param("q", "maracuya").with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Ningún cultivo coincide")));
+        mvc.perform(get("/cultivos").param("etapa", "nothing").param("orden", "unknown").with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(">Papa</a>")));
+    }
+
+    @Test
+    void cropDetailShowsItsSectionsAndHidesUnknownCrops() throws Exception {
+        Integer coffee = cropRepository.findAll().stream()
+                .filter(crop -> crop.getName().equals("Café") && crop.getEstate().getUser().getEmail().equals(DEMO_EMAIL))
+                .findFirst().orElseThrow().getIdCrop();
+        mvc.perform(get("/cultivos/" + coffee).with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Rangos del cultivo")))
+                .andExpect(content().string(containsString("Sensores asociados")))
+                .andExpect(content().string(containsString("Historial de riego")));
+        mvc.perform(get("/cultivos/999999").with(user(demoUser))).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void alertsCanBeFilteredBySeverity() throws Exception {
+        mvc.perform(get("/alertas").param("severidad", "critica").with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Plaga detectada")))
+                .andExpect(content().string(containsString("Inspecciona la parcela")));
+        mvc.perform(get("/alertas").param("severidad", "desconocida").with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Humedad baja")));
+    }
+
+    @Test
+    void sensorsShowTheirConnectionStatusInWords() throws Exception {
+        mvc.perform(get("/sensores").with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-sensor-status=\"INACTIVE\"")));
+    }
+
+    @Test
     void dashboardShowsIndicatorsDemoFlagAndUserInitials() throws Exception {
         mvc.perform(get("/").with(user(demoUser)))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Hola, <span>Usuario Demo</span>")))
+                .andExpect(content().string(containsString("<span>Usuario Demo</span>")))
                 .andExpect(content().string(containsString("Vista de demostración")))
-                .andExpect(content().string(containsString("Clima no configurado")))
+                .andExpect(content().string(containsString("Sensores enviando datos")))
+                .andExpect(content().string(containsString("Necesita atención")))
+                .andExpect(content().string(not(containsString("Clima no configurado"))))
                 .andExpect(content().string(containsString("3 cultivos activos")))
                 .andExpect(content().string(containsString(">UD</span>")))
                 .andExpect(content().string(containsString("id=\"estateMap\"")));
@@ -483,7 +535,7 @@ class WebFlowTests {
                 .andExpect(content().string(containsString("href=\"/registro\"")))
                 .andExpect(content().string(not(containsString("Usuario Demo"))));
         mvc.perform(get("/").with(user(demoUser)))
-                .andExpect(content().string(containsString("Hola, <span>Usuario Demo</span>")));
+                .andExpect(content().string(containsString("<span>Usuario Demo</span>")));
     }
 
     @Test

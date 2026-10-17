@@ -82,7 +82,7 @@
                         <span th:replace="~{fragments/stepper :: crop-dot(${crop})}"></span>
                         <div class="crop-item-body">
                             <div class="crop-item-head">
-                                <strong th:text="${crop.name}">Café</strong>
+                                <a class="link" th:href="@{/cultivos/{id}(id=${crop.id})}"><strong th:text="${crop.name}">Café</strong></a>
                                 <span class="text-muted" th:if="${crop.variety != null}" th:text="${crop.variety}">Castillo</span>
                                 <th:block th:if="${crop.active}"><span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-check-circle-fill', ${#messages.msg('cropStage.' + crop.stage)})}"></span></th:block>
                                 <th:block th:unless="${crop.active}"><span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-dash-circle', 'Inactivo')}"></span></th:block>

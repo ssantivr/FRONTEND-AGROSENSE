@@ -64,6 +64,13 @@ public class IrrigationService {
                 .stream().map(irrigation -> toView(irrigation, now)).toList();
     }
 
+    public List<IrrigationView> findByCrop(String email, Integer cropId, int limit) {
+        LocalDateTime now = LocalDateTime.now();
+        return irrigationRepository
+                .findByCropIdCropAndCropEstateUserEmailOrderByStartedAtDesc(cropId, email, Limit.of(limit))
+                .stream().map(irrigation -> toView(irrigation, now)).toList();
+    }
+
     public Optional<IrrigationView> findRunning(List<IrrigationView> history) {
         return history.stream().filter(IrrigationView::running).findFirst();
     }

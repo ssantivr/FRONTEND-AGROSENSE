@@ -115,6 +115,7 @@ public class SensorService {
                 sensor.getIdSensor(),
                 sensor.getSensorCode(),
                 sensor.getSensorType(),
+                sensor.getCrop().getIdCrop(),
                 sensor.getCrop().getName(),
                 sensor.getCrop().getEstate().getIdEstate(),
                 sensor.getCrop().getEstate().getName(),
@@ -123,6 +124,7 @@ public class SensorService {
                 latest.map(SensorReading::getValue).orElse(null),
                 latest.map(SensorReading::getUnit).orElse(null),
                 latest.map(SensorReading::getRecordedAt).orElse(sensor.getLastReadingAt()),
+                latest.map(SensorReading::getQuality).orElse(null),
                 sensor.getLatitude(),
                 sensor.getLongitude(),
                 sensor.getCoverageM());

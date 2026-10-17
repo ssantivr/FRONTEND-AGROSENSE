@@ -135,10 +135,44 @@ public final class Views {
     public record CropOption(Integer id, String label) {
     }
 
+    public enum SensorStatus {
+        ONLINE("success", "bi-check-circle-fill"),
+        STALE("warning", "bi-clock-history"),
+        OFFLINE("danger", "bi-wifi-off"),
+        ERROR("danger", "bi-exclamation-octagon"),
+        NO_DATA("neutral", "bi-hourglass"),
+        INACTIVE("neutral", "bi-pause-circle"),
+        UNKNOWN("neutral", "bi-question-circle");
+
+        public static final java.time.Duration STALE_AFTER = java.time.Duration.ofHours(3);
+        public static final java.time.Duration OFFLINE_AFTER = java.time.Duration.ofHours(24);
+
+        private final String tone;
+        private final String icon;
+
+        SensorStatus(String tone, String icon) {
+            this.tone = tone;
+            this.icon = icon;
+        }
+
+        public String tone() {
+            return tone;
+        }
+
+        public String icon() {
+            return icon;
+        }
+
+        public boolean reporting() {
+            return this == ONLINE;
+        }
+    }
+
     public record SensorView(
             Integer id,
             String code,
             SensorType type,
+            Integer cropId,
             String cropName,
             Integer estateId,
             String estateName,
@@ -147,9 +181,37 @@ public final class Views {
             BigDecimal lastValue,
             String unit,
             LocalDateTime lastReadingAt,
+            String lastQuality,
             BigDecimal latitude,
             BigDecimal longitude,
             Integer coverageM) {
+
+        public SensorStatus status() {
+            return statusAt(LocalDateTime.now());
+        }
+
+        public SensorStatus statusAt(LocalDateTime now) {
+            if (!active) {
+                return SensorStatus.INACTIVE;
+            }
+            if (lastValue == null && lastReadingAt == null) {
+                return SensorStatus.NO_DATA;
+            }
+            if (lastReadingAt == null) {
+                return SensorStatus.UNKNOWN;
+            }
+            if (lastQuality != null && !"OK".equalsIgnoreCase(lastQuality)) {
+                return SensorStatus.ERROR;
+            }
+            java.time.Duration age = java.time.Duration.between(lastReadingAt, now);
+            if (age.compareTo(SensorStatus.OFFLINE_AFTER) > 0) {
+                return SensorStatus.OFFLINE;
+            }
+            if (age.compareTo(SensorStatus.STALE_AFTER) > 0) {
+                return SensorStatus.STALE;
+            }
+            return SensorStatus.ONLINE;
+        }
 
         public boolean placed() {
             return latitude != null && longitude != null && coverageM != null;
@@ -252,11 +314,75 @@ public final class Views {
             AlertType type,
             Severity severity,
             String message,
+            Integer cropId,
             String cropName,
             String estateName,
             BigDecimal detectedValue,
             boolean acknowledged,
             LocalDateTime createdAt) {
+
+        public String level() {
+            return levelOf(severity);
+        }
+    }
+
+    public static String levelOf(Severity severity) {
+        if (severity == null) {
+            return "info";
+        }
+        return switch (severity) {
+            case LOW -> "info";
+            case MEDIUM -> "warning";
+            case HIGH -> "danger";
+            case VERY_HIGH -> "critical";
+        };
+    }
+
+    public record CropCard(
+            CropView crop,
+            Integer estateId,
+            String estateName,
+            String location,
+            List<SensorView> sensors,
+            long openAlerts) {
+
+        public SensorView latest(SensorType type) {
+            return sensors.stream()
+                    .filter(sensor -> sensor.type() == type && sensor.lastValue() != null)
+                    .max(java.util.Comparator.comparing(SensorView::lastReadingAt,
+                            java.util.Comparator.nullsFirst(java.util.Comparator.naturalOrder())))
+                    .orElse(null);
+        }
+
+        public long reportingSensors() {
+            return sensors.stream().filter(sensor -> sensor.status().reporting()).count();
+        }
+
+        public String health() {
+            if (!crop.active()) {
+                return "inactive";
+            }
+            if (openAlerts > 0) {
+                return "attention";
+            }
+            return sensors.isEmpty() ? "unmonitored" : "ok";
+        }
+    }
+
+    public record CropDetail(
+            CropCard card,
+            List<AlertView> alerts,
+            List<IrrigationView> irrigations) {
+    }
+
+    public record ActivityItem(
+            String kind,
+            String icon,
+            String tone,
+            String title,
+            String detail,
+            LocalDateTime at,
+            String link) {
     }
 
     public record IrrigationView(
@@ -307,7 +433,27 @@ public final class Views {
             List<EstateMarker> markers,
             List<DailyWater> waterUsage,
             RangeBar humidityRange,
-            String waterSparkline) {
+            String waterSparkline,
+            List<SensorView> sensors,
+            List<ActivityItem> activity) {
+
+        public static final int ATTENTION_ALERTS = 3;
+
+        public List<AlertView> attentionAlerts() {
+            return recentAlerts.stream().limit(ATTENTION_ALERTS).toList();
+        }
+
+        public long activeSensorCount() {
+            return sensors.stream().filter(SensorView::active).count();
+        }
+
+        public long reportingSensorCount() {
+            return sensors.stream().filter(sensor -> sensor.status().reporting()).count();
+        }
+
+        public long cropCount() {
+            return estates.stream().mapToLong(estate -> estate.crops().size()).sum();
+        }
 
         public boolean hasMapData() {
             return !markers.isEmpty();

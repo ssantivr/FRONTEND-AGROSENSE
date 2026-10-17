@@ -440,7 +440,13 @@ function initQuickIrrigation(): void {
     if (button.disabled || !form.reportValidity()) return;
     const cropLabel = (crop.selectedOptions[0]?.textContent ?? '').trim();
     const minutes = Number(duration.value);
-    if (!(await confirmAction(`¿Iniciar un riego de ${minutes} minutos en ${cropLabel}?`))) return;
+    if (
+      !(await confirmAction(
+        `¿Registrar un riego de ${minutes} minutos en ${cropLabel}? AgroSense lo anota en el historial; no enciende la bomba ni abre válvulas.`,
+      ))
+    ) {
+      return;
+    }
 
     setButtonBusy(button, true);
     try {

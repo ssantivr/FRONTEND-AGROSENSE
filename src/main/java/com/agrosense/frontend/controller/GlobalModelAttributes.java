@@ -21,6 +21,7 @@ public class GlobalModelAttributes {
     private static final List<NavItem> NAVIGATION = List.of(
             new NavItem("/", "Inicio", "bi-house-door", false),
             new NavItem("/parcelas", "Parcelas", "bi-map", false),
+            new NavItem("/cultivos", "Cultivos", "bi-flower1", false),
             new NavItem("/sensores", "Sensores", "bi-broadcast", false),
             new NavItem("/riego", "Riego", "bi-droplet", false),
             new NavItem("/alertas", "Alertas", "bi-bell", false),

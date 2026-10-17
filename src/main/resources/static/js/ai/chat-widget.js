@@ -12,7 +12,13 @@ const MAX_RECORDING_MS = 45_000;
 const NEAR_BOTTOM_PX = 80;
 const VOICE_PLACEHOLDER = 'Mensaje de voz';
 const LOCAL_NOTE = 'Respuesta básica con los datos de tu finca: el modelo de IA no está disponible ahora.';
-const SUGGESTIONS = ['¿Cómo están mis cultivos hoy?', '¿Cuándo conviene regar?', '¿Qué hago con mis alertas?'];
+const MODEL_NOTE = 'Respondió el modelo de IA con los datos de tu finca. Confírmalo antes de actuar.';
+const SUGGESTIONS = [
+    '¿Cómo están mis cultivos hoy?',
+    '¿Qué significa la última lectura de humedad?',
+    'Explícame mis alertas pendientes',
+    '¿Cómo va el riego esta semana?',
+];
 const RECORDING_MESSAGES = {
     unsupported: 'Este navegador no puede grabar audio. Escribe tu pregunta.',
     denied: 'No hay permiso para usar el micrófono. Actívalo en el navegador o escribe tu pregunta.',
@@ -27,7 +33,8 @@ const isAiReply = (value) => isRecord(value) &&
 const isMessage = (value) => isRecord(value) &&
     (value['role'] === 'user' || value['role'] === 'assistant') &&
     typeof value['text'] === 'string' &&
-    (value['local'] === undefined || typeof value['local'] === 'boolean');
+    (value['local'] === undefined || typeof value['local'] === 'boolean') &&
+    (value['model'] === undefined || typeof value['model'] === 'boolean');
 function loadMessages(owner) {
     try {
         const stored = JSON.parse(sessionStorage.getItem(CHAT_STORAGE_KEY) ?? 'null');
@@ -143,6 +150,8 @@ function mount(parts) {
             item.textContent = message.text;
         if (message.local)
             item.append(el('p', 'ai-chat-note', LOCAL_NOTE));
+        else if (message.model)
+            item.append(el('p', 'ai-chat-source', MODEL_NOTE));
         return item;
     }
     function showEmptyState() {
@@ -232,7 +241,8 @@ function mount(parts) {
     }
     function showAnswer(answer, spoken) {
         const reply = answer.reply;
-        addMessage({ role: 'assistant', text: reply, ...(answer.source === 'local' ? { local: true } : {}) });
+        const origin = answer.source === 'local' ? { local: true } : answer.source === 'model' ? { model: true } : {};
+        addMessage({ role: 'assistant', text: reply, ...origin });
         if (readAloud || spoken)
             speak(plainText(reply));
     }
@@ -353,6 +363,12 @@ function mount(parts) {
         launcher.focus();
     }
     launcher.addEventListener('click', () => (panel.hidden ? open() : shut()));
+    document.querySelectorAll('[data-open-chat]').forEach((button) => button.addEventListener('click', () => {
+        if (panel.hidden)
+            open();
+        else
+            input.focus();
+    }));
     close.addEventListener('click', shut);
     panel.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {

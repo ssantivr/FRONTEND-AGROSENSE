@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(${crop.name}, ~{::main}, null)}">
+<body>
+<main id="main" class="app-content" tabindex="-1" data-motion-stagger th:with="card=${detail.card}">
+    <nav class="breadcrumbs" aria-label="Ruta">
+        <a class="link" th:href="@{/cultivos}">Cultivos</a>
+        <i class="bi bi-chevron-right" aria-hidden="true"></i>
+        <span aria-current="page" th:text="${crop.name}">Café</span>
+    </nav>
+
+    <div class="page-toolbar">
+        <header class="detail-header">
+            <span class="crop-avatar crop-avatar--large" th:classappend="|crop-tone-${crop.tone()}|" aria-hidden="true"
+                  th:text="${crop.initial()}">C</span>
+            <div>
+                <h1 th:text="${crop.name}">Café</h1>
+                <p class="text-muted" th:text="|${crop.variety ?: 'Variedad sin registrar'} · ${card.estateName}|">Castillo · Finca</p>
+            </div>
+        </header>
+        <div class="row-actions">
+            <a class="button button--ghost" th:href="@{/cultivos/{id}/editar(id=${crop.id})}">
+                <i class="bi bi-pencil" aria-hidden="true"></i> Editar
+            </a>
+            <a class="button" th:href="@{/riego}" th:if="${crop.active}">
+                <i class="bi bi-droplet" aria-hidden="true"></i> Registrar riego
+            </a>
+        </div>
+    </div>
+
+    <div class="detail-grid">
+        <section class="card" aria-labelledby="generalTitle">
+            <h2 id="generalTitle">General</h2>
+            <dl class="definition-list">
+                <dt>Estado</dt>
+                <dd>
+                    <span th:replace="~{fragments/status-pill :: status-pill(${crop.active} ? 'success' : 'neutral',
+                        ${crop.active} ? 'bi-check-circle' : 'bi-pause-circle', ${crop.active} ? 'Activo' : 'Inactivo')}"></span>
+                </dd>
+                <dt>Etapa</dt>
+                <dd th:text="${crop.stage != null} ? #{${'cropStage.' + crop.stage}} : 'Sin registrar'">Floración</dd>
+                <dt>Fecha de siembra</dt>
+                <dd th:text="${crop.sowingDate != null} ? ${#temporals.format(crop.sowingDate, 'd ''de'' MMMM ''de'' yyyy')} : 'Sin registrar'">8 de abril de 2025</dd>
+                <dt>Alertas sin atender</dt>
+                <dd th:text="${card.openAlerts}">2</dd>
+            </dl>
+        </section>
+
+        <section class="card" aria-labelledby="locationTitle">
+            <h2 id="locationTitle">Ubicación</h2>
+            <dl class="definition-list">
+                <dt>Parcela</dt>
+                <dd><a class="link" th:href="@{/parcelas/{id}(id=${card.estateId})}" th:text="${card.estateName}">Finca</a></dd>
+                <dt>Lugar</dt>
+                <dd th:text="${card.location ?: 'Sin registrar'}">Pasto, Nariño</dd>
+            </dl>
+        </section>
+
+        <section class="card detail-wide" aria-labelledby="rangesTitle">
+            <h2 id="rangesTitle">Rangos del cultivo</h2>
+            <p class="text-muted">Las alertas se generan cuando una lectura sale de estos rangos.</p>
+            <ul class="range-list">
+                <li>
+                    <i class="bi bi-moisture" aria-hidden="true"></i>
+                    <span>Humedad del suelo</span>
+                    <strong th:text="${crop.humidityMin != null and crop.humidityMax != null} ? |${#numbers.formatDecimal(crop.humidityMin, 1, 0, 'COMMA')} – ${#numbers.formatDecimal(crop.humidityMax, 1, 0, 'COMMA')} %| : 'Sin definir'">40 – 80 %</strong>
+                </li>
+                <li>
+                    <i class="bi bi-thermometer-half" aria-hidden="true"></i>
+                    <span>Temperatura</span>
+                    <strong th:text="${crop.tempMin != null and crop.tempMax != null} ? |${#numbers.formatDecimal(crop.tempMin, 1, 0, 'COMMA')} – ${#numbers.formatDecimal(crop.tempMax, 1, 0, 'COMMA')} °C| : 'Sin definir'">15 – 35 °C</strong>
+                </li>
+                <li>
+                    <i class="bi bi-eyedropper" aria-hidden="true"></i>
+                    <span>pH</span>
+                    <strong th:text="${crop.phMin != null and crop.phMax != null} ? |${#numbers.formatDecimal(crop.phMin, 1, 1, 'COMMA')} – ${#numbers.formatDecimal(crop.phMax, 1, 1, 'COMMA')}| : 'Sin definir'">5,5 – 7,0</strong>
+                </li>
+            </ul>
+        </section>
+
+        <section class="card detail-wide" aria-labelledby="sensorsTitle">
+            <div class="card-header">
+                <h2 id="sensorsTitle">Sensores asociados</h2>
+                <a class="link" th:href="@{/sensores/nuevo}">Registrar sensor</a>
+            </div>
+            <th:block th:if="${card.sensors.isEmpty()}">
+                <div th:replace="~{fragments/empty-state :: empty-state('bi-broadcast', 'Sin sensores',
+                    'Este cultivo aún no tiene sensores. Sin ellos no hay lecturas ni alertas automáticas.')}"></div>
+            </th:block>
+            <ul class="reading-list" th:unless="${card.sensors.isEmpty()}">
+                <li th:each="sensor : ${card.sensors}" th:attr="data-sensor-code=${sensor.code}">
+                    <span class="stat-icon" aria-hidden="true"><i class="bi" th:classappend="${sensor.icon()}"></i></span>
+                    <div class="reading-list-body">
+                        <strong th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</strong>
+                        <span class="text-muted" th:text="|${sensor.code}${sensor.location != null ? ' · ' + sensor.location : ''}|">AS-001 · Lote norte</span>
+                    </div>
+                    <div class="reading-list-value">
+                        <strong th:if="${sensor.lastValue != null}" data-live-value th:attr="data-unit=${sensor.unit}"
+                                th:text="|${#numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA')} ${sensor.unit}|">55,8 %</strong>
+                        <span class="text-muted" th:if="${sensor.lastValue == null}">Sin lecturas</span>
+                        <time class="text-muted" data-live-time="date" th:if="${sensor.lastReadingAt != null}"
+                              th:datetime="${sensor.lastReadingAt}"
+                              th:text="${#temporals.format(sensor.lastReadingAt, 'd MMM, HH:mm')}">17 oct, 11:54</time>
+                    </div>
+                    <span th:replace="~{fragments/status-pill :: sensor-status(${sensor})}"></span>
+                </li>
+            </ul>
+        </section>
+
+        <section class="card" aria-labelledby="alertsTitle">
+            <div class="card-header">
+                <h2 id="alertsTitle">Alertas</h2>
+                <a class="link" th:href="@{/alertas}">Centro de alertas</a>
+            </div>
+            <th:block th:if="${detail.alerts.isEmpty()}">
+                <div th:replace="~{fragments/empty-state :: empty-state('bi-check2-circle', 'Sin alertas',
+                    'Este cultivo no tiene alertas registradas.')}"></div>
+            </th:block>
+            <ul class="compact-list" th:unless="${detail.alerts.isEmpty()}">
+                <li th:each="alert : ${detail.alerts}" th:classappend="${alert.acknowledged} ? 'is-done'">
+                    <span th:replace="~{fragments/status-pill :: severity-pill(${alert.severity})}"></span>
+                    <div>
+                        <strong th:text="#{${'alertType.' + alert.type}}">Humedad baja</strong>
+                        <p class="text-muted" th:text="${alert.message}">Mensaje</p>
+                    </div>
+                    <time class="text-muted" th:datetime="${alert.createdAt}"
+                          th:text="|${#temporals.format(alert.createdAt, 'd MMM, HH:mm')}${alert.acknowledged ? ' · atendida' : ''}|">17 oct, 10:27</time>
+                </li>
+            </ul>
+        </section>
+
+        <section class="card" aria-labelledby="historyTitle">
+            <div class="card-header">
+                <h2 id="historyTitle">Historial de riego</h2>
+                <a class="link" th:href="@{/riego}">Ver riegos</a>
+            </div>
+            <th:block th:if="${detail.irrigations.isEmpty()}">
+                <div th:replace="~{fragments/empty-state :: empty-state('bi-droplet', 'Sin riegos',
+                    'Aún no hay riegos registrados para este cultivo.')}"></div>
+            </th:block>
+            <ul class="compact-list" th:unless="${detail.irrigations.isEmpty()}">
+                <li th:each="irrigation : ${detail.irrigations}">
+                    <span class="stat-icon" aria-hidden="true"><i class="bi" th:classappend="${irrigation.running} ? 'bi-play-circle' : 'bi-droplet'"></i></span>
+                    <div>
+                        <strong th:text="${irrigation.waterLiters != null} ? |${#numbers.formatDecimal(irrigation.waterLiters, 1, 'POINT', 0, 'COMMA')} L| : 'Sin litros registrados'">450 L</strong>
+                        <p class="text-muted" th:text="|${irrigation.durationMin != null ? irrigation.durationMin + ' min · ' : ''}#{${'irrigationType.' + irrigation.type}}${irrigation.running ? ' · en curso' : ''}|">30 min · Manual</p>
+                    </div>
+                    <time class="text-muted" th:datetime="${irrigation.startedAt}"
+                          th:text="${irrigation.startedAt != null ? #temporals.format(irrigation.startedAt, 'd MMM, HH:mm') : '—'}">16 oct, 07:00</time>
+                </li>
+            </ul>
+        </section>
+    </div>
+</main>
+</body>
+</html>

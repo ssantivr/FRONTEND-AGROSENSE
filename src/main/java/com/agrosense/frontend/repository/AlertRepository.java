@@ -1,6 +1,7 @@
 package com.agrosense.frontend.repository;
 
 import com.agrosense.frontend.entity.Alert;
+import com.agrosense.frontend.entity.enums.Severity;
 import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +24,20 @@ public interface AlertRepository extends JpaRepository<Alert, Integer> {
 
     @EntityGraph(attributePaths = {"crop", "crop.estate"})
     List<Alert> findByCropEstateUserEmailAndAcknowledgedFalseOrderByCreatedAtDesc(String email, Limit limit);
+
+    @EntityGraph(attributePaths = {"crop", "crop.estate"})
+    Page<Alert> findByCropEstateUserEmailAndSeverity(String email, Severity severity, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"crop", "crop.estate"})
+    Page<Alert> findByCropEstateUserEmailAndAcknowledgedFalseAndSeverity(String email, Severity severity,
+            Pageable pageable);
+
+    @EntityGraph(attributePaths = {"crop", "crop.estate"})
+    List<Alert> findByCropIdCropAndCropEstateUserEmailOrderByCreatedAtDesc(Integer idCrop, String email, Limit limit);
+
+    @Query("select a.crop.idCrop, count(a) from Alert a "
+            + "where a.crop.estate.user.email = :email and a.acknowledged = false group by a.crop.idCrop")
+    List<Object[]> countOpenByCrop(@Param("email") String email);
 
     @EntityGraph(attributePaths = {"crop", "crop.estate"})
     List<Alert> findByCropEstateIdEstateAndCropEstateUserEmailAndAcknowledgedFalseOrderByCreatedAtDesc(

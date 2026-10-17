@@ -7,13 +7,17 @@
         <img th:replace="~{fragments/page-header :: hero-photo('pivot')}">
         <div class="hero-body">
             <h1>Riego</h1>
-            <p>Registra un riego manual y consulta el historial.</p>
+            <p>Consulta el estado de los riegos, registra los que apliques y revisa el historial.</p>
         </div>
     </header>
 
-    <section class="card running-card" aria-labelledby="runningTitle" th:if="${!running.isEmpty()}">
-        <h2 id="runningTitle" th:text="${running.size() == 1} ? 'Riego en curso' : |${running.size()} riegos en curso|">Riego en curso</h2>
-        <ul class="running-list">
+    <section class="card running-card" aria-labelledby="runningTitle">
+        <h2 id="runningTitle" th:text="${running.isEmpty()} ? 'Estado actual' : (${running.size() == 1} ? 'Riego en curso' : |${running.size()} riegos en curso|)">Riego en curso</h2>
+        <p class="running-empty" th:if="${running.isEmpty()}">
+            <span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-pause-circle', 'Sin riego en curso')}"></span>
+            <span class="text-muted">No hay riegos registrados en este momento.</span>
+        </p>
+        <ul class="running-list" th:unless="${running.isEmpty()}">
             <li class="running-item" th:each="irrigation : ${running}" data-countdown
                 th:attr="data-remaining=${irrigation.remainingSeconds()},data-total=${irrigation.totalSeconds()}">
                 <span class="pump-icon" aria-hidden="true"><i class="bi bi-water"></i></span>
@@ -33,12 +37,13 @@
         </ul>
     </section>
     <section class="card" aria-labelledby="startTitle">
-        <h2 id="startTitle">Iniciar riego manual</h2>
+        <h2 id="startTitle">Registrar un riego manual</h2>
+        <p class="text-muted">Anota el riego que vas a aplicar: AgroSense lo guarda en el historial y calcula el consumo de agua.</p>
 
         <p class="text-muted" th:if="${cropOptions.isEmpty()}">No tienes cultivos activos para regar.</p>
 
         <form th:if="${!cropOptions.isEmpty()}" class="form-grid form-grid--wide" th:action="@{/riego}" method="post"
-              th:object="${irrigationForm}" data-confirm="¿Registrar el inicio de este riego?" novalidate>
+              th:object="${irrigationForm}" data-confirm="¿Registrar este riego? AgroSense lo anotará en el historial; no enciende la bomba ni abre válvulas." novalidate>
             <p class="form-alert form-alert--error" role="alert" th:if="${#fields.hasGlobalErrors()}"
                th:each="error : ${#fields.globalErrors()}">
                 <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
@@ -64,12 +69,12 @@
                 <span class="field-error" th:if="${#fields.hasErrors('waterLiters')}" th:errors="*{waterLiters}">Error</span>
             </label>
             <button type="submit" class="button">
-                <i class="bi bi-play-fill" aria-hidden="true"></i> Iniciar riego
+                <i class="bi bi-journal-plus" aria-hidden="true"></i> Registrar riego
             </button>
         </form>
         <p class="note">
             <i class="bi bi-info-circle" aria-hidden="true"></i>
-            El riego queda registrado en el sistema. El control de la bomba física aún no está disponible.
+            El control remoto de bombas y válvulas aún no está disponible: registrar un riego no cambia nada en el campo.
         </p>
     </section>
 

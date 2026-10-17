@@ -24,6 +24,10 @@ public interface IrrigationRepository extends JpaRepository<Irrigation, Integer>
     List<Irrigation> findByCropEstateIdEstateAndCropEstateUserEmailOrderByStartedAtDesc(Integer idEstate, String email,
             Limit limit);
 
+    @EntityGraph(attributePaths = {"crop", "crop.estate"})
+    List<Irrigation> findByCropIdCropAndCropEstateUserEmailOrderByStartedAtDesc(Integer idCrop, String email,
+            Limit limit);
+
     List<Irrigation> findByCropIdCropOrderByStartedAtDesc(Integer idCrop);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)

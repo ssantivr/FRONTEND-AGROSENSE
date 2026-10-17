@@ -3,7 +3,7 @@
 <body>
 <nav class="bottom-nav on-panel" th:fragment="bottom-nav" aria-label="Navegación rápida">
     <th:block th:each="item : ${navigation}">
-        <a class="bottom-nav-link" th:if="${item.path == '/' or item.path == '/parcelas' or item.path == '/sensores' or item.path == '/alertas'}"
+        <a class="bottom-nav-link" th:if="${item.path == '/' or item.path == '/cultivos' or item.path == '/sensores' or item.path == '/alertas'}"
            th:href="@{${item.path}}" th:attr="aria-current=${item.active ? 'page' : null}">
             <i class="bi" th:classappend="${item.icon}" aria-hidden="true"></i>
             <span th:text="${item.label}">Inicio</span>
