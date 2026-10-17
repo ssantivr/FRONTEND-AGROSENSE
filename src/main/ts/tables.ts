@@ -1,10 +1,5 @@
-// Tools for the tables the server renders: search across the page's rows, and export of what is visible.
 import { all, find } from './core/dom.js';
 
-/**
- * The topbar search box filters everything marked data-search-row (table rows, cards, timeline items);
- * it stays hidden on pages without any.
- */
 function initTableSearch(): void {
   const rows = all('[data-search-row]', HTMLElement);
   const box = find('tableSearch', HTMLElement);
@@ -25,16 +20,11 @@ function initTableSearch(): void {
 
 const cellText = (cell: HTMLTableCellElement): string => (cell.textContent ?? '').replace(/\s+/g, ' ').trim();
 
-/** Quotes a value when it needs it, and stops spreadsheets from reading it as a formula. */
 function csvValue(text: string): string {
   const safe = /^[=+\-@]/.test(text) && !/^-?[\d.,]+$/.test(text) ? `'${text}` : text;
   return /[";\n]/.test(safe) ? `"${safe.replaceAll('"', '""')}"` : safe;
 }
 
-/**
- * The table as CSV: the rows the search left visible, without the columns marked data-no-export.
- * Semicolons separate the values because the numbers use a decimal comma.
- */
 export function tableToCsv(table: HTMLTableElement): string {
   const skipped = new Set<number>();
   const header = all('thead th', HTMLTableCellElement, table).filter((cell, index) => {
@@ -51,7 +41,6 @@ export function tableToCsv(table: HTMLTableElement): string {
   return lines.join('\r\n');
 }
 
-/** <button data-export-csv="tableId" data-filename="riegos"> downloads that table. */
 function initCsvExport(): void {
   all('[data-export-csv]', HTMLButtonElement).forEach((button) => {
     const table = find(button.dataset['exportCsv'] ?? '', HTMLTableElement);
@@ -60,7 +49,6 @@ function initCsvExport(): void {
       return;
     }
     button.addEventListener('click', () => {
-      // The byte-order mark makes spreadsheet programs read the accents as UTF-8.
       const url = URL.createObjectURL(new Blob(['﻿', tableToCsv(table)], { type: 'text/csv;charset=utf-8' }));
       const link = document.createElement('a');
       link.href = url;
@@ -71,10 +59,6 @@ function initCsvExport(): void {
   });
 }
 
-/**
- * <div data-view-toggle="targetId"> with <button data-view="cards|table">: sets data-view on #targetId,
- * which CSS uses to show one panel, and remembers the choice in this browser under the target's id.
- */
 function initViewToggles(): void {
   all('[data-view-toggle]', HTMLElement).forEach((group) => {
     const targetId = group.dataset['viewToggle'] ?? '';
@@ -93,7 +77,6 @@ function initViewToggles(): void {
         try {
           localStorage.setItem(key, view);
         } catch {
-          // The preference is optional; ignore storage failures.
         }
       }),
     );
@@ -101,12 +84,10 @@ function initViewToggles(): void {
       const saved = localStorage.getItem(key);
       if (saved && options.some((option) => option.dataset['view'] === saved)) apply(saved);
     } catch {
-      // Keep the view the server rendered.
     }
   });
 }
 
-/** A number as the tables print it ("1.750", "46,8 %"), or null when the text is not one. */
 function printedNumber(text: string): number | null {
   const match = /^-?[\d.]+(,\d+)?/.exec(text.trim());
   if (!match) return null;
@@ -114,13 +95,8 @@ function printedNumber(text: string): number | null {
   return Number.isFinite(value) ? value : null;
 }
 
-/** What a cell sorts by: its data-sort attribute when it has one (dates), else its text. */
 const sortKey = (cell: HTMLTableCellElement | undefined): string => (cell ? (cell.dataset['sort'] ?? cellText(cell)) : '');
 
-/**
- * <table data-sortable>: a click on a header sorts by that column, a second click reverses it. The state
- * is announced with aria-sort. Columns marked data-no-export (actions) are not sortable.
- */
 function initSortableTables(): void {
   all('table[data-sortable]', HTMLTableElement).forEach((table) => {
     const body = table.tBodies[0];

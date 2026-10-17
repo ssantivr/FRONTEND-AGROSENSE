@@ -1,5 +1,3 @@
-// Chart.js and Leaflet are served from WebJars as classic scripts and expose globals; only their types
-// come from npm. L is undefined when its script failed to load, which the map code checks for.
 import type { Chart as ChartClass, ChartType } from 'chart.js';
 import type * as Leaflet from 'leaflet';
 

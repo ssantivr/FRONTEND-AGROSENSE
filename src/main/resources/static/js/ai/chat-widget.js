@@ -1,13 +1,9 @@
-// The assistant's chat window, on every signed-in page: written questions, voice messages and answers read
-// aloud. The conversation lives in sessionStorage, so it survives moving between pages and ends with the tab;
-// it is kept under the account's name and erased on the sign-in page, so nobody who uses the tab next sees it.
 import { ApiError, csrfHeaders, isRecord, messageOf } from '../api/client.js';
 import { el, find, icon } from '../core/dom.js';
 import { plainText, renderMarkdown } from './markdown.js';
 import { CHAT_STORAGE_KEY } from './storage.js';
 import { canRecord, canSpeak, RecordingError, speak, stopSpeaking, VoiceRecorder } from './voice.js';
 const SPEAK_KEY = 'agrosense.ai.speak';
-/** Messages kept in the tab, and how many of them travel with a question as context. */
 const MAX_STORED = 40;
 const MAX_CONTEXT = 8;
 const MAX_QUESTION = 1000;
@@ -48,7 +44,6 @@ function saveMessages(owner, messages) {
         sessionStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify({ owner, messages: messages.slice(-MAX_STORED) }));
     }
     catch {
-        // Storage is full or disabled: the conversation simply lasts until the page is left.
     }
 }
 function readFlag(key) {
@@ -64,10 +59,8 @@ function writeFlag(key, value) {
         localStorage.setItem(key, String(value));
     }
     catch {
-        // The preference is kept for this page only.
     }
 }
-/** Sends JSON or a form and resolves with the assistant's answer; every failure is an ApiError with a message. */
 async function ask(url, body) {
     const controller = new AbortController();
     let timedOut = false;
@@ -82,7 +75,6 @@ async function ask(url, body) {
             method: 'POST',
             credentials: 'same-origin',
             signal: controller.signal,
-            // A form sets its own Content-Type, with the boundary of its parts.
             headers: { Accept: 'application/json', ...(form ? {} : { 'Content-Type': 'application/json' }), ...csrfHeaders() },
             body: form ? body : JSON.stringify(body),
         });
@@ -100,7 +92,6 @@ async function ask(url, body) {
     if (!response.ok) {
         const status = response.status;
         const kind = status === 429 ? 'rate-limited' : status === 401 ? 'unauthorized' : status === 403 ? 'forbidden' : status >= 500 ? 'server' : 'validation';
-        // The assistant words its own failures for the user, including the ones answered with 5xx.
         const message = isRecord(answer) && typeof answer['message'] === 'string' ? answer['message'] : undefined;
         throw new ApiError(kind, { status, ...(message ? { message } : {}) });
     }
@@ -122,7 +113,6 @@ function init() {
     const speakToggle = find('aiChatSpeak', HTMLButtonElement);
     const clear = find('aiChatClear', HTMLButtonElement);
     const close = find('aiChatClose', HTMLButtonElement);
-    // The widget is only on signed-in pages; where any piece is missing it stays out of the way.
     if (!root || !launcher || !panel || !log || !status || !form || !input || !send || !clear || !close)
         return;
     const chatUrl = root.dataset['chatUrl'];
@@ -137,7 +127,6 @@ function mount(parts) {
     const { owner } = parts;
     let messages = loadMessages(owner);
     let pending = false;
-    /** True while the browser is asking for the microphone, before the recording begins. */
     let starting = false;
     let readAloud = canSpeak() && readFlag(SPEAK_KEY);
     let typing = null;
@@ -152,7 +141,6 @@ function mount(parts) {
             item.append(renderMarkdown(message.text));
         else
             item.textContent = message.text;
-        // Said under the answer itself, so nobody takes a summary of the readings for the model's advice.
         if (message.local)
             item.append(el('p', 'ai-chat-note', LOCAL_NOTE));
         return item;
@@ -180,7 +168,6 @@ function mount(parts) {
                 log.append(bubble(message));
         scrollToEnd();
     }
-    /** Adds a node at the end, following the conversation only when the reader is already at its end. */
     function append(node, follow) {
         const stick = follow || nearBottom();
         log.querySelector('.ai-chat-empty')?.remove();
@@ -226,7 +213,6 @@ function mount(parts) {
         log.setAttribute('aria-busy', String(value));
         refreshControls();
     }
-    /** Shows why there is no answer and, when trying again can help, a button that repeats the question. */
     function showError(error, retry) {
         const note = el('div', 'ai-chat-message ai-chat-error');
         note.setAttribute('role', 'alert');
@@ -235,7 +221,6 @@ function mount(parts) {
             const again = el('button', 'ai-chat-retry', 'Reintentar');
             again.type = 'button';
             again.addEventListener('click', () => {
-                // A recording in progress is sent when it ends; asking again now would leave it without an answer.
                 if (pending || starting || recorder.recording)
                     return;
                 note.remove();
@@ -251,11 +236,9 @@ function mount(parts) {
         if (readAloud || spoken)
             speak(plainText(reply));
     }
-    /** The question is already in the conversation: asks it, taking the turns before it as context. */
     async function requestAnswer(question) {
         if (pending)
             return;
-        // Only who said what travels: the rest of a stored message is this window's own business.
         const history = messages
             .slice(0, -1)
             .slice(-MAX_CONTEXT)
@@ -275,7 +258,6 @@ function mount(parts) {
     }
     async function sendText(text) {
         const question = text.trim().slice(0, MAX_QUESTION);
-        // The button is disabled while an answer is on its way; this also stops Enter and double clicks.
         if (pending || starting || recorder.recording || question === '')
             return;
         stopSpeaking();
@@ -296,7 +278,6 @@ function mount(parts) {
             setPending(false);
             const heard = answer.transcript?.trim();
             if (heard) {
-                // The placeholder becomes what was actually said, here and in the stored conversation.
                 placeholder.textContent = heard;
                 let index = messages.length - 1;
                 while (index >= 0 && !(messages[index]?.role === 'user' && messages[index]?.text === VOICE_PLACEHOLDER))
@@ -339,7 +320,6 @@ function mount(parts) {
         starting = true;
         refreshControls();
         try {
-            // false: the window was closed while the browser asked for permission, and the microphone was released.
             if (await recorder.start(MAX_RECORDING_MS, () => void finishRecording())) {
                 setStatus('Grabando… pulsa de nuevo para enviar.');
             }
@@ -389,7 +369,6 @@ function mount(parts) {
         refreshControls();
     });
     input.addEventListener('keydown', (event) => {
-        // Enter sends and Shift+Enter starts a new line; Enter while composing an accent or emoji is left alone.
         if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
             event.preventDefault();
             void sendText(input.value);
@@ -424,7 +403,6 @@ function mount(parts) {
             paint();
         });
     }
-    // Leaving the page must not leave the microphone open or a voice talking.
     window.addEventListener('pagehide', () => {
         recorder.cancel();
         stopSpeaking();

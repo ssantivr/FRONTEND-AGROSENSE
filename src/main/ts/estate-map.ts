@@ -1,5 +1,3 @@
-// Outline editor of the estate form: each click on the map adds a corner, corners can be dragged, and the
-// result travels in a hidden field as JSON, [[latitude, longitude], ...].
 import { isBoundary } from './api/ui.js';
 import { areaOfOutline, find } from './core/dom.js';
 import type { Corner } from './types/api.js';
@@ -29,7 +27,6 @@ function initEditor(): void {
   try {
     stored = field.value ? (JSON.parse(field.value) as unknown) : null;
   } catch {
-    // An unreadable value is treated as no outline; saving will replace it.
   }
   const corners: Corner[] = isBoundary(stored) ? stored.map((corner): Corner => [corner[0], corner[1]]) : [];
 
@@ -47,10 +44,8 @@ function initEditor(): void {
 
   const outline = leaflet.polygon([], { className: 'map-boundary', interactive: false }).addTo(map);
   let handles: Marker[] = [];
-  /** Whether the area and centre fields hold values this editor wrote, and so may be rewritten by it. */
   const owns = { area: areaHa.value === '', centre: latitude.value === '' && longitude.value === '' };
 
-  /** Writes the corners to the hidden field and, where the user left them empty, the area and the centre. */
   const sync = (): void => {
     const closed = corners.length >= 3;
     field.value = closed ? JSON.stringify(corners.map(([lat, lon]) => [Number(lat.toFixed(7)), Number(lon.toFixed(7))])) : '';
@@ -79,7 +74,6 @@ function initEditor(): void {
     }
   };
 
-  /** One draggable handle per corner; rebuilt whenever a corner is added or removed. */
   const drawHandles = (): void => {
     handles.forEach((handle) => handle.remove());
     handles = corners.map((corner, index) => {
@@ -120,7 +114,6 @@ function initEditor(): void {
     corners.length = 0;
     changed();
   });
-  // Typing a value by hand makes the field the user's again: the editor stops rewriting it.
   areaHa.addEventListener('input', () => {
     owns.area = areaHa.value === '';
   });
@@ -148,7 +141,6 @@ function initEditor(): void {
     );
   });
 
-  // Start on the outline, else on the estate's point, else on the whole country.
   const typedLat = latitude.valueAsNumber;
   const typedLon = longitude.valueAsNumber;
   if (corners.length >= 3) map.fitBounds(leaflet.latLngBounds(corners).pad(0.3), { maxZoom: 19 });

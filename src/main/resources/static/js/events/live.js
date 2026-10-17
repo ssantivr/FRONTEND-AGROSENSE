@@ -1,7 +1,3 @@
-// Live readings and alerts. Asks this server for a short token (signed by the backend), opens the event
-// service's stream with it and updates the page as events arrive: the sensors' latest values, and a notice
-// plus the alert counters for every new alert. The token is renewed before it expires, and a dropped stream
-// is opened again after a growing wait. When live events are off or fail, the page keeps what it loaded.
 import { showToast } from '../app.js';
 import { ApiError, isArrayOf, isRecord, requestJson } from '../api/client.js';
 import { all, find } from '../core/dom.js';
@@ -16,7 +12,6 @@ const isAlert = (value) => isRecord(value) && typeof value['alertType'] === 'str
 const isEvent = (value) => isRecord(value) && isArrayOf(isReading)(value['readings']) && isArrayOf(isAlert)(value['alerts']);
 const FIRST_WAIT_MS = 1_000;
 const LONGEST_WAIT_MS = 60_000;
-/** The stream is reopened with a fresh token this long before the current one expires. */
 const RENEW_BEFORE_MS = 30_000;
 const decimal = new Intl.NumberFormat('es-CO', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const shortDate = new Intl.DateTimeFormat('es-CO', {
@@ -36,7 +31,6 @@ class LiveEvents {
         this.tokenUrl = tokenUrl;
         this.status = status;
     }
-    /** Opens the stream; whatever goes wrong only schedules another try, never an error on the page. */
     async connect() {
         this.close();
         let access;
@@ -44,7 +38,6 @@ class LiveEvents {
             access = await requestJson(this.tokenUrl, isAccess, { timeoutMs: 20_000 });
         }
         catch (error) {
-            // A signed-out user gets no stream; anything else may be a backend still waking up.
             if (error instanceof ApiError && error.kind === 'unauthorized')
                 return;
             this.retryLater();
@@ -65,8 +58,6 @@ class LiveEvents {
         source.addEventListener('reading', (message) => this.deliver(message));
         source.addEventListener('alert', (message) => this.deliver(message));
         source.addEventListener('expired', () => void this.connect());
-        // The browser would reconnect on its own with the same token, which may have expired; this asks for a
-        // new one after a wait that grows with each failure.
         source.addEventListener('error', () => {
             this.close();
             this.retryLater();
@@ -102,7 +93,6 @@ class LiveEvents {
         this.status.hidden = true;
     }
 }
-/** Every place of the page that shows this sensor's latest reading gets the new one. */
 function showReading(reading) {
     const when = reading.recordedAt ? new Date(reading.recordedAt) : new Date();
     for (const holder of all('[data-sensor-code]', HTMLElement)) {
@@ -118,12 +108,10 @@ function showReading(reading) {
                 time.dateTime = when.toISOString();
         }
         holder.classList.remove('is-live-updated');
-        // Reading the size restarts the highlight when two readings arrive in a row.
         void holder.offsetWidth;
         holder.classList.add('is-live-updated');
     }
 }
-/** A notice, and the alert counters of the menu and the top bar, which a new alert changes. */
 function showAlert(alert) {
     showToast(`Nueva alerta${alert.cropName ? ` en ${alert.cropName}` : ''}: ${alert.message}`, 'error');
     const badge = document.querySelector('.sidebar-badge');

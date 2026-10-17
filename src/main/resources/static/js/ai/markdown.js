@@ -1,12 +1,9 @@
-// The small part of Markdown the assistant uses, turned into DOM nodes. Nothing is ever parsed as HTML:
-// every piece of text goes through textContent, so an answer cannot inject markup or scripts.
 import { el } from '../core/dom.js';
 const INLINE = /(\*\*([^*\n]+)\*\*|__([^_\n]+)__|\*([^*\n]+)\*|`([^`\n]+)`|\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\))/g;
 const BULLET = /^\s*[-*•]\s+(.*)$/;
 const NUMBERED = /^\s*\d+[.)]\s+(.*)$/;
 const HEADING = /^\s*#{1,6}\s+(.*)$/;
 const FENCE = /^\s*```/;
-/** Bold, italics, inline code and http(s) links inside one line. */
 function inline(parent, text) {
     let last = 0;
     for (const match of text.matchAll(INLINE)) {
@@ -34,7 +31,6 @@ function inline(parent, text) {
     if (last < text.length)
         parent.append(text.slice(last));
 }
-/** Paragraphs, headings, bulleted and numbered lists and fenced code, in the order they appear. */
 export function renderMarkdown(source) {
     const fragment = document.createDocumentFragment();
     const lines = source.replace(/\r\n?/g, '\n').split('\n');
@@ -102,7 +98,6 @@ export function renderMarkdown(source) {
         else
             paragraph.push(line.trim());
     }
-    // An answer cut short may leave a fence open: what was inside is still shown.
     if (code !== null && code.length > 0) {
         const block = el('pre');
         block.append(el('code', '', code.join('\n')));
@@ -111,7 +106,6 @@ export function renderMarkdown(source) {
     closeParagraph();
     return fragment;
 }
-/** The same text without its marks, for reading aloud. */
 export function plainText(source) {
     return source
         .replace(/```/g, ' ')

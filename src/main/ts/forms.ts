@@ -1,16 +1,10 @@
-// Form helpers shared by the account pages: live character counters, the password meter and field messages.
 import { all, find } from './core/dom.js';
 
-/** Limits of the sign-up form; the server and the backend API enforce the same ones. */
 export const LIMITS = {
   name: { min: 2, max: 18 },
   password: { min: 8, max: 32 },
 } as const;
 
-/**
- * <input data-counter="counterId" minlength maxlength> keeps "typed/max" up to date in #counterId.
- * The length is the text as typed: a space counts as one more character.
- */
 export function initCounters(): void {
   all('input[data-counter]', HTMLInputElement).forEach((input) => {
     const counter = find(input.dataset['counter'] ?? '', HTMLElement);
@@ -33,7 +27,6 @@ export interface Strength {
   label: string;
 }
 
-/** Rates a password by length and by how many kinds of character it mixes. It is guidance, not a rule. */
 export function passwordStrength(password: string): Strength {
   const { min, max } = LIMITS.password;
   const { length } = password;
@@ -49,7 +42,6 @@ export function passwordStrength(password: string): Strength {
   return { level: 4, label: 'Fuerte.' };
 }
 
-/** <div data-strength-for="inputId"> shows the level as filled bars (data-level) and as text. */
 export function initPasswordMeters(): void {
   all('[data-strength-for]', HTMLElement).forEach((meter) => {
     const input = find(meter.dataset['strengthFor'] ?? '', HTMLInputElement);
@@ -65,7 +57,6 @@ export function initPasswordMeters(): void {
   });
 }
 
-/** What each line of the password checklist asks for. Only "length" is required by the server. */
 const PASSWORD_RULES: Readonly<Record<string, (password: string) => boolean>> = {
   length: (password) => password.length >= LIMITS.password.min && password.length <= LIMITS.password.max,
   mixed: (password) => /\p{Ll}/u.test(password) && /\p{Lu}/u.test(password),
@@ -73,7 +64,6 @@ const PASSWORD_RULES: Readonly<Record<string, (password: string) => boolean>> = 
   symbol: (password) => /[^\p{L}\p{N}]/u.test(password),
 };
 
-/** <ul data-rules-for="inputId"> with <li data-rule="length|mixed|digit|symbol">: marks each line as it is met. */
 export function initPasswordRules(): void {
   all('[data-rules-for]', HTMLElement).forEach((list) => {
     const input = find(list.dataset['rulesFor'] ?? '', HTMLInputElement);
@@ -83,7 +73,6 @@ export function initPasswordRules(): void {
       lines.forEach((line) => {
         const met = PASSWORD_RULES[line.dataset['rule'] ?? '']?.(input.value) ?? false;
         line.classList.toggle('is-met', met);
-        // The mark is drawn by CSS; this says the same to a screen reader.
         line.setAttribute('aria-label', `${line.textContent?.trim() ?? ''}: ${met ? 'cumplido' : 'pendiente'}`);
       });
     };
@@ -92,7 +81,6 @@ export function initPasswordRules(): void {
   });
 }
 
-/** <input data-caps-warning="hintId">: shows the hint while Caps Lock is on and the field has the focus. */
 export function initCapsWarnings(): void {
   all('input[data-caps-warning]', HTMLInputElement).forEach((input) => {
     const hint = find(input.dataset['capsWarning'] ?? '', HTMLElement);
@@ -108,10 +96,6 @@ export function initCapsWarnings(): void {
   });
 }
 
-/**
- * Shows or clears the message under a field, in the slot whose id is the field's name plus "Error".
- * A message the server rendered for the same field is removed: it described the previous attempt.
- */
 export function setFieldError(input: HTMLInputElement, message: string | null): void {
   const slot = find(`${input.name}Error`, HTMLElement);
   const text = slot?.firstElementChild;
@@ -125,14 +109,9 @@ export function setFieldError(input: HTMLInputElement, message: string | null): 
 
 export interface FieldRule {
   input: HTMLInputElement;
-  /** The message to show, or null when the value is acceptable. */
   check: (value: string) => string | null;
 }
 
-/**
- * Checks one field: shows its message, or marks it as good when it has a value that passes. An empty field
- * the user has not reached yet is left unmarked instead of being called wrong.
- */
 export function validateField(rule: FieldRule, { quietWhenEmpty = false } = {}): boolean {
   const { input, check } = rule;
   const field = input.closest('.field');
@@ -147,7 +126,6 @@ export function validateField(rule: FieldRule, { quietWhenEmpty = false } = {}):
   return message === null;
 }
 
-/** Runs every rule, shows the messages and focuses the first field with one. True when all passed. */
 export function validateFields(rules: readonly FieldRule[]): boolean {
   const failed = rules.filter((rule) => !validateField(rule));
   failed[0]?.input.focus();

@@ -1,11 +1,9 @@
-// Settings page: browser-level preferences and the account deletion dialog.
 import { isSidebarCollapsed, setSidebarCollapsed } from './app.js';
 import { find } from './core/dom.js';
 const sidebarPreference = find('prefSidebarCollapsed', HTMLInputElement);
 if (sidebarPreference) {
     sidebarPreference.checked = isSidebarCollapsed();
     sidebarPreference.addEventListener('change', () => setSidebarCollapsed(sidebarPreference.checked));
-    // Keep the checkbox in step with the top bar button.
     find('sidebarToggle', HTMLButtonElement)?.addEventListener('click', () => {
         sidebarPreference.checked = isSidebarCollapsed();
     });

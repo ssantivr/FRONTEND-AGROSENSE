@@ -1,5 +1,3 @@
-// Outline editor of the estate form: each click on the map adds a corner, corners can be dragged, and the
-// result travels in a hidden field as JSON, [[latitude, longitude], ...].
 import { isBoundary } from './api/ui.js';
 import { areaOfOutline, find } from './core/dom.js';
 const MAX_CORNERS = 200;
@@ -26,7 +24,6 @@ function initEditor() {
         stored = field.value ? JSON.parse(field.value) : null;
     }
     catch {
-        // An unreadable value is treated as no outline; saving will replace it.
     }
     const corners = isBoundary(stored) ? stored.map((corner) => [corner[0], corner[1]]) : [];
     container.hidden = false;
@@ -42,9 +39,7 @@ function initEditor() {
     map.on('blur', () => map.scrollWheelZoom.disable());
     const outline = leaflet.polygon([], { className: 'map-boundary', interactive: false }).addTo(map);
     let handles = [];
-    /** Whether the area and centre fields hold values this editor wrote, and so may be rewritten by it. */
     const owns = { area: areaHa.value === '', centre: latitude.value === '' && longitude.value === '' };
-    /** Writes the corners to the hidden field and, where the user left them empty, the area and the centre. */
     const sync = () => {
         const closed = corners.length >= 3;
         field.value = closed ? JSON.stringify(corners.map(([lat, lon]) => [Number(lat.toFixed(7)), Number(lon.toFixed(7))])) : '';
@@ -74,7 +69,6 @@ function initEditor() {
             longitude.value = (corners.reduce((sum, corner) => sum + corner[1], 0) / corners.length).toFixed(7);
         }
     };
-    /** One draggable handle per corner; rebuilt whenever a corner is added or removed. */
     const drawHandles = () => {
         handles.forEach((handle) => handle.remove());
         handles = corners.map((corner, index) => {
@@ -114,7 +108,6 @@ function initEditor() {
         corners.length = 0;
         changed();
     });
-    // Typing a value by hand makes the field the user's again: the editor stops rewriting it.
     areaHa.addEventListener('input', () => {
         owns.area = areaHa.value === '';
     });
@@ -135,7 +128,6 @@ function initEditor() {
             summary.textContent = 'No se pudo obtener tu ubicación. Acerca el mapa a mano hasta la parcela.';
         }, { enableHighAccuracy: true, timeout: 10_000 });
     });
-    // Start on the outline, else on the estate's point, else on the whole country.
     const typedLat = latitude.valueAsNumber;
     const typedLon = longitude.valueAsNumber;
     if (corners.length >= 3)

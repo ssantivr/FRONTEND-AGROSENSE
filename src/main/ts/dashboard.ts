@@ -1,5 +1,3 @@
-// Dashboard widgets: readings chart, water chart, estate map and the quick irrigation form.
-// Chart.js and Leaflet are loaded as classic scripts by the layout and expose the globals Chart and L.
 import type { Chart as ChartInstance, Plugin } from 'chart.js';
 import { ApiError, messageOf } from './api/client.js';
 import {
@@ -17,10 +15,8 @@ import { THEME_EVENT } from './theme.js';
 import type { DailyWater, EstateMarker, ReadingSeries } from './types/api.js';
 import type { ThresholdLine } from './types/globals.js';
 
-// A live declaration: token() always returns the value of the theme that is active right now.
 const styles = getComputedStyle(document.documentElement);
 const token = (name: string): string => styles.getPropertyValue(name).trim();
-// Chart.js draws its own text: give it the interface's typeface.
 if (typeof Chart !== 'undefined') Chart.defaults.font.family = token('--font-body');
 const numberFormat = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 });
 const timeFormat = new Intl.DateTimeFormat('es-CO', { hour: '2-digit', minute: '2-digit' });
@@ -41,7 +37,6 @@ function showMessage(boxId: string, messageId: string, text: string): void {
   message.hidden = false;
 }
 
-/** Draws the crop's acceptable range as dashed lines with a label at the right edge. */
 const thresholdPlugin: Plugin<'line', { lines: ThresholdLine[] }> = {
   id: 'thresholds',
   afterDatasetsDraw(chart, _args, options) {
@@ -67,13 +62,10 @@ const thresholdPlugin: Plugin<'line', { lines: ThresholdLine[] }> = {
   },
 };
 
-// ---------- Readings of one sensor ----------
-
 let readingsChart: ChartInstance<'line', number[], string> | undefined;
 let readingsSeries: ReadingSeries | undefined;
 let readingsRequest: AbortController | undefined;
 
-/** Draws the series with the colours of the active theme. Called again, unchanged, when the theme switches. */
 function renderReadings(series: ReadingSeries): void {
   const canvas = find('readingsChart', HTMLCanvasElement);
   if (!canvas) return;
@@ -112,7 +104,6 @@ function renderReadings(series: ReadingSeries): void {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      // Draw the final state at once: entry animations stall in background tabs and add nothing here.
       animation: false,
       interaction: { mode: 'index', intersect: false },
       plugins: {
@@ -158,7 +149,6 @@ async function loadReadings(sensorId: string): Promise<void> {
   box.hidden = false;
   box.classList.add('skeleton');
   message.hidden = true;
-  // Choosing another sensor while one is loading drops the older request.
   readingsRequest?.abort();
   readingsRequest = new AbortController();
 
@@ -192,8 +182,6 @@ function initReadings(): void {
   void loadReadings(select.value);
 }
 
-// ---------- Water applied per day ----------
-
 let waterChart: ChartInstance<'bar', number[], string> | undefined;
 let waterDays: DailyWater[] | undefined;
 
@@ -204,7 +192,6 @@ function renderWater(days: DailyWater[]): void {
   waterChart = new Chart(canvas, {
     type: 'bar',
     data: {
-      // The API sends plain dates; appending a time keeps them in the local day.
       labels: days.map((day) => dayFormat.format(new Date(`${day.date}T12:00:00`))),
       datasets: [
         {
@@ -237,7 +224,6 @@ async function initWater(): Promise<void> {
   if (!box) return;
   let days: DailyWater[];
   try {
-    // The page already carries the week's totals; the endpoint is only asked when it does not.
     days = embeddedWaterUsage(box.dataset['days']) ?? (await fetchWaterUsage());
   } catch (error) {
     showMessage('waterChartBox', 'waterMessage', `No se pudo cargar el consumo de agua. ${messageOf(error)}`);
@@ -252,16 +238,11 @@ async function initWater(): Promise<void> {
   renderWater(days);
 }
 
-// ---------- Estate map ----------
-
 const LEAF_PATH = 'M24 3C34.5 11 39 20.5 39 27.5 39 36.6 32.3 44 24 44S9 36.6 9 27.5C9 20.5 13.5 11 24 3Z';
 const VEIN_PATH = 'M24 40V12M24 33l7.5-7.5M24 27l-7.5-7.5M24 21l5-5';
-/** Closest zoom when flying to an estate that has nothing drawn around it. */
 const FOCUS_ZOOM = 13;
 
-/** The brand leaf as a map pin, with the number of open alerts on it when there are any. */
 function pinHtml(estate: EstateMarker): string {
-  // Built only from constants and a number, so handing it to Leaflet as HTML is safe.
   const badge = estate.openAlerts > 0 ? `<span class="map-pin-badge">${Math.trunc(estate.openAlerts)}</span>` : '';
   return (
     `<svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><path class="map-pin-leaf" d="${LEAF_PATH}"/>` +
@@ -271,7 +252,6 @@ function pinHtml(estate: EstateMarker): string {
 
 const plural = (count: number, one: string, many: string): string => (count === 1 ? `1 ${one}` : `${count} ${many}`);
 
-/** What the popup over a pin shows: where the estate is, what grows there, how it is doing, and its page. */
 function estateCard(estate: EstateMarker): HTMLElement {
   const card = el('div', 'map-card');
   const meta = [estate.location ?? 'Sin ubicación'];
@@ -299,7 +279,6 @@ function estateCard(estate: EstateMarker): HTMLElement {
   return card;
 }
 
-/** Replaces the map with the notice; `notice` explains why when given. The list beside it stays usable. */
 function showMapFallback(notice?: string): void {
   find('estateMap', HTMLElement)?.setAttribute('hidden', '');
   find('estateMapFallback', HTMLElement)?.removeAttribute('hidden');
@@ -313,7 +292,6 @@ function showMapFallback(notice?: string): void {
 
 async function initMap(): Promise<void> {
   const container = find('estateMap', HTMLElement);
-  // Without a container the server already rendered the notice: nothing to draw.
   if (!container) return;
   if (typeof L === 'undefined') {
     showMapFallback('No se pudo cargar el mapa.');
@@ -337,7 +315,6 @@ async function initMap(): Promise<void> {
     const items = new Map(
       all('[data-estate-tile]', HTMLButtonElement).map((item) => [Number(item.dataset['estateId']), item] as const),
     );
-    /** Marks one estate as the chosen one in the list; null clears the choice. */
     const select = (id: number | null, reveal: boolean): void => {
       items.forEach((item, itemId) => {
         if (item.hasAttribute('aria-pressed')) item.setAttribute('aria-pressed', String(itemId === id));
@@ -345,7 +322,6 @@ async function initMap(): Promise<void> {
       if (id !== null && reveal) items.get(id)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     };
 
-    // The pins are styled by CSS with the theme's colours, so a theme change needs no redraw here.
     const pins = new Map(
       estates.map((estate) => {
         const marker = leaflet
@@ -366,7 +342,6 @@ async function initMap(): Promise<void> {
           closeButton: false,
           minWidth: 230,
           maxWidth: 280,
-          // Keeps the whole card inside the map when the pin is near an edge.
           autoPanPadding: [24, 24],
         });
         marker.on('popupopen', () => select(estate.id, true));
@@ -388,7 +363,6 @@ async function initMap(): Promise<void> {
     };
     map.fitBounds(everything, { maxZoom: 12 });
 
-    // Choosing an estate in the list flies to it and opens its detail over the pin.
     items.forEach((item, id) => {
       const marker = pins.get(id);
       if (!marker) return;
@@ -396,7 +370,6 @@ async function initMap(): Promise<void> {
         const duration = prefersReducedMotion() ? 0 : 0.8;
         const shapes = grounds.get(id) ?? [];
         map.once('moveend', () => marker.openPopup());
-        // Close enough to see the estate's outline and its sensors; without either, a fixed close zoom.
         if (shapes.length > 0) {
           map.flyToBounds(leaflet.featureGroup(shapes).getBounds().pad(0.25), { maxZoom: 18, duration });
         } else {
@@ -406,7 +379,6 @@ async function initMap(): Promise<void> {
     });
     find('mapFit', HTMLButtonElement)?.addEventListener('click', fitAll);
 
-    // The wheel scrolls the page until the map is clicked; leaving the map gives the wheel back.
     const hint = document.querySelector<HTMLElement>('.map-hint');
     map.on('click', () => {
       map.scrollWheelZoom.enable();
@@ -423,7 +395,6 @@ async function initMap(): Promise<void> {
   }
 }
 
-/** The "Ampliar" button makes the map section fill the window; Escape or the same button brings it back. */
 function initMapExpand(onResize: () => void): void {
   const section = find('mapSection', HTMLElement);
   const button = find('mapExpand', HTMLButtonElement);
@@ -434,11 +405,9 @@ function initMapExpand(onResize: () => void): void {
     document.documentElement.classList.toggle('has-expanded-map', expanded);
     button.setAttribute('aria-pressed', String(expanded));
     label.textContent = expanded ? 'Reducir' : 'Ampliar';
-    // The container changed size: Leaflet has to measure it again once the layout has settled.
     requestAnimationFrame(onResize);
   };
   button.addEventListener('click', () => set(!section.classList.contains('is-expanded')));
-  // In the capture phase: Leaflet stops Escape from bubbling when it closes a popup.
   document.addEventListener(
     'keydown',
     (event) => {
@@ -450,7 +419,6 @@ function initMapExpand(onResize: () => void): void {
     { capture: true },
   );
 }
-// ---------- Quick irrigation ----------
 
 function initQuickIrrigation(): void {
   const form = find('quickIrrigation', HTMLFormElement);
@@ -477,10 +445,8 @@ function initQuickIrrigation(): void {
     setButtonBusy(button, true);
     try {
       await startIrrigation({ cropId: Number(crop.value), durationMin: minutes, waterLiters: Number(water.value) });
-      // Reload so the pump status, indicators and history reflect the new irrigation.
       window.location.reload();
     } catch (error) {
-      // 400 and 409 carry the server's own explanation; the rest use the client's wording for their kind.
       showToast(error instanceof ApiError ? error.message : 'No se pudo registrar el riego.', 'error');
       setButtonBusy(button, false);
     }
@@ -491,7 +457,6 @@ function initQuickIrrigation(): void {
   });
 }
 
-/** Repaints what was drawn with theme colours; data and zoom stay as they are. */
 function applyTheme(): void {
   if (readingsSeries) renderReadings(readingsSeries);
   if (waterDays) renderWater(waterDays);

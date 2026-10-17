@@ -11,7 +11,6 @@ const isReadingSeries = (value) => isRecord(value) &&
     isArrayOf(isReadingPoint)(value['points']);
 const isDailyWater = (value) => isRecord(value) && isString(value['date']) && isNumber(value['liters']);
 const isCorner = (value) => Array.isArray(value) && value.length === 2 && isNumber(value[0]) && isNumber(value[1]);
-/** An outline needs at least three corners to enclose anything. */
 export const isBoundary = (value) => isArrayOf(isCorner)(value) && value.length >= 3;
 const isSensorSpot = (value) => isRecord(value) &&
     isNumber(value['id']) &&
@@ -42,7 +41,6 @@ const isEstateMarker = (value) => isRecord(value) &&
     isArrayOf(isSensorSpot)(value['sensors']) &&
     isNullable(isBoundary)(value['boundary']);
 const isEmailAvailability = (value) => isRecord(value) && typeof value['available'] === 'boolean';
-/** Reads data the server embedded in the page as JSON; null when it is absent or not what was promised. */
 function embedded(json, guard) {
     if (!json)
         return null;
@@ -55,7 +53,6 @@ function embedded(json, guard) {
     }
 }
 export const embeddedEstateMarkers = (json) => embedded(json, isArrayOf(isEstateMarker));
-/** One estate, as its own page embeds it. */
 export function embeddedEstate(json) {
     return embedded(json, isEstateMarker);
 }
@@ -63,6 +60,5 @@ export const embeddedWaterUsage = (json) => embedded(json, isArrayOf(isDailyWate
 export const fetchReadings = (sensorId, signal) => requestJson(`/api/ui/sensors/${encodeURIComponent(sensorId)}/readings`, isReadingSeries, signal ? { signal } : {});
 export const fetchWaterUsage = () => requestJson('/api/ui/water-usage', isArrayOf(isDailyWater));
 export const fetchEstateMarkers = () => requestJson('/api/ui/estates/markers', isArrayOf(isEstateMarker));
-/** The created irrigation is not read: the page reloads to show it everywhere. */
 export const startIrrigation = (irrigation) => requestJson('/api/ui/irrigations', isRecord, { method: 'POST', body: irrigation });
 export const checkEmail = (url, email, signal) => requestJson(`${url}?email=${encodeURIComponent(email)}`, isEmailAvailability, { signal, timeoutMs: 8_000 });

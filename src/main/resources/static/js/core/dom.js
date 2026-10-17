@@ -1,11 +1,7 @@
-// Typed access to the elements the templates render. Ids are a contract with the Thymeleaf templates,
-// so a lookup states the element type it expects and is checked at run time.
-/** The element with this id when it exists and is of the expected type; otherwise null. */
 export function find(id, type) {
     const element = document.getElementById(id);
     return element instanceof type ? element : null;
 }
-/** Like find, for elements the page cannot work without. */
 export function need(id, type) {
     const element = find(id, type);
     if (!element)
@@ -15,7 +11,6 @@ export function need(id, type) {
 export function all(selector, type, root = document) {
     return [...root.querySelectorAll(selector)].filter((element) => element instanceof type);
 }
-/** Builds an element with a class and, optionally, text. Text is never parsed as HTML. */
 export function el(tag, className = '', text = '') {
     const element = document.createElement(tag);
     if (className)
@@ -24,16 +19,11 @@ export function el(tag, className = '', text = '') {
         element.textContent = text;
     return element;
 }
-/** A decorative Bootstrap icon. */
 export function icon(name) {
     const element = el('i', `bi ${name}`);
     element.setAttribute('aria-hidden', 'true');
     return element;
 }
-/**
- * Shows or clears the waiting state of a button: locked, announced as busy and, for text buttons, with a
- * spinner in front of the label. The button keeps its label, so its meaning does not change while it waits.
- */
 export function setButtonBusy(button, busy) {
     button.disabled = busy;
     button.setAttribute('aria-busy', String(busy));
@@ -46,12 +36,7 @@ export function setButtonBusy(button, busy) {
         button.prepend(spinner);
     }
 }
-/** Radius, in metres, of a circle with this area in hectares: how an estate without a drawn boundary is shown. */
 export const radiusOfArea = (areaHa) => Math.sqrt((areaHa * 10_000) / Math.PI);
-/**
- * Area, in hectares, enclosed by corners given as [latitude, longitude]. They are laid flat around their
- * middle, which is exact enough at the size of a farm; Boundary.areaHa on the server does the same.
- */
 export function areaOfOutline(corners) {
     if (corners.length < 3)
         return 0;

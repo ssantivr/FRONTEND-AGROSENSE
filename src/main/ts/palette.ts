@@ -1,5 +1,3 @@
-// Command palette (Ctrl/⌘ + K): jump to a module or run a quick action from the keyboard.
-// The entries are the links and buttons the server rendered inside the dialog, so it only offers what exists.
 import { all, find } from './core/dom.js';
 import { nextTheme, setTheme } from './theme.js';
 
@@ -73,7 +71,6 @@ export function initCommandPalette(): void {
       visible()[active]?.click();
     }
   });
-  // A click on the backdrop lands on the dialog element itself.
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) dialog.close();
   });
@@ -81,7 +78,6 @@ export function initCommandPalette(): void {
 
   document.addEventListener('keydown', (event) => {
     const combo = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k';
-    // "?" opens it too, unless the user is typing somewhere or another dialog is in front.
     const help = event.key === '?' && !isTypingTarget(event.target) && !document.querySelector('dialog[open]');
     if (!combo && !help) return;
     event.preventDefault();

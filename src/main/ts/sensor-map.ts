@@ -1,11 +1,8 @@
-// Position picker of the sensor forms: click the map to place the sensor, drag it to move it, and see the
-// circle of ground its readings stand for. The three inputs stay the source of truth and can be typed too.
 import { isRecord } from './api/client.js';
 import { isPickerSite } from './api/ui.js';
 import { find, radiusOfArea } from './core/dom.js';
 import type { PickerSite } from './types/api.js';
 
-/** Radius given to a sensor the first time it is placed, until the user types another. */
 const DEFAULT_COVERAGE_M = 30;
 const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
@@ -35,7 +32,6 @@ function initPicker(): void {
   const sites = parse(picker.dataset['sites']);
   const fixedSite = parse(picker.dataset['site']);
   const cropSelect = document.querySelector<HTMLSelectElement>('select[data-picker-crop]');
-  /** The estate the sensor will belong to: the one of the chosen crop, or the sensor's own. */
   const currentSite = (): PickerSite | null => {
     if (isPickerSite(fixedSite)) return fixedSite;
     const site = isRecord(sites) && cropSelect ? sites[cropSelect.value] : null;
@@ -83,7 +79,6 @@ function initPicker(): void {
     return Number.isFinite(metres) && metres >= 1 && metres <= 2000 ? metres : null;
   };
 
-  /** Draws what the three inputs say. */
   const draw = (): void => {
     const point = typedPoint();
     const radius = typedRadius();
@@ -106,7 +101,6 @@ function initPicker(): void {
     summary.textContent = `Cubre ${hectares.toLocaleString('es-CO', { maximumFractionDigits: 2 })} ha${share}.`;
   };
 
-  /** Writes a point into the inputs, with a default radius the first time. */
   const place = (lat: number, lon: number): void => {
     latitude.value = lat.toFixed(7);
     longitude.value = lon.toFixed(7);
@@ -114,13 +108,11 @@ function initPicker(): void {
     draw();
   };
 
-  /** Moves the map to the estate and draws its approximate area. */
   const showSite = (): void => {
     const site = currentSite();
     area.remove();
     outline.remove();
     if (site?.boundary) {
-      // The estate's own outline, when it has been drawn.
       say('');
       outline.setLatLngs(site.boundary);
       map.fitBounds(leaflet.latLngBounds(site.boundary).pad(0.3), { maxZoom: 19 });
@@ -141,7 +133,6 @@ function initPicker(): void {
     const centre: [number, number] = [site.latitude, site.longitude];
     if (site.areaHa !== null) {
       const radius = radiusOfArea(site.areaHa);
-      // The view comes first: a circle cannot be measured on a map that has no view yet.
       map.fitBounds(leaflet.latLng(centre).toBounds(radius * 2).pad(0.3), { maxZoom: 18 });
       area.setLatLng(centre).setRadius(radius).addTo(map);
     } else {

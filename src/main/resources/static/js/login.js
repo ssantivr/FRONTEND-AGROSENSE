@@ -1,12 +1,9 @@
-// Sign-in and sign-up pages: theme switch, hero photograph, password toggles, counters, e-mail availability
-// and the two forms. Without JavaScript both forms still post normally and the server renders the outcome.
 import { forgetConversation } from './ai/storage.js';
 import { messageOf } from './api/client.js';
 import { checkEmail } from './api/ui.js';
 import { all, find, icon, need, prefersReducedMotion } from './core/dom.js';
 import { initCapsWarnings, initCounters, initPasswordMeters, initPasswordRules, LIMITS, setFieldError, validateField, validateFields, } from './forms.js';
 import { initThemeToggles } from './theme.js';
-// These pages are only shown without a session: whatever the last user asked the assistant goes.
 forgetConversation();
 initThemeToggles();
 initCounters();
@@ -22,7 +19,6 @@ function initHeroPhoto() {
         hero.dataset['state'] = state;
     };
     const reveal = () => {
-        // decode() resolves once the image can be painted without a flash of half-decoded rows.
         photo.decode().then(() => settle('loaded'), () => settle('loaded'));
     };
     if (photo.complete) {
@@ -36,7 +32,6 @@ function initHeroPhoto() {
         photo.addEventListener('error', () => settle('error'), { once: true });
     }
 }
-// ---------- Show/hide toggles for password fields: <button data-toggle-password="inputId"> ----------
 function initPasswordToggles() {
     all('[data-toggle-password]', HTMLButtonElement).forEach((toggle) => {
         const input = find(toggle.dataset['togglePassword'] ?? '', HTMLInputElement);
@@ -47,12 +42,10 @@ function initPasswordToggles() {
             input.type = reveal ? 'text' : 'password';
             toggle.setAttribute('aria-pressed', String(reveal));
             toggle.setAttribute('aria-label', reveal ? 'Ocultar contraseña' : 'Mostrar contraseña');
-            // Replacing the icon element restarts its CSS fade-in, which gives the cross-fade.
             toggle.replaceChildren(icon(reveal ? 'bi-eye-slash' : 'bi-eye'));
         });
     });
 }
-/** Returns a reader of the latest known answer, so the form can refuse an address it knows is taken. */
 function initEmailAvailability() {
     const input = document.querySelector('input[data-email-availability]');
     const status = find('emailAvailability', HTMLElement);
@@ -86,7 +79,6 @@ function initEmailAvailability() {
                 show('taken', 'Este correo ya está registrado. Inicia sesión o usa otro.');
         }
         catch (error) {
-            // A newer keystroke aborted this request: its own check will report.
             if (error instanceof DOMException)
                 return;
             show('failed', `No pudimos comprobar el correo. ${messageOf(error)}`);
@@ -103,7 +95,6 @@ function initEmailAvailability() {
 }
 const REQUEST_TIMEOUT_MS = 15_000;
 const SUCCESS_PAUSE_MS = 350;
-/** Message, and whether "Reintentar" makes sense, for every state that reports a problem. */
 const PROBLEMS = {
     'invalid-credentials': { text: 'No se pudo iniciar sesión. Comprueba tus credenciales.', retry: false },
     'rate-limited': { text: 'Demasiados intentos fallidos. Espera unos minutos antes de volver a intentarlo.', retry: false },
@@ -150,7 +141,6 @@ function initSignIn(form) {
         submit.classList.toggle('is-loading', busy);
         submit.classList.toggle('is-success', done);
         label.textContent = busy ? 'Verificando credenciales…' : done ? 'Acceso autorizado' : idleLabel;
-        // Read-only, not disabled: the values must stay in the request and nothing may be edited meanwhile.
         email.readOnly = busy || done;
         password.readOnly = busy || done;
         if (shell)
@@ -165,7 +155,6 @@ function initSignIn(form) {
                 : problem.text;
         retry.hidden = !problem.retry;
     };
-    /** Sends the form and reads the outcome from where Spring Security redirects, or from the status code. */
     const request = async () => {
         const loginPath = new URL(form.action).pathname;
         const controller = new AbortController();
@@ -193,7 +182,6 @@ function initSignIn(form) {
             if (response.status === 401 || (backAtLogin && landed.searchParams.has('error'))) {
                 return { kind: 'invalid-credentials' };
             }
-            // 403 is a stale CSRF token; 400 is a form the server could not read. Both need a fresh page.
             if (response.status === 403 || response.status === 400)
                 return { kind: 'expired' };
             if (response.status === 404)
@@ -203,7 +191,6 @@ function initSignIn(form) {
             return { kind: 'server-error' };
         }
         catch {
-            // A timeout aborts the request and is reported like any other failure to reach the server.
             return { kind: 'network-error' };
         }
         finally {
@@ -218,13 +205,11 @@ function initSignIn(form) {
             render({ kind: 'idle' });
             return;
         }
-        // Messages the server rendered for the previous page load no longer describe this attempt.
         all('[data-server-message]', HTMLElement).forEach((message) => message.remove());
         render({ kind: 'submitting' });
         const outcome = await request();
         render(outcome);
         if (outcome.kind === 'success') {
-            // A short beat for the confirmation, then the page the server chose. Never longer than this.
             setTimeout(() => window.location.assign(outcome.redirectTo), SUCCESS_PAUSE_MS);
         }
         else if (outcome.kind === 'invalid-credentials') {
@@ -244,18 +229,14 @@ function initSignIn(form) {
     });
     retry.addEventListener('click', () => void signIn());
     rules.forEach(({ input }) => input.addEventListener('input', () => setFieldError(input, null)));
-    // Returning with the back button restores the page as it was left: make it usable again.
     window.addEventListener('pageshow', (event) => {
         if (event.persisted)
             render({ kind: 'idle' });
     });
 }
-// ---------- Sign-up ----------
-/** Same wording as the server's validation, so a message does not change when the server repeats it. */
 function lengthRule(input, missing, outOfRange, min, max) {
     return {
         input,
-        // The length is checked on the text as typed: spaces count.
         check: (value) => required(missing)(value) ?? (value.length < min || value.length > max ? outOfRange : null),
     };
 }
@@ -296,31 +277,26 @@ function initSignUp(form, emailAvailability) {
             event.preventDefault();
             return;
         }
-        // The form posts normally from here; the button is locked so it cannot be sent twice.
         setBusy(true);
     });
     const matchHint = find('confirmPasswordMatch', HTMLElement);
-    /** "Las contraseñas coinciden", only once both are typed and equal. */
     const showMatch = () => {
         if (matchHint)
             matchHint.hidden = !(confirmation.value !== '' && confirmation.value === password.value);
     };
     rules.forEach((rule) => {
         const { input } = rule;
-        // While typing, an error goes away; the verdict comes when the field is left.
         input.addEventListener('input', () => {
             setFieldError(input, null);
             input.closest('.field')?.classList.remove('is-valid');
         });
         input.addEventListener('blur', () => validateField(rule, { quietWhenEmpty: true }));
     });
-    // Tell the mismatch as soon as the confirmation is complete enough to compare.
     confirmation.addEventListener('input', () => {
         const differs = confirmation.value.length >= password.value.length && confirmation.value !== password.value;
         setFieldError(confirmation, differs ? 'Las contraseñas no coinciden.' : null);
         showMatch();
     });
-    // Changing the password after confirming it makes the confirmation stale.
     password.addEventListener('input', () => {
         showMatch();
         if (confirmation.value !== '')

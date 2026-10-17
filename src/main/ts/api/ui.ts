@@ -1,4 +1,3 @@
-// The JSON endpoints of this application, each with the guard that validates its answer.
 import type {
   Corner,
   DailyWater,
@@ -36,7 +35,6 @@ const isDailyWater = (value: unknown): value is DailyWater =>
 const isCorner = (value: unknown): value is Corner =>
   Array.isArray(value) && value.length === 2 && isNumber(value[0]) && isNumber(value[1]);
 
-/** An outline needs at least three corners to enclose anything. */
 export const isBoundary = (value: unknown): value is Corner[] => isArrayOf(isCorner)(value) && value.length >= 3;
 
 const isSensorSpot = (value: unknown): value is SensorSpot =>
@@ -76,7 +74,6 @@ const isEstateMarker = (value: unknown): value is EstateMarker =>
 const isEmailAvailability = (value: unknown): value is EmailAvailability =>
   isRecord(value) && typeof value['available'] === 'boolean';
 
-/** Reads data the server embedded in the page as JSON; null when it is absent or not what was promised. */
 function embedded<T>(json: string | undefined, guard: (value: unknown) => value is T): T | null {
   if (!json) return null;
   try {
@@ -90,7 +87,6 @@ function embedded<T>(json: string | undefined, guard: (value: unknown) => value 
 export const embeddedEstateMarkers = (json: string | undefined): EstateMarker[] | null =>
   embedded(json, isArrayOf(isEstateMarker));
 
-/** One estate, as its own page embeds it. */
 export function embeddedEstate(json: string | undefined): EstateMarker | null {
   return embedded(json, isEstateMarker);
 }
@@ -106,7 +102,6 @@ export const fetchWaterUsage = (): Promise<DailyWater[]> => requestJson('/api/ui
 export const fetchEstateMarkers = (): Promise<EstateMarker[]> =>
   requestJson('/api/ui/estates/markers', isArrayOf(isEstateMarker));
 
-/** The created irrigation is not read: the page reloads to show it everywhere. */
 export const startIrrigation = (irrigation: IrrigationRequest): Promise<Record<string, unknown>> =>
   requestJson('/api/ui/irrigations', isRecord, { method: 'POST', body: irrigation });
 

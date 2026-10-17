@@ -1,4 +1,3 @@
-// Theme switching shared by every page. theme-init has already applied the saved theme before first paint.
 import { all } from './core/dom.js';
 
 export type Theme = 'premium' | 'dark' | 'mono';
@@ -8,9 +7,7 @@ export interface ThemeChange {
 }
 
 const THEME_KEY = 'agrosense.theme';
-/** Browser chrome colour per theme, for <meta name="theme-color">. */
 const THEME_COLORS: Record<Theme, string> = { premium: '#10291f', dark: '#0b1410', mono: '#0a0a0a' };
-/** In the order the switch shows them. */
 const THEMES: readonly Theme[] = ['premium', 'dark', 'mono'];
 const ARROW_STEPS: Readonly<Record<string, number>> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
 export const THEME_EVENT = 'agrosense:theme';
@@ -22,10 +19,8 @@ export function currentTheme(): Theme {
   return isTheme(theme) ? theme : 'premium';
 }
 
-/** The theme after the current one, wrapping around. */
 export const nextTheme = (): Theme => THEMES[(THEMES.indexOf(currentTheme()) + 1) % THEMES.length] ?? 'premium';
 
-/** Applies a theme, remembers it in this browser and tells the page (charts and maps redraw on THEME_EVENT). */
 export function setTheme(theme: Theme, { persist = true }: { persist?: boolean } = {}): void {
   const root = document.documentElement;
   if (theme !== currentTheme()) {
@@ -38,7 +33,6 @@ export function setTheme(theme: Theme, { persist = true }: { persist?: boolean }
     try {
       localStorage.setItem(THEME_KEY, theme);
     } catch {
-      // The preference is optional; ignore storage failures.
     }
   }
   document.dispatchEvent(new CustomEvent<ThemeChange>(THEME_EVENT, { detail: { theme } }));
@@ -54,7 +48,6 @@ function syncPage(): void {
   });
 }
 
-/** Wires every <div data-theme-toggle role="radiogroup">: click, arrow keys and roving tabindex. */
 export function initThemeToggles(): void {
   all('[data-theme-toggle]', HTMLElement).forEach((group) => {
     const options = all('[data-theme-value]', HTMLButtonElement, group);
@@ -77,7 +70,6 @@ export function initThemeToggles(): void {
   syncPage();
 }
 
-// Another tab changed the theme: follow it without writing it back.
 window.addEventListener('storage', (event) => {
   if (event.key === THEME_KEY && isTheme(event.newValue)) setTheme(event.newValue, { persist: false });
 });
