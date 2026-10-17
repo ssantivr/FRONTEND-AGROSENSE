@@ -596,6 +596,49 @@ code {
   text-decoration: none;
 }
 
+/* Live readings and alerts (events/live.js): the indicator while the stream is open, and the highlight of
+   whatever a new reading changed. In the mono theme the label says it; the dot is only decoration. */
+.live-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--text-small);
+  white-space: nowrap;
+}
+
+.live-status[hidden] {
+  display: none;
+}
+
+.live-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--status-success);
+  animation: node-pulse 2s var(--ease-in-out) infinite;
+}
+
+.is-live-updated {
+  animation: live-updated var(--motion-slow) var(--ease-out);
+}
+
+@keyframes live-updated {
+  from {
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  to {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-status-dot,
+  .is-live-updated {
+    animation: none;
+  }
+}
+
 .topbar-dot {
   position: absolute;
   top: 9px;

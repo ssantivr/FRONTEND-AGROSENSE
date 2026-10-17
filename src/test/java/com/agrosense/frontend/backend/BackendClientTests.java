@@ -284,6 +284,22 @@ class BackendClientTests {
         assertThat(client.isAvailable()).isTrue();
     }
 
+    @Test
+    void theLiveStreamsTokenIsAskedForTheSignedInUser() {
+        responseBody = "{\"token\":\"token-del-canal\",\"expiresInSeconds\":300}";
+
+        BackendClient.EventStreamToken token = client.eventStreamToken(EMAIL);
+
+        assertThat(requests).containsExactly("GET /api/events/token");
+        assertThat(authorizations.get(0)).startsWith("Bearer ");
+        assertThat(token.token()).isEqualTo("token-del-canal");
+        assertThat(token.expiresInSeconds()).isEqualTo(300);
+
+        status = 503;
+        responseBody = "{\"message\":\"Los eventos en vivo no están configurados.\"}";
+        assertThatThrownBy(() -> client.eventStreamToken(EMAIL)).isInstanceOf(BackendUnavailableException.class);
+    }
+
     private static void respond(HttpExchange exchange, int status, String body) throws IOException {
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().add("Content-Type", "application/json");

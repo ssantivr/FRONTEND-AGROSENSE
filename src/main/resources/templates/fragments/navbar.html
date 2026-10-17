@@ -24,9 +24,15 @@
 
     <time class="topbar-clock" id="clock" aria-label="Fecha y hora actuales"></time>
 
+    <!-- Shown by events/live.js while the live stream of readings and alerts is open. -->
+    <span class="live-status" id="liveStatus" th:data-token-url="@{/api/ui/events/token}" role="status" hidden>
+        <span class="live-status-dot" aria-hidden="true"></span>
+        <span>En vivo</span>
+    </span>
+
     <div th:replace="~{fragments/brand :: theme-toggle}"></div>
 
-    <a class="icon-button topbar-alerts" th:href="@{/alertas}"
+    <a class="icon-button topbar-alerts" id="topbarAlerts" th:href="@{/alertas}"
        th:attr="aria-label=${openAlertCount != null and openAlertCount > 0} ? |${openAlertCount} alertas sin atender| : 'Sin alertas pendientes'">
         <i class="bi bi-bell" aria-hidden="true"></i>
         <span class="topbar-dot" th:if="${openAlertCount != null and openAlertCount > 0}" aria-hidden="true"></span>

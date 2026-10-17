@@ -31,7 +31,7 @@
     <!-- Both views hold the same sensors; data-view on this element decides which one shows. -->
     <div id="sensorsView" data-view="cards" th:if="${!sensors.isEmpty()}">
         <ul class="sensor-cards" data-view-panel="cards">
-            <li class="card sensor-card" th:each="sensor : ${sensors}" data-search-row
+            <li class="card sensor-card" th:each="sensor : ${sensors}" data-search-row th:data-sensor-code="${sensor.code}"
                 th:classappend="${!sensor.active} ? 'sensor-card--inactive' : (${sensor.lastValue == null} ? 'sensor-card--empty' : '')">
                 <div class="sensor-card-head">
                     <span class="stat-icon" aria-hidden="true"><i class="bi" th:classappend="${sensor.icon()}"></i></span>
@@ -43,13 +43,13 @@
                     <th:block th:unless="${sensor.active}"><span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-dash-circle', 'Inactivo')}"></span></th:block>
                 </div>
                 <p class="sensor-card-value" th:if="${sensor.lastValue != null}">
-                    <span th:text="${#numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA')}">52,0</span>
+                    <span data-live-value th:text="${#numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA')}">52,0</span>
                     <span class="stat-unit" th:text="${sensor.unit}">%</span>
                 </p>
                 <p class="sensor-card-value sensor-card-value--empty" th:if="${sensor.lastValue == null}">Sin lecturas</p>
                 <p class="sensor-card-age" th:if="${sensor.lastValue != null and sensor.lastReadingAt != null}">
                     <i class="bi bi-clock" aria-hidden="true"></i>
-                    <time th:datetime="${sensor.lastReadingAt}" th:title="${#temporals.format(sensor.lastReadingAt, 'd MMM yyyy, HH:mm')}"
+                    <time data-live-time="ago" th:datetime="${sensor.lastReadingAt}" th:title="${#temporals.format(sensor.lastReadingAt, 'd MMM yyyy, HH:mm')}"
                           th:text="|Última lectura ${sensor.lastReadingAgo()}|">Última lectura hace 3 h</time>
                 </p>
                 <dl class="sensor-card-meta">
@@ -92,15 +92,15 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:each="sensor : ${sensors}" data-search-row>
+                    <tr th:each="sensor : ${sensors}" data-search-row th:data-sensor-code="${sensor.code}">
                         <td th:text="${sensor.code}">AS-001</td>
                         <td th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</td>
                         <td th:text="${sensor.cropName}">Café</td>
                         <td th:text="${sensor.estateName}">Finca</td>
                         <td th:text="${sensor.location ?: '—'}">Lote norte</td>
-                        <td class="numeric"
+                        <td class="numeric" data-live-value th:data-unit="${sensor.unit}"
                             th:text="${sensor.lastValue != null ? #numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA') + ' ' + sensor.unit : '—'}">52,0 %</td>
-                        <td th:text="${sensor.lastReadingAt != null ? #temporals.format(sensor.lastReadingAt, 'd MMM, HH:mm') : '—'}">8 oct, 10:00</td>
+                        <td data-live-time="date" th:text="${sensor.lastReadingAt != null ? #temporals.format(sensor.lastReadingAt, 'd MMM, HH:mm') : '—'}">8 oct, 10:00</td>
                         <td>
                             <th:block th:if="${sensor.active}"><span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-check-circle-fill', 'Activo')}"></span></th:block>
                             <th:block th:unless="${sensor.active}"><span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-dash-circle', 'Inactivo')}"></span></th:block>

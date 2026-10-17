@@ -151,6 +151,16 @@ public class BackendClient {
                 }));
     }
 
+    /**
+     * A short token that opens the user's live event stream in the event service. The backend signs it with
+     * a secret this server does not know; it is handed to the user's own browser and nowhere else.
+     */
+    public EventStreamToken eventStreamToken(String email) {
+        return execute(() -> api.get().uri("/api/events/token")
+                .header(HttpHeaders.AUTHORIZATION, token.bearerFor(email))
+                .retrieve().onStatus(HttpStatusCode::isError, BackendClient::fail).body(EventStreamToken.class));
+    }
+
     /** Whether nobody has signed up with this e-mail address yet. Public: there is no user to sign for. */
     public boolean isEmailAvailable(String email) {
         return execute(() -> api.get().uri("/api/auth/check-user?email={email}", email)
@@ -343,5 +353,9 @@ public class BackendClient {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ReadingResponse(BigDecimal value, String unit, LocalDateTime recordedAt) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record EventStreamToken(String token, long expiresInSeconds) {
     }
 }

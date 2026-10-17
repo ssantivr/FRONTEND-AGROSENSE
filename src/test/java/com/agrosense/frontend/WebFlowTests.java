@@ -111,6 +111,22 @@ class WebFlowTests {
     }
 
     @Test
+    void liveEventsAreWiredIntoEveryPageAndOffWithoutTheEventService() throws Exception {
+        mvc.perform(get("/sensores").with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/js/events/live.js")))
+                .andExpect(content().string(containsString("data-token-url=\"/api/ui/events/token\"")))
+                .andExpect(content().string(containsString("data-sensor-code=\"AS-001\"")))
+                // Without EVENTS_PUBLIC_URL the page may not connect anywhere else.
+                .andExpect(header().string("Content-Security-Policy", containsString("connect-src 'self';")));
+        mvc.perform(get("/js/events/live.js")).andExpect(status().isOk());
+        mvc.perform(get("/api/ui/events/token").with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(content().json("{\"enabled\":false}"));
+        mvc.perform(get("/api/ui/events/token")).andExpect(status().is3xxRedirection());
+    }
+
+    @Test
     void validCredentialsSignInAndWrongOnesShowAGenericError() throws Exception {
         mvc.perform(formLogin("/login").userParameter("email").user(DEMO_EMAIL).password(DEMO_PASSWORD))
                 .andExpect(authenticated().withUsername(DEMO_EMAIL))

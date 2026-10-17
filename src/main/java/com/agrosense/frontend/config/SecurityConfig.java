@@ -13,30 +13,49 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 
+import java.net.URI;
+
 @Configuration
 public class SecurityConfig {
 
     /**
-     * Everything is same-origin except map tiles (OpenStreetMap streets, Esri satellite imagery). Inline
-     * scripts and styles are blocked.
+     * Everything is same-origin except map tiles (OpenStreetMap streets, Esri satellite imagery) and, when
+     * live events are on, the event service's stream. Inline scripts and styles are blocked.
      * The referrer policy sends only the origin to other sites: tile providers reject requests without one.
      */
-    private static final String CONTENT_SECURITY_POLICY = String.join("; ",
-            "default-src 'self'",
-            "script-src 'self'",
-            "style-src 'self'",
-            "font-src 'self'",
-            "img-src 'self' data: https://tile.openstreetmap.org https://server.arcgisonline.com",
-            "connect-src 'self'",
-            "object-src 'none'",
-            "base-uri 'self'",
-            "form-action 'self'",
-            "frame-ancestors 'none'");
+    static String contentSecurityPolicy(String eventsUrl) {
+        String events = originOf(eventsUrl);
+        return String.join("; ",
+                "default-src 'self'",
+                "script-src 'self'",
+                "style-src 'self'",
+                "font-src 'self'",
+                "img-src 'self' data: https://tile.openstreetmap.org https://server.arcgisonline.com",
+                "connect-src 'self'" + (events.isEmpty() ? "" : " " + events),
+                "object-src 'none'",
+                "base-uri 'self'",
+                "form-action 'self'",
+                "frame-ancestors 'none'");
+    }
+
+    /** {@code https://events.example:8443/any/path} is {@code https://events.example:8443}; nothing usable is empty. */
+    static String originOf(String url) {
+        try {
+            URI uri = URI.create(url == null ? "" : url.strip());
+            if (uri.getHost() == null || !("http".equals(uri.getScheme()) || "https".equals(uri.getScheme()))) {
+                return "";
+            }
+            return uri.getScheme() + "://" + uri.getHost() + (uri.getPort() == -1 ? "" : ":" + uri.getPort());
+        } catch (IllegalArgumentException notAUrl) {
+            return "";
+        }
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, BackendClient backendClient,
             UserDetailsService userDetailsService,
-            @Value("${agrosense.backend.sign-in:true}") boolean signInThroughBackend) throws Exception {
+            @Value("${agrosense.backend.sign-in:true}") boolean signInThroughBackend,
+            @Value("${agrosense.events.public-url:}") String eventsUrl) throws Exception {
         if (signInThroughBackend) {
             // Tried first; the database provider Spring builds from the UserDetailsService stays as the fallback.
             http.authenticationProvider(new BackendAuthenticationProvider(backendClient, userDetailsService));
@@ -57,7 +76,7 @@ public class SecurityConfig {
                                         + (exception instanceof LockedException ? "/login?locked" : "/login?error"))))
                 .logout(logout -> logout.logoutSuccessUrl("/login?logout"))
                 .headers(headers -> headers
-                        .contentSecurityPolicy(csp -> csp.policyDirectives(CONTENT_SECURITY_POLICY))
+                        .contentSecurityPolicy(csp -> csp.policyDirectives(contentSecurityPolicy(eventsUrl)))
                         .referrerPolicy(referrer -> referrer.policy(ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)));
         return http.build();
     }
