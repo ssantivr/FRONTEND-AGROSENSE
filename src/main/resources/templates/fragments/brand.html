@@ -2,7 +2,8 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <th:block th:fragment="head-assets">
-        <meta name="theme-color" content="#10291f">
+        <meta name="color-scheme" content="light dark">
+        <meta name="theme-color" content="#ffffff">
         <link rel="icon" type="image/svg+xml" th:href="@{/img/brand/favicon.svg}">
         <script th:src="@{/js/theme-init.js}"></script>
         <link rel="preload" as="font" type="font/woff2" crossorigin th:href="@{/fonts/PlusJakartaSans.woff2}">
@@ -32,17 +33,17 @@
 
 <div th:fragment="theme-toggle" class="theme-toggle" role="radiogroup" aria-label="Tema de la interfaz"
      data-theme-toggle>
-    <button type="button" class="theme-toggle-option" role="radio" aria-checked="true" data-theme-value="premium"
-            aria-label="Tema Premium, a color" title="Tema Premium">
-        <i class="bi bi-brightness-high" aria-hidden="true"></i>
+    <button type="button" class="theme-toggle-option" role="radio" aria-checked="false" data-theme-value="light"
+            aria-label="Tema claro" title="Tema claro">
+        <i class="bi bi-sun" aria-hidden="true"></i>
     </button>
     <button type="button" class="theme-toggle-option" role="radio" aria-checked="false" data-theme-value="dark"
             aria-label="Tema oscuro" title="Tema oscuro">
         <i class="bi bi-moon-stars" aria-hidden="true"></i>
     </button>
-    <button type="button" class="theme-toggle-option" role="radio" aria-checked="false" data-theme-value="mono"
-            aria-label="Tema blanco y negro" title="Tema blanco y negro">
-        <i class="bi bi-circle-half" aria-hidden="true"></i>
+    <button type="button" class="theme-toggle-option" role="radio" aria-checked="true" data-theme-value="system"
+            aria-label="Tema del sistema" title="Usar el tema del sistema">
+        <i class="bi bi-display" aria-hidden="true"></i>
     </button>
     <span class="theme-toggle-thumb" aria-hidden="true"></span>
 </div>

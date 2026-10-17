@@ -781,6 +781,22 @@ class WebFlowTests {
         mvc.perform(get("/riego").with(user(demoUser))).andExpect(status().isOk());
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"/login", "/registro", "/"})
+    void everyPageOffersTheLightDarkAndSystemThemesButNotTheMonochromeOne(String path) throws Exception {
+        var request = get(path);
+        if (path.equals("/")) {
+            request.with(user(demoUser));
+        }
+        mvc.perform(request)
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-theme-value=\"light\"")))
+                .andExpect(content().string(containsString("data-theme-value=\"dark\"")))
+                .andExpect(content().string(containsString("data-theme-value=\"system\"")))
+                .andExpect(content().string(not(containsString("data-theme-value=\"mono\""))))
+                .andExpect(content().string(containsString("/js/theme-init.js")));
+    }
+
     private Sensor createOtherUsersSensor() {
         User other = userRepository.save(User.builder()
                 .name("Other")

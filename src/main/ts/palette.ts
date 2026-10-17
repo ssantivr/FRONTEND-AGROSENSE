@@ -1,5 +1,5 @@
 import { all, find } from './core/dom.js';
-import { nextTheme, setTheme } from './theme.js';
+import { nextPreference, setThemePreference } from './theme.js';
 
 type Entry = HTMLAnchorElement | HTMLButtonElement;
 
@@ -55,7 +55,7 @@ export function initCommandPalette(): void {
     entry.id = `command-${index}`;
     if (entry instanceof HTMLButtonElement && entry.dataset['command'] === 'theme') {
       entry.addEventListener('click', () => {
-        setTheme(nextTheme());
+        setThemePreference(nextPreference());
         dialog.close();
       });
     }

@@ -1,6 +1,3 @@
-/* Design tokens. Every colour, size, shadow and timing used by styles.css is defined here.
-   Colours are semantic and defined once per theme: [data-theme='premium'] and [data-theme='mono']. */
-
 @font-face {
   font-family: 'Plus Jakarta Sans';
   font-style: normal;
@@ -10,8 +7,6 @@
 }
 
 :root {
-  /* Typography: size / line-height pairs. One family for the whole interface, Plus Jakarta Sans: text in
-     its regular weights, titles in its heavy ones. A single 27 KB file, served locally. */
   --font-body: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-heading: var(--font-body);
   --text-display: 2.5rem;
@@ -28,8 +23,13 @@
   --leading-small: 1.25rem;
   --text-micro: 0.75rem;
   --leading-micro: 1rem;
+  --text-input: 1rem;
+  --weight-regular: 400;
+  --weight-medium: 550;
+  --weight-semibold: 650;
+  --weight-bold: 750;
+  --measure: 68ch;
 
-  /* Spacing: 4 px scale */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -39,14 +39,23 @@
   --space-7: 48px;
   --space-8: 64px;
 
-  /* Shape */
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
+  --radius-xl: 22px;
   --radius-pill: 999px;
   --touch-target: 44px;
+  --control-height: 44px;
 
-  /* Layers */
+  --icon-xs: 0.875rem;
+  --icon-sm: 1rem;
+  --icon-md: 1.25rem;
+  --icon-lg: 1.5rem;
+  --icon-xl: 2rem;
+
+  --focus-width: 2px;
+  --focus-offset: 2px;
+
   --z-base: 0;
   --z-sticky: 900;
   --z-dropdown: 950;
@@ -54,28 +63,38 @@
   --z-modal: 1100;
   --z-toast: 1200;
 
-  /* Layout */
+  --bp-xs: 360px;
+  --bp-sm: 480px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1280px;
+
   --sidebar-width: 256px;
   --sidebar-width-collapsed: 76px;
   --topbar-height: 64px;
+  --bottom-nav-height: 62px;
   --content-max: 1440px;
+  --content-narrow: 760px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
 
-  /* Motion */
-  --motion-instant: 90ms;
-  --motion-fast: 140ms; /* immediate feedback: hover, press */
-  --motion-base: 220ms; /* controls, menus, tooltips */
-  --motion-slow: 360ms; /* panels, pages, context changes */
-  --motion-hero: 700ms; /* brand entrance on the sign-in page only */
+  --motion-instant: 80ms;
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --motion-slow: 240ms;
+  --motion-hero: 300ms;
+  --toast-duration: 8s;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in: cubic-bezier(0.64, 0, 0.78, 0);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
   --distance-sm: 6px;
-  --distance-md: 14px;
-  --stagger: 45ms;
+  --distance-md: 10px;
+  --stagger: 35ms;
 }
 
-/* .reduce-motion lets /design-system preview the reduced-motion behaviour without changing the OS setting. */
 @media (prefers-reduced-motion: reduce) {
   :root {
     --motion-fast: 1ms;
@@ -98,38 +117,34 @@
   --distance-md: 0px;
 }
 
-/* ---------- Premium: green identity on light surfaces ---------- */
-
 :root,
-[data-theme='premium'] {
+[data-theme='light'] {
   color-scheme: light;
 
-  /* Brand */
   --brand-950: #10291f;
   --brand-800: #174d35;
-  --brand-600: #16834a;
-  --brand-500: #35a85b;
+  --brand-600: #10804a;
+  --brand-500: #2fa860;
   --brand-200: #c7ed92;
+  --lime-400: #a3d65c;
 
-  /* Surfaces and text. --text-muted is darker than the brand sheet's #69756D so it reaches 4.5:1 on --bg. */
-  --bg: #f5f7f3;
+  --bg: #f6f5f1;
   --surface: #ffffff;
-  --surface-sunken: #eef2ec;
-  --border: #e2e8e2;
-  --border-strong: #c3cec5;
-  --text: #17231d;
-  --text-muted: #5f6b63;
+  --surface-raised: #ffffff;
+  --surface-sunken: #efeee8;
+  --border: #e3e2da;
+  --border-strong: #c4c5bb;
+  --text: #18221c;
+  --text-muted: #5c665f;
 
-  /* One action colour, one highlight */
   --accent: var(--brand-600);
   --accent-hover: var(--brand-800);
   --accent-contrast: #ffffff;
-  --accent-soft: #e4f3e9;
+  --accent-soft: #e3f2e8;
   --highlight: var(--brand-200);
   --highlight-contrast: var(--brand-950);
   --focus-ring: var(--brand-600);
 
-  /* Dark panels: sidebar, hero, toasts */
   --panel: var(--brand-950);
   --panel-raised: var(--brand-800);
   --panel-border: #23513b;
@@ -137,11 +152,11 @@
   --panel-text-muted: #c2d2c8;
   --scrim: rgba(16, 41, 31, 0.56);
   --photo-filter: none;
-  /* Applied to map tiles, which come as images in fixed colours. */
   --map-filter: none;
+  --map-stroke: #ffffff;
+  --map-coverage: #9fd0ff;
+  --print-surface: #ffffff;
 
-  /* Brand mark */
-  /* Brand mark: the darker half of the leaf, the lighter half, the circuit and its nodes. */
   --mark-leaf: var(--brand-600);
   --mark-leaf-2: var(--brand-500);
   --mark-vein: #ffffff;
@@ -153,38 +168,35 @@
   --mark-node-on-panel: var(--brand-200);
   --mark-accent-on-panel: var(--brand-200);
 
-  /* Status. Base colours are for icons and fills; the -text variants meet 4.5:1 on their -bg. */
   --status-success: #2e9e5b;
-  --status-warning: #e9b72b;
+  --status-warning: #d9a51c;
   --status-danger: #d64545;
   --status-info: #3b82c4;
   --status-success-bg: #e6f4ec;
   --status-success-text: #1b6b3c;
   --status-warning-bg: #fcf3d6;
-  --status-warning-text: #7a5a00;
+  --status-warning-text: #735400;
   --status-danger-bg: #fbe6e6;
   --status-danger-text: #a52a2a;
   --status-info-bg: #e4eff9;
   --status-info-text: #22578a;
-  --status-neutral-bg: #eef1ec;
-  --status-neutral-text: #4a5a51;
+  --status-neutral-bg: #eeede7;
+  --status-neutral-text: #4a5550;
   --status-border-width: 0px;
   --status-warning-border: solid;
   --status-info-border: solid;
 
-  /* Charts */
-  --chart-1: #16834a;
+  --chart-1: #10804a;
   --chart-2: #3b82c4;
   --chart-3: #c98a12;
   --chart-4: #7a5fb5;
   --chart-5: #c2553f;
   --chart-6: #4a5a51;
-  --chart-fill: rgba(22, 131, 74, 0.12);
-  --chart-grid: #e2e8e2;
-  --chart-threshold: #5f6b63;
+  --chart-fill: rgba(16, 128, 74, 0.12);
+  --chart-grid: #e3e2da;
+  --chart-threshold: #5c665f;
 
-  /* Crops: the six colours a crop can take, kept wherever it appears (badges, charts). */
-  --crop-1: #16834a;
+  --crop-1: #10804a;
   --crop-2: #3b82c4;
   --crop-3: #b97a08;
   --crop-4: #7a5fb5;
@@ -192,24 +204,22 @@
   --crop-6: #0f8587;
   --crop-contrast: #ffffff;
 
-  /* Elevation: green-tinted, never pure black */
-  --shadow-1: 0 1px 2px rgba(16, 41, 31, 0.06);
-  --shadow-2: 0 6px 20px rgba(16, 41, 31, 0.08);
-  --shadow-3: 0 20px 48px rgba(16, 41, 31, 0.18);
+  --shadow-1: 0 1px 2px rgba(24, 34, 28, 0.05);
+  --shadow-2: 0 6px 18px rgba(24, 34, 28, 0.07);
+  --shadow-3: 0 18px 44px rgba(24, 34, 28, 0.16);
 }
-
-/* ---------- Mono: black, white and greys. Not a dark mode. ---------- */
 
 [data-theme='mono'] {
   color-scheme: light;
 
   --bg: #f3f3f3;
   --surface: #ffffff;
+  --surface-raised: #ffffff;
   --surface-sunken: #ebebeb;
-  --border: #d6d6d6;
-  --border-strong: #8f8f8f;
+  --border: #8f8f8f;
+  --border-strong: #5a5a5a;
   --text: #0a0a0a;
-  --text-muted: #555555;
+  --text-muted: #3d3d3d;
 
   --accent: #0a0a0a;
   --accent-hover: #3a3a3a;
@@ -221,25 +231,26 @@
 
   --panel: #0a0a0a;
   --panel-raised: #262626;
-  --panel-border: #3a3a3a;
+  --panel-border: #5a5a5a;
   --panel-text: #ffffff;
-  --panel-text-muted: #c4c4c4;
+  --panel-text-muted: #d4d4d4;
   --scrim: rgba(10, 10, 10, 0.6);
   --photo-filter: grayscale(1) contrast(1.08);
   --map-filter: grayscale(1) contrast(1.05);
+  --map-stroke: #ffffff;
+  --map-coverage: #ffffff;
 
   --mark-leaf: #0a0a0a;
   --mark-leaf-2: #4a4a4a;
   --mark-vein: #ffffff;
   --mark-node: #ffffff;
-  --mark-accent: #555555;
+  --mark-accent: #3d3d3d;
   --mark-leaf-on-panel: #ffffff;
   --mark-leaf-2-on-panel: #b9b9b9;
   --mark-vein-on-panel: #0a0a0a;
   --mark-node-on-panel: #0a0a0a;
-  --mark-accent-on-panel: #c4c4c4;
+  --mark-accent-on-panel: #d4d4d4;
 
-  /* Without colour, status is told apart by icon, label, border style and fill. */
   --status-success: #0a0a0a;
   --status-warning: #0a0a0a;
   --status-danger: #0a0a0a;
@@ -253,7 +264,7 @@
   --status-info-bg: #ffffff;
   --status-info-text: #0a0a0a;
   --status-neutral-bg: #ebebeb;
-  --status-neutral-text: #3a3a3a;
+  --status-neutral-text: #262626;
   --status-border-width: 1px;
   --status-warning-border: dashed;
   --status-info-border: dotted;
@@ -264,7 +275,6 @@
   --chart-4: #3a3a3a;
   --chart-5: #707070;
   --chart-6: #b0b0b0;
-  /* Without colour the crops differ by shade, and always by their initial. */
   --crop-1: #0a0a0a;
   --crop-2: #3a3a3a;
   --crop-3: #555555;
@@ -274,43 +284,44 @@
   --crop-contrast: #ffffff;
 
   --chart-fill: rgba(10, 10, 10, 0.08);
-  --chart-grid: #dcdcdc;
+  --chart-grid: #cfcfcf;
   --chart-threshold: #0a0a0a;
 
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.06);
-  --shadow-2: 0 6px 20px rgba(0, 0, 0, 0.08);
-  --shadow-3: 0 20px 48px rgba(0, 0, 0, 0.2);
+  --shadow-1: none;
+  --shadow-2: none;
+  --shadow-3: 0 0 0 2px #0a0a0a;
 }
-
-/* ---------- Dark: the same identity on deep green-black surfaces ---------- */
 
 [data-theme='dark'] {
   color-scheme: dark;
 
-  --bg: #0c1511;
-  --surface: #14201a;
-  --surface-sunken: #0f1a15;
-  --border: #25352c;
-  --border-strong: #3d5246;
-  --text: #e8efe9;
-  --text-muted: #9db0a4;
+  --bg: #0d1411;
+  --surface: #141d18;
+  --surface-raised: #18231d;
+  --surface-sunken: #101814;
+  --border: #253229;
+  --border-strong: #3c4d42;
+  --text: #e7eee9;
+  --text-muted: #9fb1a5;
 
   --accent: #3fb56a;
   --accent-hover: #5bc983;
   --accent-contrast: #06140c;
-  --accent-soft: #183326;
+  --accent-soft: #173023;
   --highlight: #c7ed92;
   --highlight-contrast: #10291f;
-  --focus-ring: #6fd695;
+  --focus-ring: #8fe0a9;
 
-  --panel: #08110d;
-  --panel-raised: #15281f;
-  --panel-border: #22382c;
+  --panel: #09100c;
+  --panel-raised: #15261d;
+  --panel-border: #1f3227;
   --panel-text: #ffffff;
   --panel-text-muted: #b3c4b9;
   --scrim: rgba(0, 0, 0, 0.66);
-  --photo-filter: brightness(0.85);
+  --photo-filter: brightness(0.82);
   --map-filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9);
+  --map-stroke: #ffffff;
+  --map-coverage: #9fd0ff;
 
   --mark-leaf: #2f9e56;
   --mark-leaf-2: #62c67e;
@@ -327,15 +338,15 @@
   --status-warning: #e9b72b;
   --status-danger: #ef6b6b;
   --status-info: #6aa9e0;
-  --status-success-bg: #153324;
+  --status-success-bg: #143022;
   --status-success-text: #8fe0b0;
-  --status-warning-bg: #3a2f0c;
+  --status-warning-bg: #352b0d;
   --status-warning-text: #f3d376;
-  --status-danger-bg: #3d1a1a;
+  --status-danger-bg: #3a1a1a;
   --status-danger-text: #ffb0b0;
-  --status-info-bg: #14293d;
+  --status-info-bg: #13283b;
   --status-info-text: #a9cff3;
-  --status-neutral-bg: #1e2b24;
+  --status-neutral-bg: #1c2822;
   --status-neutral-text: #b3c4b9;
   --status-border-width: 0px;
   --status-warning-border: solid;
@@ -356,19 +367,19 @@
   --crop-contrast: #06140c;
 
   --chart-fill: rgba(76, 194, 123, 0.16);
-  --chart-grid: #25352c;
-  --chart-threshold: #9db0a4;
+  --chart-grid: #253229;
+  --chart-threshold: #9fb1a5;
 
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-2: 0 6px 20px rgba(0, 0, 0, 0.35);
-  --shadow-3: 0 20px 48px rgba(0, 0, 0, 0.5);
+  --shadow-2: 0 6px 18px rgba(0, 0, 0, 0.34);
+  --shadow-3: 0 18px 44px rgba(0, 0, 0, 0.5);
 }
 
 @media (prefers-contrast: more) {
   :root,
-  [data-theme='premium'],
-  [data-theme='dark'],
-  [data-theme='mono'] {
+  [data-theme='light'],
+  [data-theme='dark'] {
     --border: var(--border-strong);
+    --text-muted: var(--text);
   }
 }
