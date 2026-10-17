@@ -1,0 +1,16 @@
+# Used instead of .dockerignore when the image is built from the workspace root (see Dockerfile).
+.git/
+**/target/
+**/node_modules/
+**/.idea/
+**/.vscode/
+**/.env
+**/*.log
+backend/
+docs/
+IA/
+event-service/
+raspberry/
+api/
+agrosense-export/
+temp_agrosense/
