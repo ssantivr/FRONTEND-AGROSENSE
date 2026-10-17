@@ -245,6 +245,7 @@ function initSignIn(form: HTMLFormElement): void {
     if (outcome.kind === 'success') {
       setTimeout(() => window.location.assign(outcome.redirectTo), SUCCESS_PAUSE_MS);
     } else if (outcome.kind === 'invalid-credentials') {
+      all('.field.is-valid', HTMLElement, form).forEach((field) => field.classList.remove('is-valid'));
       password.value = '';
       email.focus();
       if (!prefersReducedMotion()) {
@@ -283,15 +284,19 @@ function initSignUp(form: HTMLFormElement, emailAvailability: () => Availability
   const email = namedInput(form, 'email');
   const password = namedInput(form, 'password');
   const confirmation = namedInput(form, 'confirmPassword');
+  const availabilityHint = find('emailAvailability', HTMLElement);
   const { name, password: passwordLimits } = LIMITS;
+  const takenEmail = (): string | null => {
+    if (emailAvailability() !== 'taken') return null;
+    if (availabilityHint) availabilityHint.hidden = true;
+    return 'Este correo ya está registrado. Inicia sesión o usa otro.';
+  };
   const rules: FieldRule[] = [
     lengthRule(namedInput(form, 'name'), 'Ingresa tu nombre.', `El nombre debe tener entre ${name.min} y ${name.max} caracteres.`, name.min, name.max),
     lengthRule(namedInput(form, 'lastName'), 'Ingresa tu apellido.', `El apellido debe tener entre ${name.min} y ${name.max} caracteres.`, name.min, name.max),
     {
       input: email,
-      check: (value) =>
-        emailRule(email).check(value) ??
-        (emailAvailability() === 'taken' ? 'Este correo ya está registrado. Inicia sesión o usa otro.' : null),
+      check: (value) => emailRule(email).check(value) ?? takenEmail(),
     },
     {
       input: password,

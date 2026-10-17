@@ -28,9 +28,9 @@ export interface Strength {
 }
 
 export function passwordStrength(password: string): Strength {
-  const { min, max } = LIMITS.password;
+  const { min } = LIMITS.password;
   const { length } = password;
-  if (length === 0) return { level: 0, label: `Entre ${min} y ${max} caracteres; los espacios cuentan.` };
+  if (length === 0) return { level: 0, label: 'Escribe una contraseña para ver qué tan segura es.' };
   if (length < min) {
     const missing = min - length;
     return { level: 1, label: `Muy corta: ${missing === 1 ? 'falta 1 carácter' : `faltan ${missing} caracteres`}.` };

@@ -23,10 +23,10 @@
                     <span class="field-counter" id="nameCounter" aria-hidden="true"
                           th:text="|${registrationForm.name == null ? 0 : registrationForm.name.length()}/18|">0/18</span>
                 </span>
-                <input type="text" th:field="*{name}" autocomplete="given-name" minlength="2" maxlength="18" required
+                <input type="text" th:field="*{name}" autocomplete="given-name" autocapitalize="words" minlength="2" maxlength="18" required
                        autofocus data-counter="nameCounter" aria-describedby="nameHint nameError"
                        th:attr="aria-invalid=${#fields.hasErrors('name')}">
-                <span class="field-hint" id="nameHint">De 2 a 18 caracteres; los espacios cuentan.</span>
+                <span class="field-hint" id="nameHint">Entre 2 y 18 caracteres.</span>
                 <span class="field-error" data-server-error th:if="${#fields.hasErrors('name')}" th:errors="*{name}">Error</span>
                 <span class="field-slot" id="nameError" role="alert"><span class="field-error"></span></span>
             </label>
@@ -36,10 +36,10 @@
                     <span class="field-counter" id="lastNameCounter" aria-hidden="true"
                           th:text="|${registrationForm.lastName == null ? 0 : registrationForm.lastName.length()}/18|">0/18</span>
                 </span>
-                <input type="text" th:field="*{lastName}" autocomplete="family-name" minlength="2" maxlength="18" required
+                <input type="text" th:field="*{lastName}" autocomplete="family-name" autocapitalize="words" minlength="2" maxlength="18" required
                        data-counter="lastNameCounter" aria-describedby="lastNameHint lastNameError"
                        th:attr="aria-invalid=${#fields.hasErrors('lastName')}">
-                <span class="field-hint" id="lastNameHint">De 2 a 18 caracteres; los espacios cuentan.</span>
+                <span class="field-hint" id="lastNameHint">Entre 2 y 18 caracteres.</span>
                 <span class="field-error" data-server-error th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}">Error</span>
                 <span class="field-slot" id="lastNameError" role="alert"><span class="field-error"></span></span>
             </label>
@@ -77,13 +77,13 @@
             </span>
             <span class="strength" data-strength-for="password" data-level="0">
                 <span class="strength-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-                <span class="field-hint" id="passwordStrengthLabel" data-strength-label aria-live="polite">Entre 8 y 32 caracteres; los espacios cuentan.</span>
+                <span class="field-hint" id="passwordStrengthLabel" data-strength-label aria-live="polite">Escribe una contraseña para ver qué tan segura es.</span>
             </span>
             <ul class="rule-list" id="passwordRules" data-rules-for="password">
-                <li data-rule="length"><span>Entre 8 y 32 caracteres <strong>(obligatorio)</strong></span></li>
+                <li data-rule="length"><span>De 8 a 32 caracteres, los espacios cuentan <strong>(obligatorio)</strong></span></li>
                 <li data-rule="mixed"><span>Mayúsculas y minúsculas</span></li>
-                <li data-rule="digit"><span>Al menos un número</span></li>
-                <li data-rule="symbol"><span>Al menos un símbolo o un espacio</span></li>
+                <li data-rule="digit"><span>Un número</span></li>
+                <li data-rule="symbol"><span>Un símbolo o un espacio</span></li>
             </ul>
             <span class="field-hint field-hint--warning" id="passwordCaps" role="status" hidden>
                 <i class="bi bi-capslock" aria-hidden="true"></i> Bloq Mayús está activado.

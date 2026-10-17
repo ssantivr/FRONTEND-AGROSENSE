@@ -797,6 +797,24 @@ class WebFlowTests {
                 .andExpect(content().string(containsString("/js/theme-init.js")));
     }
 
+    @Test
+    void signInAndSignUpFormsHaveVisibleLabelsKeyboardHintsAndAPasswordToggle() throws Exception {
+        mvc.perform(get("/login"))
+                .andExpect(content().string(containsString("<span class=\"field-label\">Correo electrónico</span>")))
+                .andExpect(content().string(containsString("autocomplete=\"username\" inputmode=\"email\"")))
+                .andExpect(content().string(containsString("data-toggle-password=\"password\"")))
+                .andExpect(content().string(not(containsString("Google"))));
+        mvc.perform(get("/registro"))
+                .andExpect(content().string(containsString("<span class=\"field-label\">Nombre</span>")))
+                .andExpect(content().string(containsString("<span class=\"field-label\">Apellido</span>")))
+                .andExpect(content().string(containsString("<span class=\"field-label\">Confirmar contraseña</span>")))
+                .andExpect(content().string(containsString("autocomplete=\"given-name\" autocapitalize=\"words\"")))
+                .andExpect(content().string(containsString("autocomplete=\"new-password\"")))
+                .andExpect(content().string(containsString("data-toggle-password=\"confirmPassword\"")))
+                .andExpect(content().string(containsString("Entre 2 y 18 caracteres.")))
+                .andExpect(content().string(containsString("De 8 a 32 caracteres")));
+    }
+
     private Sensor createOtherUsersSensor() {
         User other = userRepository.save(User.builder()
                 .name("Other")
