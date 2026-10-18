@@ -263,6 +263,10 @@
             <section class="card" aria-labelledby="liveTitle">
                 <div class="card-header">
                     <h2 id="liveTitle">Lecturas por sensor</h2>
+                    <span class="live-status" data-live-indicator data-state="live" hidden>
+                        <span class="live-status-dot" aria-hidden="true"></span>
+                        <span data-live-label>En vivo</span>
+                    </span>
                     <a class="link" th:href="@{/sensores}">Ver sensores</a>
                 </div>
                 <th:block th:if="${dashboard.sensors.isEmpty()}">
@@ -278,9 +282,8 @@
                             <span class="text-muted" th:text="|${sensor.code} · ${sensor.cropName}|">AS-001 · Café</span>
                         </div>
                         <div class="reading-list-value">
-                            <strong th:if="${sensor.lastValue != null}" data-live-value th:attr="data-unit=${sensor.unit}"
-                                    th:text="|${#numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA')} ${sensor.unit}|">55,8 %</strong>
-                            <span class="text-muted" th:if="${sensor.lastValue == null}">Sin lecturas</span>
+                            <strong data-live-value th:attr="data-unit=${sensor.unit}" th:classappend="${sensor.lastValue == null} ? 'text-muted'"
+                                    th:text="${sensor.lastValue != null} ? |${#numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA')} ${sensor.unit}| : 'Sin datos'">55,8 %</strong>
                             <span th:replace="~{fragments/status-pill :: sensor-status(${sensor})}"></span>
                         </div>
                     </li>

@@ -598,6 +598,18 @@ code {
   background: var(--status-success);
 }
 
+.live-status[data-state='reconnecting'] .live-status-dot {
+  background: var(--status-warning);
+}
+
+.live-status[data-state='offline'] {
+  color: var(--status-danger-text);
+}
+
+.live-status[data-state='offline'] .live-status-dot {
+  background: var(--status-danger);
+}
+
 .is-live-updated {
   animation: live-updated var(--motion-slow) var(--ease-out);
 }

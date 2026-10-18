@@ -44,9 +44,18 @@ const isAlert = (value: unknown): value is LiveAlert =>
 const isEvent = (value: unknown): value is LiveEvent =>
   isRecord(value) && isArrayOf(isReading)(value['readings']) && isArrayOf(isAlert)(value['alerts']);
 
+type LiveState = 'live' | 'reconnecting' | 'offline';
+
+const STATE_LABELS: Record<LiveState, string> = {
+  live: 'En vivo',
+  reconnecting: 'Reconectando…',
+  offline: 'Sin conexión',
+};
+
 const FIRST_WAIT_MS = 1_000;
 const LONGEST_WAIT_MS = 60_000;
 const RENEW_BEFORE_MS = 30_000;
+const OFFLINE_AFTER_FAILURES = 3;
 
 const decimal = new Intl.NumberFormat('es-CO', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const shortDate = new Intl.DateTimeFormat('es-CO', {
@@ -60,6 +69,7 @@ const shortDate = new Intl.DateTimeFormat('es-CO', {
 class LiveEvents {
   private source: EventSource | null = null;
   private wait = FIRST_WAIT_MS;
+  private failures = 0;
   private timer: number | undefined;
 
   constructor(
@@ -77,14 +87,18 @@ class LiveEvents {
       this.retryLater();
       return;
     }
-    if (!access.enabled || !access.token || !access.streamUrl) return;
+    if (!access.enabled || !access.token || !access.streamUrl) {
+      this.hide();
+      return;
+    }
     const url = new URL(access.streamUrl);
     url.searchParams.set('token', access.token);
     const source = new EventSource(url.toString());
     this.source = source;
     source.addEventListener('ready', () => {
       this.wait = FIRST_WAIT_MS;
-      this.status.hidden = false;
+      this.failures = 0;
+      this.show('live');
       const lifetimeMs = (access.expiresInSeconds ?? 300) * 1000;
       this.schedule(Math.max(lifetimeMs - RENEW_BEFORE_MS, 5_000));
     });
@@ -111,8 +125,38 @@ class LiveEvents {
   }
 
   private retryLater(): void {
+    this.failures += 1;
+    this.show(this.failures >= OFFLINE_AFTER_FAILURES || !navigator.onLine ? 'offline' : 'reconnecting');
     this.schedule(this.wait);
     this.wait = Math.min(this.wait * 2, LONGEST_WAIT_MS);
+  }
+
+  wentOffline(): void {
+    this.close();
+    this.show('offline');
+  }
+
+  cameBack(): void {
+    this.wait = FIRST_WAIT_MS;
+    this.show('reconnecting');
+    void this.connect();
+  }
+
+  private indicators(): HTMLElement[] {
+    return [this.status, ...all('[data-live-indicator]', HTMLElement)];
+  }
+
+  private show(state: LiveState): void {
+    for (const indicator of this.indicators()) {
+      indicator.hidden = false;
+      indicator.dataset['state'] = state;
+      const label = indicator.querySelector<HTMLElement>('[data-live-label]');
+      if (label) label.textContent = STATE_LABELS[state];
+    }
+  }
+
+  hide(): void {
+    for (const indicator of this.indicators()) indicator.hidden = true;
   }
 
   private schedule(delayMs: number): void {
@@ -124,7 +168,6 @@ class LiveEvents {
     window.clearTimeout(this.timer);
     this.source?.close();
     this.source = null;
-    this.status.hidden = true;
   }
 }
 
@@ -133,9 +176,12 @@ function showReading(reading: LiveReading): void {
   for (const holder of all('[data-sensor-code]', HTMLElement)) {
     if (holder.dataset['sensorCode'] !== reading.sensorCode) continue;
     for (const value of all('[data-live-value]', HTMLElement, holder)) {
-      const unit = value.dataset['unit'];
+      const unit = value.dataset['unit'] || reading.unit;
       value.textContent = decimal.format(reading.value) + (unit ? ` ${unit}` : '');
+      value.classList.remove('text-muted');
     }
+    for (const pill of all('[data-sensor-status]', HTMLElement, holder)) markOnline(pill);
+    for (const hint of all('[data-live-hint]', HTMLElement, holder)) hint.hidden = true;
     for (const time of all('[data-live-time]', HTMLElement, holder)) {
       time.textContent = time.dataset['liveTime'] === 'ago' ? 'Última lectura hace un momento' : shortDate.format(when);
       if (time instanceof HTMLTimeElement) time.dateTime = when.toISOString();
@@ -144,6 +190,17 @@ function showReading(reading: LiveReading): void {
     void holder.offsetWidth;
     holder.classList.add('is-live-updated');
   }
+}
+
+function markOnline(pill: HTMLElement): void {
+  if (pill.dataset['sensorStatus'] === 'INACTIVE') return;
+  pill.dataset['sensorStatus'] = 'ONLINE';
+  pill.className = 'status-pill status-pill--success';
+  pill.title = 'Lectura recibida en vivo.';
+  const icon = pill.querySelector('i');
+  if (icon) icon.className = 'bi bi-check-circle-fill';
+  const label = pill.querySelector('span');
+  if (label) label.textContent = 'En línea';
 }
 
 function showAlert(alert: LiveAlert): void {
@@ -170,7 +227,12 @@ function start(): void {
   if (!status || !tokenUrl || typeof EventSource === 'undefined') return;
   const live = new LiveEvents(tokenUrl, status);
   void live.connect();
-  window.addEventListener('pagehide', () => live.close());
+  window.addEventListener('offline', () => live.wentOffline());
+  window.addEventListener('online', () => live.cameBack());
+  window.addEventListener('pagehide', () => {
+    live.close();
+    live.hide();
+  });
 }
 
 start();

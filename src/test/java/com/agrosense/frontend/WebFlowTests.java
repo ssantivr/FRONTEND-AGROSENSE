@@ -246,6 +246,25 @@ class WebFlowTests {
     }
 
     @Test
+    void theDashboardIsReadyForLiveReadingsAndShowsTheConnectionState() throws Exception {
+        mvc.perform(get("/").with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"liveStatus\"")))
+                .andExpect(content().string(containsString("data-live-indicator")))
+                .andExpect(content().string(containsString("<span data-live-label>En vivo</span>")))
+                .andExpect(content().string(containsString("data-live-value")))
+                .andExpect(content().string(containsString("data-sensor-status=")))
+                .andExpect(content().string(containsString("/js/events/live.js")));
+        mvc.perform(get("/js/events/live.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("reconnecting:")))
+                .andExpect(content().string(containsString("offline:")))
+                .andExpect(content().string(containsString("addEventListener('online'")));
+        mvc.perform(get("/sensores").with(user(demoUser)))
+                .andExpect(content().string(containsString("data-live-hint")));
+    }
+
+    @Test
     void sensorStatesDescribeTheConfiguredThresholds() throws Exception {
         mvc.perform(get("/sensores").with(user(demoUser)))
                 .andExpect(status().isOk())
