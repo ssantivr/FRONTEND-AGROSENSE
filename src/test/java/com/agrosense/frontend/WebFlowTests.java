@@ -265,6 +265,27 @@ class WebFlowTests {
     }
 
     @Test
+    void settingsOfferTheThemePreferenceWithoutAManualMonochromeOption() throws Exception {
+        mvc.perform(get("/configuracion").with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"appearanceTitle\"")))
+                .andExpect(content().string(containsString("data-theme-value=\"light\"")))
+                .andExpect(content().string(containsString("data-theme-value=\"dark\"")))
+                .andExpect(content().string(containsString("data-theme-value=\"system\"")))
+                .andExpect(content().string(not(containsString("data-contrast-toggle"))))
+                .andExpect(content().string(not(containsString("Alto contraste"))));
+    }
+
+    @Test
+    void theAssistantSuggestsFourQuestionsAboutTheFarm() throws Exception {
+        String script = mvc.perform(get("/js/ai/chat-widget.js")).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        String suggestions = script.substring(script.indexOf("SUGGESTIONS = ["), script.indexOf("];", script.indexOf("SUGGESTIONS = [")));
+        assertThat(suggestions.lines().filter(line -> line.strip().startsWith("'")).count()).isEqualTo(4);
+        assertThat(suggestions).contains("mis cultivos", "humedad", "alertas pendientes", "riego");
+    }
+
+    @Test
     void sensorStatesDescribeTheConfiguredThresholds() throws Exception {
         mvc.perform(get("/sensores").with(user(demoUser)))
                 .andExpect(status().isOk())
