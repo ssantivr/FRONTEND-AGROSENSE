@@ -8,6 +8,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.test.context.ActiveProfiles;
@@ -17,6 +19,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -61,16 +64,31 @@ class QueryBudgetTests {
     }
 
     @Test
-    void staticFilesAreCachedByTheBrowserAndPagesAreNot() throws Exception {
+    void fontsImagesAndWebJarsAreCachedWhileTheDemoServesScriptsStylesAndPagesFresh() throws Exception {
         mvc.perform(get("/fonts/PlusJakartaSans.woff2"))
                 .andExpect(header().string("Cache-Control", "max-age=2592000, public"));
         mvc.perform(get("/img/photos/coffee-960.jpg"))
                 .andExpect(header().string("Cache-Control", "max-age=2592000, public"));
         mvc.perform(get("/webjars/chart.js/4.4.1/dist/chart.umd.js"))
                 .andExpect(header().string("Cache-Control", "max-age=31536000, public, immutable"));
-        mvc.perform(get("/js/app.js")).andExpect(header().string("Cache-Control", "no-cache"));
-        mvc.perform(get("/css/styles.css")).andExpect(header().string("Cache-Control", "no-cache"));
-        mvc.perform(get("/login")).andExpect(header().string("Cache-Control", containsString("no-store")));
+        mvc.perform(get("/js/app.js")).andExpect(header().string("Cache-Control", "no-store"));
+        mvc.perform(get("/css/styles.css")).andExpect(header().string("Cache-Control", "no-store"));
+        mvc.perform(get("/login"))
+                .andExpect(header().string("Cache-Control", containsString("no-store")))
+                .andExpect(content().string(containsString("src=\"/js/login.js\"")));
+    }
+
+    @Test
+    void productionKeepsRevalidatingStaticFilesAndOnlyTheDemoTurnsCachesOff() throws Exception {
+        Properties production = PropertiesLoaderUtils.loadProperties(new ClassPathResource("application.properties"));
+        Properties demo = PropertiesLoaderUtils.loadProperties(new ClassPathResource("application-demo.properties"));
+
+        assertThat(production.getProperty("spring.web.resources.cache.cachecontrol.no-cache")).isEqualTo("true");
+        assertThat(production).doesNotContainKeys("spring.web.resources.cache.cachecontrol.no-store",
+                "spring.thymeleaf.cache", "spring.web.resources.chain.strategy.content.enabled");
+        assertThat(demo.getProperty("spring.web.resources.cache.cachecontrol.no-store")).isEqualTo("true");
+        assertThat(demo.getProperty("spring.thymeleaf.cache")).isEqualTo("false");
+        assertThat(demo.getProperty("spring.web.resources.chain.strategy.content.paths")).isEqualTo("/css/**");
     }
 
     @Test
