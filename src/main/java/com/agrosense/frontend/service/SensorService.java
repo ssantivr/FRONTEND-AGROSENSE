@@ -4,6 +4,7 @@ import com.agrosense.frontend.backend.BackendClient;
 import com.agrosense.frontend.backend.BackendClient.ReadingResponse;
 import com.agrosense.frontend.dto.Views.ReadingPoint;
 import com.agrosense.frontend.dto.Views.ReadingSeries;
+import com.agrosense.frontend.dto.Views.SensorDetail;
 import com.agrosense.frontend.dto.Views.SensorSummary;
 import com.agrosense.frontend.dto.Views.SensorView;
 import com.agrosense.frontend.entity.Crop;
@@ -83,6 +84,18 @@ public class SensorService {
                 .forEach(row -> trends.computeIfAbsent((SensorType) row[0], type -> new ArrayList<>())
                         .add(BigDecimal.valueOf(((Number) row[2]).doubleValue())));
         return trends;
+    }
+
+    public SensorDetail findDetail(String email, Integer sensorId) {
+        Sensor sensor = sensorRepository.findByIdSensorAndCropEstateUserEmail(sensorId, email)
+                .orElseThrow(() -> new NotFoundException("Sensor not found"));
+        List<SensorReading> recent = readingRepository.findTop10BySensorIdSensorOrderByRecordedAtDesc(sensorId);
+        BigDecimal[] range = thresholds(sensor.getSensorType(), sensor.getCrop());
+        return new SensorDetail(
+                toView(sensor, recent.stream().findFirst(), LocalDateTime.now()),
+                range[0],
+                range[1],
+                recent.stream().map(reading -> new ReadingPoint(reading.getRecordedAt(), reading.getValue())).toList());
     }
 
     public ReadingSeries findLast24Hours(String email, Integer sensorId) {

@@ -196,6 +196,38 @@ class WebFlowTests {
     }
 
     @Test
+    void sensorDetailShowsItsStateRangeAndRecentReadings() throws Exception {
+        Sensor own = sensorRepository.findByCropEstateUserEmailOrderBySensorCode(DEMO_EMAIL).get(0);
+        mvc.perform(get("/sensores/" + own.getIdSensor()).with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("<h1>" + own.getSensorCode() + "</h1>")))
+                .andExpect(content().string(containsString("data-sensor-status=")))
+                .andExpect(content().string(containsString("Rango del cultivo")))
+                .andExpect(content().string(containsString("Lecturas recientes")))
+                .andExpect(content().string(containsString("/cultivos/" + own.getCrop().getIdCrop())));
+        mvc.perform(get("/sensores").with(user(demoUser)))
+                .andExpect(content().string(containsString("href=\"/sensores/" + own.getIdSensor() + "\"")));
+        mvc.perform(get("/sensores/999999").with(user(demoUser))).andExpect(status().isNotFound());
+        mvc.perform(get("/sensores/" + own.getIdSensor())).andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
+    void aUserCannotSeeTheCropOrTheSensorOfAnotherUser() throws Exception {
+        Sensor foreign = createOtherUsersSensor();
+        mvc.perform(get("/cultivos/" + foreign.getCrop().getIdCrop()).with(user(demoUser)))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string(not(containsString("Private crop"))));
+        mvc.perform(get("/sensores/" + foreign.getIdSensor()).with(user(demoUser)))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string(not(containsString("OTHER-001"))));
+        mvc.perform(get("/cultivos").with(user(demoUser)))
+                .andExpect(content().string(not(containsString("Private crop"))));
+        mvc.perform(get("/sensores").with(user(demoUser)))
+                .andExpect(content().string(not(containsString("OTHER-001"))));
+    }
+
+    @Test
     void alertsCanBeFilteredBySeverity() throws Exception {
         mvc.perform(get("/alertas").param("severidad", "critica").with(user(demoUser)))
                 .andExpect(status().isOk())

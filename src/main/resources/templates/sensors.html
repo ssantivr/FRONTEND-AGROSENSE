@@ -34,7 +34,7 @@
                 <div class="sensor-card-head">
                     <span class="stat-icon" aria-hidden="true"><i class="bi" th:classappend="${sensor.icon()}"></i></span>
                     <div>
-                        <h2 th:text="${sensor.code}">AS-001</h2>
+                        <h2><a class="link" th:href="@{/sensores/{id}(id=${sensor.id})}" th:text="${sensor.code}">AS-001</a></h2>
                         <span class="text-muted" th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</span>
                     </div>
                     <span th:replace="~{fragments/status-pill :: sensor-status(${sensor})}"></span>

@@ -272,6 +272,21 @@ public final class Views {
     public record ReadingPoint(LocalDateTime recordedAt, BigDecimal value) {
     }
 
+    public record SensorDetail(
+            SensorView sensor,
+            BigDecimal rangeMin,
+            BigDecimal rangeMax,
+            List<ReadingPoint> recentReadings) {
+
+        public boolean hasRange() {
+            return rangeMin != null && rangeMax != null;
+        }
+
+        public boolean outOfRange(BigDecimal value) {
+            return hasRange() && value != null && (value.compareTo(rangeMin) < 0 || value.compareTo(rangeMax) > 0);
+        }
+    }
+
     public record ReadingSeries(
             String sensorCode,
             String unit,

@@ -28,6 +28,8 @@ public interface SensorReadingRepository extends JpaRepository<SensorReading, Lo
     List<SensorReading> findBySensorIdSensorAndRecordedAtGreaterThanEqualOrderByRecordedAt(
             Integer idSensor, LocalDateTime since);
 
+    List<SensorReading> findTop10BySensorIdSensorOrderByRecordedAtDesc(Integer idSensor);
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from SensorReading r where r.sensor.idSensor in "
             + "(select s.idSensor from Sensor s where s.crop.estate.user.email = :email)")

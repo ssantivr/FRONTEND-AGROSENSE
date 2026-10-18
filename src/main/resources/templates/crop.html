@@ -92,7 +92,7 @@
                     <span class="stat-icon" aria-hidden="true"><i class="bi" th:classappend="${sensor.icon()}"></i></span>
                     <div class="reading-list-body">
                         <strong th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</strong>
-                        <span class="text-muted" th:text="|${sensor.code}${sensor.location != null ? ' · ' + sensor.location : ''}|">AS-001 · Lote norte</span>
+                        <span class="text-muted"><a class="link" th:href="@{/sensores/{id}(id=${sensor.id})}" th:text="${sensor.code}">AS-001</a><th:block th:if="${sensor.location != null}" th:text="| · ${sensor.location}|"> · Lote norte</th:block></span>
                     </div>
                     <div class="reading-list-value">
                         <strong th:if="${sensor.lastValue != null}" data-live-value th:attr="data-unit=${sensor.unit}"

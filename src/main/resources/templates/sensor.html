@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(|Sensor ${sensor.code}|, ~{::main}, null)}">
+<body>
+<main id="main" class="app-content" tabindex="-1" data-motion-stagger th:with="status=${sensor.status()}">
+    <nav class="breadcrumbs" aria-label="Ruta">
+        <a class="link" th:href="@{/sensores}">Sensores</a>
+        <i class="bi bi-chevron-right" aria-hidden="true"></i>
+        <span aria-current="page" th:text="${sensor.code}">AS-001</span>
+    </nav>
+
+    <div class="page-toolbar">
+        <header class="detail-header">
+            <span class="stat-icon" aria-hidden="true"><i class="bi" th:classappend="${sensor.icon()}"></i></span>
+            <div>
+                <h1 th:text="${sensor.code}">AS-001</h1>
+                <p class="text-muted" th:text="|#{${'sensorType.' + sensor.type}} · ${sensor.cropName} · ${sensor.estateName}|">Humedad del suelo · Café · Finca</p>
+            </div>
+        </header>
+        <div class="row-actions">
+            <a class="button button--ghost" th:href="@{/sensores/{id}/ubicacion(id=${sensor.id})}">
+                <i class="bi bi-geo-alt" aria-hidden="true"></i> Ubicación en el mapa
+            </a>
+        </div>
+    </div>
+
+    <div class="detail-grid">
+        <section class="card" aria-labelledby="stateTitle" th:attr="data-sensor-code=${sensor.code}">
+            <h2 id="stateTitle">Estado</h2>
+            <dl class="definition-list">
+                <dt>Conexión</dt>
+                <dd><span th:replace="~{fragments/status-pill :: sensor-status(${sensor})}"></span></dd>
+                <dt>Última lectura</dt>
+                <dd>
+                    <strong th:if="${sensor.lastValue != null}" data-live-value th:attr="data-unit=${sensor.unit}"
+                            th:text="|${#numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA')} ${sensor.unit}|">55,8 %</strong>
+                    <span class="text-muted" th:if="${sensor.lastValue == null}">Sin datos</span>
+                </dd>
+                <dt>Recibida</dt>
+                <dd>
+                    <time th:if="${sensor.lastReadingAt != null}" data-live-time="ago" th:datetime="${sensor.lastReadingAt}"
+                          th:title="${#temporals.format(sensor.lastReadingAt, 'd MMM yyyy, HH:mm')}"
+                          th:text="${sensor.lastReadingAgo()}">hace 5 min</time>
+                    <span class="text-muted" th:if="${sensor.lastReadingAt == null}">Nunca</span>
+                </dd>
+            </dl>
+            <p class="text-muted" th:unless="${status.reporting()}"
+               th:text="#{${'sensorStatusHint.' + status}(${sensorThresholds.staleAfterText()},${sensorThresholds.offlineAfterText()})}">
+                No envía datos desde hace más de 1 hora.
+            </p>
+        </section>
+
+        <section class="card" aria-labelledby="generalTitle">
+            <h2 id="generalTitle">General</h2>
+            <dl class="definition-list">
+                <dt>Tipo</dt>
+                <dd th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</dd>
+                <dt>Cultivo</dt>
+                <dd><a class="link" th:href="@{/cultivos/{id}(id=${sensor.cropId})}" th:text="${sensor.cropName}">Café</a></dd>
+                <dt>Parcela</dt>
+                <dd><a class="link" th:href="@{/parcelas/{id}(id=${sensor.estateId})}" th:text="${sensor.estateName}">Finca</a></dd>
+                <dt>Lugar</dt>
+                <dd th:text="${sensor.location ?: 'Sin registrar'}">Lote norte</dd>
+                <dt>Rango del cultivo</dt>
+                <dd th:text="${detail.hasRange()} ? |${#numbers.formatDecimal(detail.rangeMin, 1, 1, 'COMMA')} – ${#numbers.formatDecimal(detail.rangeMax, 1, 1, 'COMMA')}${sensor.unit != null ? ' ' + sensor.unit : ''}| : 'Sin definir'">40,0 – 80,0 %</dd>
+            </dl>
+        </section>
+
+        <section class="card detail-wide" aria-labelledby="readingsTitle">
+            <h2 id="readingsTitle">Lecturas recientes</h2>
+            <th:block th:if="${detail.recentReadings.isEmpty()}">
+                <div th:replace="~{fragments/empty-state :: empty-state('bi-hourglass', 'Sin datos',
+                    'Este sensor aún no ha enviado ninguna lectura.')}"></div>
+            </th:block>
+            <div class="table-scroll" th:unless="${detail.recentReadings.isEmpty()}">
+                <table class="table">
+                    <thead><tr><th>Fecha</th><th class="numeric">Valor</th><th>Rango</th></tr></thead>
+                    <tbody>
+                    <tr th:each="reading : ${detail.recentReadings}">
+                        <td><time th:datetime="${reading.recordedAt}" th:text="${#temporals.format(reading.recordedAt, 'd MMM, HH:mm')}">17 oct, 11:54</time></td>
+                        <td class="numeric" th:text="${reading.value != null} ? |${#numbers.formatDecimal(reading.value, 1, 1, 'COMMA')}${sensor.unit != null ? ' ' + sensor.unit : ''}| : '—'">55,8 %</td>
+                        <td>
+                            <th:block th:if="${detail.outOfRange(reading.value)}"><span
+                                  th:replace="~{fragments/status-pill :: status-pill('warning', 'bi-exclamation-triangle', 'Fuera de rango')}"></span></th:block>
+                            <span class="text-muted" th:if="${!detail.outOfRange(reading.value)}"
+                                  th:text="${detail.hasRange()} ? 'Dentro del rango' : '—'">Dentro del rango</span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</main>
+</body>
+</html>
