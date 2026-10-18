@@ -44,7 +44,7 @@
                     <span class="stat-unit" th:text="${sensor.unit}">%</span>
                 </p>
                 <p class="sensor-card-value sensor-card-value--empty" th:if="${sensor.lastValue == null}">Sin lecturas</p>
-                <p class="sensor-card-hint" th:unless="${sensor.status().reporting()}" th:text="#{${'sensorStatusHint.' + sensor.status()}}">No envía datos desde hace más de 3 horas.</p>
+                <p class="sensor-card-hint" th:unless="${sensor.status().reporting()}" th:with="status=${sensor.status()}" th:text="#{${'sensorStatusHint.' + status}(${sensorThresholds.staleAfterText()},${sensorThresholds.offlineAfterText()})}">No envía datos desde hace más de 1 hora.</p>
                 <p class="sensor-card-age" th:if="${sensor.lastValue != null and sensor.lastReadingAt != null}">
                     <i class="bi bi-clock" aria-hidden="true"></i>
                     <time data-live-time="ago" th:datetime="${sensor.lastReadingAt}" th:title="${#temporals.format(sensor.lastReadingAt, 'd MMM yyyy, HH:mm')}"

@@ -144,9 +144,6 @@ public final class Views {
         INACTIVE("neutral", "bi-pause-circle"),
         UNKNOWN("neutral", "bi-question-circle");
 
-        public static final java.time.Duration STALE_AFTER = java.time.Duration.ofHours(3);
-        public static final java.time.Duration OFFLINE_AFTER = java.time.Duration.ofHours(24);
-
         private final String tone;
         private final String icon;
 
@@ -184,34 +181,8 @@ public final class Views {
             String lastQuality,
             BigDecimal latitude,
             BigDecimal longitude,
-            Integer coverageM) {
-
-        public SensorStatus status() {
-            return statusAt(LocalDateTime.now());
-        }
-
-        public SensorStatus statusAt(LocalDateTime now) {
-            if (!active) {
-                return SensorStatus.INACTIVE;
-            }
-            if (lastValue == null && lastReadingAt == null) {
-                return SensorStatus.NO_DATA;
-            }
-            if (lastReadingAt == null) {
-                return SensorStatus.UNKNOWN;
-            }
-            if (lastQuality != null && !"OK".equalsIgnoreCase(lastQuality)) {
-                return SensorStatus.ERROR;
-            }
-            java.time.Duration age = java.time.Duration.between(lastReadingAt, now);
-            if (age.compareTo(SensorStatus.OFFLINE_AFTER) > 0) {
-                return SensorStatus.OFFLINE;
-            }
-            if (age.compareTo(SensorStatus.STALE_AFTER) > 0) {
-                return SensorStatus.STALE;
-            }
-            return SensorStatus.ONLINE;
-        }
+            Integer coverageM,
+            SensorStatus status) {
 
         public boolean placed() {
             return latitude != null && longitude != null && coverageM != null;

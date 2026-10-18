@@ -2,6 +2,7 @@ package com.agrosense.frontend.controller;
 
 import com.agrosense.frontend.dto.Views.NavItem;
 import com.agrosense.frontend.service.AlertService;
+import com.agrosense.frontend.service.SensorStatusPolicy;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.env.Environment;
@@ -30,6 +31,7 @@ public class GlobalModelAttributes {
 
     private final AlertService alertService;
     private final Environment environment;
+    private final SensorStatusPolicy sensorStatusPolicy;
 
     @ModelAttribute
     public void addLayoutAttributes(Model model, HttpServletRequest request, Principal principal) {
@@ -41,6 +43,7 @@ public class GlobalModelAttributes {
                 .map(item -> new NavItem(item.path(), item.label(), item.icon(), isActive(item.path(), path)))
                 .toList());
         model.addAttribute("demoMode", environment.acceptsProfiles(Profiles.of("demo")));
+        model.addAttribute("sensorThresholds", sensorStatusPolicy);
         if (principal != null) {
             model.addAttribute("openAlertCount", alertService.countOpen(principal.getName()));
         }

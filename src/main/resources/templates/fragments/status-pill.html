@@ -12,7 +12,7 @@
     <span th:text="#{${'severity.' + level}}">Advertencia</span>
 </span>
 <span class="status-pill" th:fragment="sensor-status(sensor)" th:with="status=${sensor.status()}"
-      th:classappend="|status-pill--${status.tone()}|" th:title="#{${'sensorStatusHint.' + status}}"
+      th:classappend="|status-pill--${status.tone()}|" th:title="#{${'sensorStatusHint.' + status}(${sensorThresholds.staleAfterText()},${sensorThresholds.offlineAfterText()})}"
       th:attr="data-sensor-status=${status}">
     <i class="bi" th:classappend="${status.icon()}" aria-hidden="true"></i>
     <span th:text="#{${'sensorStatus.' + status}}">En línea</span>

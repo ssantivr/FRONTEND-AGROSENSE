@@ -47,12 +47,14 @@ public class SensorService {
     private final SensorRepository sensorRepository;
     private final SensorReadingRepository readingRepository;
     private final BackendClient backendClient;
+    private final SensorStatusPolicy statusPolicy;
 
     public List<SensorView> findSensors(String email) {
         List<Sensor> sensors = sensorRepository.findByCropEstateUserEmailOrderBySensorCode(email);
         Map<Integer, SensorReading> latest = latestReadings(sensors);
+        LocalDateTime now = LocalDateTime.now();
         return sensors.stream()
-                .map(sensor -> toView(sensor, Optional.ofNullable(latest.get(sensor.getIdSensor()))))
+                .map(sensor -> toView(sensor, Optional.ofNullable(latest.get(sensor.getIdSensor())), now))
                 .toList();
     }
 
@@ -110,7 +112,11 @@ public class SensorService {
                         .toList());
     }
 
-    private static SensorView toView(Sensor sensor, Optional<SensorReading> latest) {
+    private SensorView toView(Sensor sensor, Optional<SensorReading> latest, LocalDateTime now) {
+        boolean active = Boolean.TRUE.equals(sensor.getActive());
+        BigDecimal lastValue = latest.map(SensorReading::getValue).orElse(null);
+        LocalDateTime lastReadingAt = latest.map(SensorReading::getRecordedAt).orElse(sensor.getLastReadingAt());
+        String lastQuality = latest.map(SensorReading::getQuality).orElse(null);
         return new SensorView(
                 sensor.getIdSensor(),
                 sensor.getSensorCode(),
@@ -120,14 +126,15 @@ public class SensorService {
                 sensor.getCrop().getEstate().getIdEstate(),
                 sensor.getCrop().getEstate().getName(),
                 sensor.getLocation(),
-                Boolean.TRUE.equals(sensor.getActive()),
-                latest.map(SensorReading::getValue).orElse(null),
+                active,
+                lastValue,
                 latest.map(SensorReading::getUnit).orElse(null),
-                latest.map(SensorReading::getRecordedAt).orElse(sensor.getLastReadingAt()),
-                latest.map(SensorReading::getQuality).orElse(null),
+                lastReadingAt,
+                lastQuality,
                 sensor.getLatitude(),
                 sensor.getLongitude(),
-                sensor.getCoverageM());
+                sensor.getCoverageM(),
+                statusPolicy.statusOf(active, lastValue, lastReadingAt, lastQuality, now));
     }
 
     private static SensorSummary summarize(SensorType type, List<SensorView> sensors, String sparkline) {

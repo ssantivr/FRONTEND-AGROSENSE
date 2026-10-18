@@ -72,7 +72,7 @@
         </th:block>
         <article th:replace="~{fragments/stat-card :: stat-card('Sensores enviando datos',
             ${dashboard.reportingSensorCount()}, ${'de ' + dashboard.sensors.size()},
-            ${dashboard.sensors.isEmpty() ? 'Aún no hay sensores registrados' : dashboard.activeSensorCount() + ' activos · lectura en las últimas 3 h'},
+            ${dashboard.sensors.isEmpty() ? 'Aún no hay sensores registrados' : dashboard.activeSensorCount() + ' activos · última lectura hace menos de ' + sensorThresholds.staleAfterText()},
             'bi-broadcast', false, null, null)}"></article>
         <article th:replace="~{fragments/stat-card :: stat-card('Alertas pendientes',
             ${openAlertCount != null ? openAlertCount : 0}, null,

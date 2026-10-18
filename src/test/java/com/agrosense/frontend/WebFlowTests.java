@@ -214,6 +214,18 @@ class WebFlowTests {
     }
 
     @Test
+    void sensorStatesDescribeTheConfiguredThresholds() throws Exception {
+        mvc.perform(get("/sensores").with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("{0}"))))
+                .andExpect(content().string(not(containsString("{1}"))))
+                .andExpect(content().string(not(containsString("3 horas"))));
+        mvc.perform(get("/").with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("última lectura hace menos de 1 hora")));
+    }
+
+    @Test
     void dashboardShowsIndicatorsDemoFlagAndUserInitials() throws Exception {
         mvc.perform(get("/").with(user(demoUser)))
                 .andExpect(status().isOk())
