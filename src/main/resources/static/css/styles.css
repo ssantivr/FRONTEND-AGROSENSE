@@ -5404,6 +5404,14 @@ kbd {
   min-width: 0;
 }
 
+.detail-header .stat-icon {
+  position: static;
+  flex: none;
+  width: 56px;
+  height: 56px;
+  font-size: var(--icon-lg);
+}
+
 .detail-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
