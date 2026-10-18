@@ -110,6 +110,7 @@ class LiveEvents {
         for (const indicator of this.indicators()) {
             indicator.hidden = false;
             indicator.dataset['state'] = state;
+            indicator.title = STATE_LABELS[state];
             const label = indicator.querySelector('[data-live-label]');
             if (label)
                 label.textContent = STATE_LABELS[state];

@@ -263,6 +263,7 @@ class WebFlowTests {
         mvc.perform(get("/").with(user(demoUser)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("id=\"liveStatus\"")))
+                .andExpect(content().string(containsString("data-state=\"live\" title=\"En vivo\"")))
                 .andExpect(content().string(containsString("data-live-indicator")))
                 .andExpect(content().string(containsString("<span data-live-label>En vivo</span>")))
                 .andExpect(content().string(containsString("data-live-value")))
