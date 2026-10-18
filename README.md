@@ -86,3 +86,7 @@ borra cuando el pull request se cierra. Necesita el secreto `NEON_API_KEY` y la 
 
 La arquitectura, las decisiones y la tabla de qué es real y qué es demostración están en
 [`docs/ARQUITECTURA.md`](../docs/ARQUITECTURA.md).
+
+El rediseño de la interfaz (tokens, temas y pantallas por fase) está en [`docs/FRONTEND.md`](docs/FRONTEND.md),
+sus motivos en [`docs/DECISIONES.md`](docs/DECISIONES.md) y lo que pide al backend en
+[`docs/CAMBIOS_BACKEND.md`](docs/CAMBIOS_BACKEND.md).
