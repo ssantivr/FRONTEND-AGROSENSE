@@ -164,6 +164,19 @@ class WebFlowTests {
     }
 
     @Test
+    void eachCropCardShowsOnlyTheStatusThatAppliesToIt() throws Exception {
+        String page = mvc.perform(get("/cultivos").with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        String[] heads = page.split("<header class=\"crop-card-head\">");
+        assertThat(heads).hasSizeGreaterThan(1);
+        for (int index = 1; index < heads.length; index++) {
+            String head = heads[index].substring(0, heads[index].indexOf("</header>"));
+            assertThat(head.split("class=\"status-pill ", -1)).as("status pills in card %d", index).hasSize(2);
+        }
+    }
+
+    @Test
     void cropsPageListsEveryCropAndFiltersThem() throws Exception {
         mvc.perform(get("/cultivos").with(user(demoUser)))
                 .andExpect(status().isOk())

@@ -5218,18 +5218,34 @@ kbd {
 
 .crop-card-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
-  gap: var(--space-3);
+  gap: var(--space-2) var(--space-3);
 }
 
 .crop-card-title {
-  flex: 1;
+  flex: 1 1 10rem;
   min-width: 0;
 }
 
 .crop-card-title h2 {
   font-size: var(--text-h3);
   line-height: var(--leading-h3);
+  overflow-wrap: anywhere;
+}
+
+.crop-card-head > .status-pill {
+  flex: none;
+}
+
+@media (max-width: 479px) {
+  .crop-card-title {
+    flex-basis: calc(100% - var(--touch-target) - var(--space-3));
+  }
+
+  .crop-card-head > .status-pill {
+    margin-left: calc(var(--touch-target) + var(--space-3));
+  }
 }
 
 .crop-card-title p {

@@ -74,11 +74,11 @@
                         <p class="text-muted" th:text="${crop.variety ?: 'Variedad sin registrar'}">Castillo</p>
                     </div>
                     <th:block th:switch="${card.health()}">
-                        <span th:case="'attention'" th:replace="~{fragments/status-pill :: status-pill('warning', 'bi-exclamation-circle',
-                            ${card.openAlerts == 1 ? '1 alerta' : card.openAlerts + ' alertas'})}"></span>
-                        <span th:case="'inactive'" th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-pause-circle', 'Inactivo')}"></span>
-                        <span th:case="'unmonitored'" th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-broadcast', 'Sin sensores')}"></span>
-                        <span th:case="*" th:replace="~{fragments/status-pill :: status-pill('success', 'bi-check-circle', 'Sin alertas')}"></span>
+                        <th:block th:case="'attention'"><span th:replace="~{fragments/status-pill :: status-pill('warning', 'bi-exclamation-circle',
+                            ${card.openAlerts == 1 ? '1 alerta' : card.openAlerts + ' alertas'})}"></span></th:block>
+                        <th:block th:case="'inactive'"><span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-pause-circle', 'Inactivo')}"></span></th:block>
+                        <th:block th:case="'unmonitored'"><span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-broadcast', 'Sin sensores')}"></span></th:block>
+                        <th:block th:case="*"><span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-check-circle', 'Sin alertas')}"></span></th:block>
                     </th:block>
                 </header>
 
