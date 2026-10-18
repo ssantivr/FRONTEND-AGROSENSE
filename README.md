@@ -69,6 +69,11 @@ npm run typecheck
 
 No edites `static/js` a mano: la siguiente compilación lo sobrescribe.
 
+Las transiciones de vista entre páginas (`@view-transition`) están desactivadas: Chromium abortaba la
+transición en casi cada navegación y lo anotaba en la consola como error («Transition was aborted because of
+invalid state»). Quitarla solo al ir al inicio no lo evitaba. Una prueba de `WebFlowTests` impide que la regla
+vuelva a `styles.css`.
+
 ## Pruebas
 
 ```bash
