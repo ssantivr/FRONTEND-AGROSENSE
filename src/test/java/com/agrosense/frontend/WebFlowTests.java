@@ -259,6 +259,14 @@ class WebFlowTests {
     }
 
     @Test
+    void pagesDoNotOptIntoCrossDocumentViewTransitions() throws Exception {
+        mvc.perform(get("/css/styles.css"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("@view-transition"))))
+                .andExpect(content().string(not(containsString("view-transition-name"))));
+    }
+
+    @Test
     void theDashboardIsReadyForLiveReadingsAndShowsTheConnectionState() throws Exception {
         mvc.perform(get("/").with(user(demoUser)))
                 .andExpect(status().isOk())

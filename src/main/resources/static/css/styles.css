@@ -329,15 +329,6 @@ code {
   animation-delay: calc(var(--stagger) * 6);
 }
 
-@view-transition {
-  navigation: auto;
-}
-
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: var(--motion-base);
-}
-
 .app-shell {
   display: grid;
   grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
@@ -383,7 +374,6 @@ code {
   border-right: 1px solid var(--panel-border);
   background: var(--panel);
   color: var(--panel-text);
-  view-transition-name: sidebar;
 }
 
 .sidebar :focus-visible {
@@ -466,7 +456,6 @@ code {
   width: 4px;
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   background: var(--highlight);
-  view-transition-name: nav-marker;
 }
 
 .sidebar-badge {
@@ -523,7 +512,6 @@ code {
   padding: 0 var(--space-6);
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  view-transition-name: topbar;
 }
 
 .topbar form {
@@ -4625,7 +4613,6 @@ kbd {
     visibility: hidden;
     transform: translateX(-100%);
     transition: transform var(--motion-slow) var(--ease-out), visibility 0s var(--motion-slow);
-    view-transition-name: none;
   }
 
   .app-shell.is-open .sidebar {
@@ -4771,7 +4758,6 @@ kbd {
     padding-bottom: env(safe-area-inset-bottom);
     border-top: 1px solid var(--panel-border);
     background: var(--panel);
-    view-transition-name: bottom-nav;
   }
 
   .bottom-nav-link {
@@ -4927,10 +4913,6 @@ kbd {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  @view-transition {
-    navigation: none;
-  }
-
   .skeleton,
   .pump--running .pump-icon,
   .auth-hero-placeholder::after {
