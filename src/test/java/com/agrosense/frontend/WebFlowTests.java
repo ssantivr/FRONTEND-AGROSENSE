@@ -922,12 +922,12 @@ class WebFlowTests {
         mvc.perform(post("/sensores/{id}/eliminar", coffeeSensor.getIdSensor()).with(user(demoUser)).with(csrf()))
                 .andExpect(redirectedUrl("/sensores"));
         assertThat(sensorRepository.findById(coffeeSensor.getIdSensor())).isEmpty();
-        assertThat(sensorRepository.findByCropEstateUserEmailOrderBySensorCode(DEMO_EMAIL)).hasSize(5);
+        assertThat(sensorRepository.findByCropEstateUserEmailOrderBySensorCode(DEMO_EMAIL)).hasSize(6);
 
         mvc.perform(post("/cultivos/{id}/eliminar", plantain.getIdCrop()).with(user(demoUser)).with(csrf()))
                 .andExpect(redirectedUrl("/parcelas"));
         assertThat(cropRepository.findById(plantain.getIdCrop())).isEmpty();
-        assertThat(sensorRepository.findByCropEstateUserEmailOrderBySensorCode(DEMO_EMAIL)).hasSize(3);
+        assertThat(sensorRepository.findByCropEstateUserEmailOrderBySensorCode(DEMO_EMAIL)).hasSize(4);
 
         mvc.perform(post("/parcelas/{id}/eliminar", secondEstate.getIdEstate()).with(user(demoUser)).with(csrf()))
                 .andExpect(redirectedUrl("/parcelas"));

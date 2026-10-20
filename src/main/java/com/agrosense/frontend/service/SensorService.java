@@ -164,8 +164,8 @@ public class SensorService {
 
     private static BigDecimal[] thresholds(SensorType type, Crop crop) {
         return switch (type) {
-            case SOIL_MOISTURE, RELATIVE_HUMIDITY ->
-                    new BigDecimal[] {crop.getHumidityMin(), crop.getHumidityMax()};
+            // The crop's humidity range is the soil's; the air's humidity has none.
+            case SOIL_MOISTURE -> new BigDecimal[] {crop.getHumidityMin(), crop.getHumidityMax()};
             case AIR_TEMPERATURE, SOIL_TEMPERATURE -> new BigDecimal[] {crop.getTempMin(), crop.getTempMax()};
             case PH -> new BigDecimal[] {crop.getPhMin(), crop.getPhMax()};
             default -> new BigDecimal[] {null, null};
