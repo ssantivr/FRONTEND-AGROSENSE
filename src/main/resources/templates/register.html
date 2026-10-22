@@ -23,10 +23,10 @@
                     <span class="field-counter" id="nameCounter" aria-hidden="true"
                           th:text="|${registrationForm.name == null ? 0 : registrationForm.name.length()}/18|">0/18</span>
                 </span>
-                <input type="text" th:field="*{name}" autocomplete="given-name" autocapitalize="words" enterkeyhint="next" minlength="2" maxlength="18" required
+                <input type="text" th:field="*{name}" autocomplete="given-name" autocapitalize="words" enterkeyhint="next" minlength="2" data-max="18" required
                        autofocus data-counter="nameCounter" aria-describedby="nameHint nameError"
                        th:attr="aria-invalid=${#fields.hasErrors('name')}">
-                <span class="field-hint" id="nameHint">Entre 2 y 18 caracteres.</span>
+                <span class="field-hint" id="nameHint">Entre 2 y 18 caracteres. Los espacios cuentan (límite actual del servidor).</span>
                 <span class="field-error" data-server-error th:if="${#fields.hasErrors('name')}" th:errors="*{name}">Error</span>
                 <span class="field-slot" id="nameError" role="alert"><span class="field-error"></span></span>
             </label>
@@ -36,10 +36,10 @@
                     <span class="field-counter" id="lastNameCounter" aria-hidden="true"
                           th:text="|${registrationForm.lastName == null ? 0 : registrationForm.lastName.length()}/18|">0/18</span>
                 </span>
-                <input type="text" th:field="*{lastName}" autocomplete="family-name" autocapitalize="words" enterkeyhint="next" minlength="2" maxlength="18" required
+                <input type="text" th:field="*{lastName}" autocomplete="family-name" autocapitalize="words" enterkeyhint="next" minlength="2" data-max="18" required
                        data-counter="lastNameCounter" aria-describedby="lastNameHint lastNameError"
                        th:attr="aria-invalid=${#fields.hasErrors('lastName')}">
-                <span class="field-hint" id="lastNameHint">Entre 2 y 18 caracteres.</span>
+                <span class="field-hint" id="lastNameHint">Entre 2 y 18 caracteres. Los espacios cuentan; se admiten apellidos compuestos, guiones y apóstrofos; si el tuyo es más largo, abrevia una parte.</span>
                 <span class="field-error" data-server-error th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}">Error</span>
                 <span class="field-slot" id="lastNameError" role="alert"><span class="field-error"></span></span>
             </label>
@@ -67,7 +67,7 @@
             </span>
             <span class="field-with-action">
                 <input type="password" name="password" id="password" autocomplete="new-password" enterkeyhint="next" minlength="8"
-                       maxlength="32" required data-counter="passwordCounter" data-caps-warning="passwordCaps"
+                       data-max="32" required data-counter="passwordCounter" data-caps-warning="passwordCaps"
                        aria-describedby="passwordStrengthLabel passwordRules passwordError"
                        th:attr="aria-invalid=${#fields.hasErrors('password')}">
                 <button type="button" class="icon-button" data-toggle-password="password" aria-pressed="false"
@@ -96,7 +96,7 @@
             <span class="field-label">Confirmar contraseña</span>
             <span class="field-with-action">
                 <input type="password" name="confirmPassword" id="confirmPassword" autocomplete="new-password" enterkeyhint="done"
-                       minlength="8" maxlength="32" required data-caps-warning="passwordCaps"
+                       minlength="8" data-max="32" required data-caps-warning="passwordCaps"
                        aria-describedby="confirmPasswordMatch confirmPasswordError"
                        th:attr="aria-invalid=${#fields.hasErrors('passwordConfirmed')}">
                 <button type="button" class="icon-button" data-toggle-password="confirmPassword" aria-pressed="false"

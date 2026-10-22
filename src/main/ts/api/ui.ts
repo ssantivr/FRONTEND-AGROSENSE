@@ -27,7 +27,10 @@ const isReadingSeries = (value: unknown): value is ReadingSeries =>
   isNullable(isString)(value['unit']) &&
   isNullable(isNumber)(value['thresholdMin']) &&
   isNullable(isNumber)(value['thresholdMax']) &&
-  isArrayOf(isReadingPoint)(value['points']);
+  isArrayOf(isReadingPoint)(value['points']) &&
+  isNumber(value['windowHours']) &&
+  (value['source'] === 'api' || value['source'] === 'database') &&
+  isString(value['loadedAt']);
 
 const isDailyWater = (value: unknown): value is DailyWater =>
   isRecord(value) && isString(value['date']) && isNumber(value['liters']);
@@ -94,8 +97,12 @@ export function embeddedEstate(json: string | undefined): EstateMarker | null {
 export const embeddedWaterUsage = (json: string | undefined): DailyWater[] | null =>
   embedded(json, isArrayOf(isDailyWater));
 
-export const fetchReadings = (sensorId: string, signal?: AbortSignal): Promise<ReadingSeries> =>
-  requestJson(`/api/ui/sensors/${encodeURIComponent(sensorId)}/readings`, isReadingSeries, signal ? { signal } : {});
+export const fetchReadings = (sensorId: string, hours: number, signal?: AbortSignal): Promise<ReadingSeries> =>
+  requestJson(
+    `/api/ui/sensors/${encodeURIComponent(sensorId)}/readings?hours=${hours}`,
+    isReadingSeries,
+    signal ? { signal } : {},
+  );
 
 export const fetchWaterUsage = (): Promise<DailyWater[]> => requestJson('/api/ui/water-usage', isArrayOf(isDailyWater));
 

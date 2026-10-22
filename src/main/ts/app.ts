@@ -1,3 +1,4 @@
+import { initConnectionStatus, onBackendState } from './connection.js';
 import { all, el, find, icon } from './core/dom.js';
 import { initFeedback } from './feedback.js';
 import { initCommandPalette } from './palette.js';
@@ -156,4 +157,8 @@ initConfirmForms();
 initTableTools();
 initCommandPalette();
 initFeedback();
+onBackendState((state) => {
+  if (state === 'up') showToast('El servidor ya respondió. Las próximas operaciones pasan por él.', 'success');
+});
+initConnectionStatus();
 all('#toastRegion .toast', HTMLElement).forEach(scheduleDismiss);

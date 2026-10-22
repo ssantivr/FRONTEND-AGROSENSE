@@ -207,20 +207,33 @@ public final class Views {
         }
 
         public String icon() {
-            return switch (type) {
-                case SOIL_MOISTURE -> "bi-moisture";
-                case AIR_TEMPERATURE -> "bi-thermometer-half";
-                case SOIL_TEMPERATURE -> "bi-thermometer-low";
-                case PH -> "bi-eyedropper";
-                case CONDUCTIVITY -> "bi-lightning-charge";
-                case LIGHT -> "bi-brightness-high";
-                case RAIN_GAUGE -> "bi-cloud-rain";
-                case RELATIVE_HUMIDITY -> "bi-droplet-half";
-            };
+            return iconOf(type);
         }
     }
 
-    public record SensorSummary(SensorType type, BigDecimal value, String unit, int sensorCount, String sparkline) {
+    public static String iconOf(SensorType type) {
+        return switch (type) {
+            case SOIL_MOISTURE -> "bi-moisture";
+            case AIR_TEMPERATURE -> "bi-thermometer-half";
+            case SOIL_TEMPERATURE -> "bi-thermometer-low";
+            case PH -> "bi-eyedropper";
+            case CONDUCTIVITY -> "bi-lightning-charge";
+            case LIGHT -> "bi-brightness-high";
+            case RAIN_GAUGE -> "bi-cloud-rain";
+            case RELATIVE_HUMIDITY -> "bi-droplet-half";
+        };
+    }
+
+    public record SensorSummary(SensorType type, BigDecimal value, String unit, int sensorCount, String sparkline,
+            LocalDateTime lastReadingAt) {
+
+        public boolean measured() {
+            return value != null;
+        }
+
+        public String icon() {
+            return iconOf(type);
+        }
     }
 
     public record RangeBar(double min, double max, double value, String minLabel, String maxLabel, boolean within) {
@@ -292,7 +305,13 @@ public final class Views {
             String unit,
             BigDecimal thresholdMin,
             BigDecimal thresholdMax,
-            List<ReadingPoint> points) {
+            List<ReadingPoint> points,
+            int windowHours,
+            String source,
+            LocalDateTime loadedAt) {
+
+        public static final String SOURCE_API = "api";
+        public static final String SOURCE_DATABASE = "database";
     }
 
     public record AlertView(

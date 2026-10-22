@@ -35,6 +35,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -45,12 +46,19 @@ public class BackendClient {
 
     private static final Duration AVAILABLE_FOR = Duration.ofSeconds(60);
     private static final Duration UNAVAILABLE_FOR = Duration.ofSeconds(15);
+    private static final Duration WAKE_TIMEOUT = Duration.ofSeconds(60);
+    private static final Duration WAKE_PAUSE = Duration.ofSeconds(2);
+    private static final int WAKE_ATTEMPTS = 3;
+    private static final int READ_ATTEMPTS = 3;
+    private static final Duration READ_RETRY_PAUSE = Duration.ofMillis(300);
     private static final Pattern MESSAGE = Pattern.compile("\"message\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"");
 
     private final RestClient api;
     private final RestClient health;
+    private final RestClient wake;
     private final RestClient assistant;
     private final BackendToken token;
+    private final AtomicBoolean waking = new AtomicBoolean();
 
     private volatile Availability availability = new Availability(false, Instant.EPOCH);
 
@@ -63,6 +71,7 @@ public class BackendClient {
         if (url.isBlank() || jwtSecret.isBlank()) {
             this.api = null;
             this.health = null;
+            this.wake = null;
             this.assistant = null;
             this.token = null;
             log.info("Backend API not configured: every operation uses the database");
@@ -72,11 +81,16 @@ public class BackendClient {
         Duration connectTimeout = Duration.ofMillis(connectTimeoutMs);
         this.api = client(baseUrl, connectTimeout, Duration.ofMillis(readTimeoutMs));
         this.health = client(baseUrl, connectTimeout, Duration.ofMillis(healthTimeoutMs));
+        this.wake = client(baseUrl, WAKE_TIMEOUT, WAKE_TIMEOUT);
         this.assistant = client(baseUrl, connectTimeout, Duration.ofMillis(assistantTimeoutMs));
         this.token = new BackendToken(jwtSecret);
         log.info("Backend API configured at {}", baseUrl);
     }
 
+    /**
+     * The one place that decides between the backend API and the database: every operation that can use the
+     * API asks here first.
+     */
     public boolean isAvailable() {
         if (api == null) {
             return false;
@@ -85,9 +99,63 @@ public class BackendClient {
         if (Instant.now().isBefore(known.until())) {
             return known.up();
         }
-        boolean up = checkHealth();
+        boolean up = checkHealth(health);
         availability = new Availability(up, Instant.now().plus(up ? AVAILABLE_FOR : UNAVAILABLE_FOR));
+        if (!up) {
+            wakeUp();
+        }
         return up;
+    }
+
+    /** Asks the backend when the last answer is too old, so it may take the health check's timeout. */
+    public BackendStatus status() {
+        isAvailable();
+        return knownStatus();
+    }
+
+    /** What is known now, without asking the backend. */
+    public BackendStatus knownStatus() {
+        if (api == null) {
+            return new BackendStatus(BackendStatus.State.OFF, Instant.now());
+        }
+        Availability known = availability;
+        Instant checkedAt = known.until().minus(known.up() ? AVAILABLE_FOR : UNAVAILABLE_FOR);
+        if (known.up()) {
+            return new BackendStatus(BackendStatus.State.UP, checkedAt);
+        }
+        if (waking.get()) {
+            return new BackendStatus(BackendStatus.State.WAKING, checkedAt);
+        }
+        return known.until().equals(Instant.EPOCH)
+                ? new BackendStatus(BackendStatus.State.UNKNOWN, Instant.now())
+                : new BackendStatus(BackendStatus.State.DOWN, checkedAt);
+    }
+
+    // A free host answers the first request after a nap only when the service has started, which can take a
+    // minute: one background request at a time waits that long, up to WAKE_ATTEMPTS times with growing pauses.
+    private void wakeUp() {
+        if (!waking.compareAndSet(false, true)) {
+            return;
+        }
+        Thread.ofVirtual().name("backend-wake-up").start(() -> {
+            try {
+                for (int attempt = 1; attempt <= WAKE_ATTEMPTS; attempt++) {
+                    if (checkHealth(wake)) {
+                        availability = new Availability(true, Instant.now().plus(AVAILABLE_FOR));
+                        log.info("Backend API answered after waking it up (attempt {})", attempt);
+                        return;
+                    }
+                    if (attempt < WAKE_ATTEMPTS) {
+                        Thread.sleep(WAKE_PAUSE.multipliedBy(1L << (attempt - 1)));
+                    }
+                }
+                availability = new Availability(false, Instant.now().plus(UNAVAILABLE_FOR));
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+            } finally {
+                waking.set(false);
+            }
+        });
     }
 
     public <T> Optional<T> attempt(Supplier<T> call) {
@@ -126,7 +194,7 @@ public class BackendClient {
     }
 
     public List<ReadingResponse> latestReadings(String email, Integer sensorId, int limit) {
-        return execute(() -> api.get().uri("/api/sensors/{sensorId}/readings?limit={limit}", sensorId, limit)
+        return executeRead(() -> api.get().uri("/api/sensors/{sensorId}/readings?limit={limit}", sensorId, limit)
                 .header(HttpHeaders.AUTHORIZATION, token.bearerFor(email))
                 .retrieve().onStatus(HttpStatusCode::isError, BackendClient::fail)
                 .body(new ParameterizedTypeReference<List<ReadingResponse>>() {
@@ -134,13 +202,13 @@ public class BackendClient {
     }
 
     public EventStreamToken eventStreamToken(String email) {
-        return execute(() -> api.get().uri("/api/events/token")
+        return executeRead(() -> api.get().uri("/api/events/token")
                 .header(HttpHeaders.AUTHORIZATION, token.bearerFor(email))
                 .retrieve().onStatus(HttpStatusCode::isError, BackendClient::fail).body(EventStreamToken.class));
     }
 
     public boolean isEmailAvailable(String email) {
-        return execute(() -> api.get().uri("/api/auth/check-user?email={email}", email)
+        return executeRead(() -> api.get().uri("/api/auth/check-user?email={email}", email)
                 .retrieve().onStatus(HttpStatusCode::isError, BackendClient::failAccount)
                 .body(EmailAvailabilityResponse.class)).available();
     }
@@ -217,14 +285,44 @@ public class BackendClient {
         throw new AiAssistantException(resolved == null ? HttpStatus.BAD_GATEWAY : resolved, message);
     }
 
-    private boolean checkHealth() {
+    private boolean checkHealth(RestClient client) {
         try {
-            health.get().uri("/api/health").retrieve().toBodilessEntity();
+            client.get().uri("/api/health").retrieve().toBodilessEntity();
             return true;
         } catch (RestClientException exception) {
             log.info("Backend API not available yet: {}", exception.getMessage());
             return false;
         }
+    }
+
+    // Reads change nothing, so one that could not even connect is tried again after a growing pause. A slow
+    // answer is not: the backend got the request and asking again only adds to its load.
+    private <T> T executeRead(Supplier<T> call) {
+        for (int attempt = 1; ; attempt++) {
+            try {
+                return execute(call);
+            } catch (BackendUnavailableException exception) {
+                if (attempt >= READ_ATTEMPTS || !couldNotConnect(exception)) {
+                    throw exception;
+                }
+                try {
+                    Thread.sleep(READ_RETRY_PAUSE.multipliedBy(1L << (attempt - 1)));
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw exception;
+                }
+            }
+        }
+    }
+
+    private static boolean couldNotConnect(Throwable exception) {
+        for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
+            if (cause instanceof java.net.ConnectException
+                    || cause instanceof java.net.http.HttpConnectTimeoutException) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private <T> T execute(Supplier<T> call) {

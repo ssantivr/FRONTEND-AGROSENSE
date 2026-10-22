@@ -8,11 +8,12 @@
     <section class="hero hero--dashboard" aria-labelledby="greetingTitle">
         <img th:replace="~{fragments/page-header :: hero-photo('narino-fields')}">
         <div class="hero-body">
-            <p class="eyebrow" th:text="${#temporals.format(now, 'EEEE d ''de'' MMMM')}">sábado 17 de octubre</p>
-            <h1 id="greetingTitle">
+            <p class="eyebrow">
                 <span th:text="${hour < 12} ? 'Buenos días' : (${hour < 19} ? 'Buenas tardes' : 'Buenas noches')">Buenos días</span>,
-                <span sec:authentication="principal.displayName">Usuario</span>
-            </h1>
+                <span sec:authentication="principal.displayName">Usuario</span> ·
+                <span th:text="${#temporals.format(now, 'EEEE d ''de'' MMMM')}">sábado 17 de octubre</span>
+            </p>
+            <h1 id="greetingTitle">Tu cultivo, bajo control</h1>
             <p class="hero-summary" th:if="${!dashboard.estates.isEmpty()}"
                th:text="|${dashboard.estateCount == 1 ? '1 parcela' : dashboard.estateCount + ' parcelas'} · ${dashboard.activeCropCount == 1 ? '1 cultivo activo' : dashboard.activeCropCount + ' cultivos activos'} · ${dashboard.reportingSensorCount()} de ${dashboard.sensors.size()} sensores enviando datos|">
                 2 parcelas · 3 cultivos activos · 5 de 6 sensores enviando datos
@@ -58,17 +59,9 @@
     </section>
 
     <section class="kpi-grid" aria-label="Indicadores" data-motion-stagger>
-        <th:block th:with="summary=${dashboard.summary('SOIL_MOISTURE')}">
-            <article th:replace="~{fragments/stat-card :: stat-card('Humedad del suelo',
-                ${summary.value != null ? #numbers.formatDecimal(summary.value, 1, 1, 'COMMA') : null}, '%',
-                ${summary.value != null ? 'Promedio de la última lectura de cada sensor' : 'Sin lecturas todavía'}, 'bi-moisture', true,
-                ${summary.sparkline}, ${dashboard.humidityRange})}"></article>
-        </th:block>
-        <th:block th:with="summary=${dashboard.summary('AIR_TEMPERATURE')}">
-            <article th:replace="~{fragments/stat-card :: stat-card('Temperatura del aire',
-                ${summary.value != null ? #numbers.formatDecimal(summary.value, 1, 1, 'COMMA') : null}, '°C',
-                ${summary.value != null ? 'Promedio de la última lectura' : 'Sin lecturas todavía'}, 'bi-thermometer-half', false,
-                ${summary.sparkline}, null)}"></article>
+        <th:block th:each="summary : ${dashboard.sensorSummaries}" th:if="${summary.measured()}">
+            <article th:replace="~{fragments/stat-card :: kpi-card(${summary},
+                ${summary.type.name() == 'SOIL_MOISTURE' ? dashboard.humidityRange : null})}"></article>
         </th:block>
         <article th:replace="~{fragments/stat-card :: stat-card('Sensores enviando datos',
             ${dashboard.reportingSensorCount()}, ${'de ' + dashboard.sensors.size()},
@@ -110,18 +103,27 @@
         <div class="dash-main">
             <section class="card" aria-labelledby="readingsTitle">
                 <div class="card-header">
-                    <h2 id="readingsTitle">Lecturas de las últimas 24 horas</h2>
-                    <label class="field field--inline" th:if="${!dashboard.chartSensors.isEmpty()}">
-                        <span class="field-label">Sensor</span>
-                        <select id="chartSensor">
-                            <option th:each="sensor : ${dashboard.chartSensors}" th:value="${sensor.id}"
-                                    th:text="|${sensor.code} · ${#messages.msg('sensorType.' + sensor.type)} · ${sensor.cropName}|">
-                                AS-001
-                            </option>
-                        </select>
-                    </label>
+                    <h2 id="readingsTitle">Lecturas por sensor</h2>
+                    <div class="row-actions" th:if="${!dashboard.chartSensors.isEmpty()}">
+                        <div class="segmented" role="group" aria-label="Periodo de la gráfica" id="readingsWindow">
+                            <button type="button" class="segmented-option" data-hours="6" aria-pressed="false">6 h</button>
+                            <button type="button" class="segmented-option" data-hours="24" aria-pressed="true">24 h</button>
+                            <button type="button" class="segmented-option" data-hours="72" aria-pressed="false">3 días</button>
+                            <button type="button" class="segmented-option" data-hours="168" aria-pressed="false">7 días</button>
+                        </div>
+                        <label class="field field--inline">
+                            <span class="field-label">Sensor</span>
+                            <select id="chartSensor">
+                                <option th:each="sensor : ${dashboard.chartSensors}" th:value="${sensor.id}"
+                                        th:text="|${sensor.code} · ${#messages.msg('sensorType.' + sensor.type)} · ${sensor.cropName}|">
+                                    AS-001
+                                </option>
+                            </select>
+                        </label>
+                    </div>
                 </div>
                 <div th:if="${!dashboard.chartSensors.isEmpty()}">
+                    <p class="data-source" id="readingsSource" role="status" hidden></p>
                     <div class="chart skeleton" id="readingsChartBox">
                         <canvas id="readingsChart" role="img" aria-label="Gráfica de lecturas del sensor seleccionado"></canvas>
                     </div>

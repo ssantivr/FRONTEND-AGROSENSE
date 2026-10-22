@@ -49,12 +49,22 @@ canal está abierto. Sin la variable, o si el manejador de eventos o el backend 
 lo que cargaron, como siempre. La CSP solo añade a `connect-src` el origen de esa dirección, y el navegador
 nunca recibe una llave de servicio.
 
-Las tablas se crean con `../database/schema.sql` (ver [`database/README.md`](../database/README.md));
-con `SQL_INIT_MODE=always` la aplicación lo ejecuta al arrancar.
+Las tablas se crean con `../database/schema.sql`, del repositorio
+[BASE-DE-DATOS-AGROSENSE](https://github.com/ssantivr/BASE-DE-DATOS-AGROSENSE#readme), que se clona como
+carpeta hermana `database/`; con `SQL_INIT_MODE=always` la aplicación lo ejecuta al arrancar.
 
 Al iniciar sesión por el backend todas las peticiones le llegan desde la dirección de este servidor:
 configura en el backend `LOGIN_MAX_ATTEMPTS_PER_ADDRESS=0` para que los fallos de un visitante no bloqueen
-a los demás (el límite por cuenta sigue activo).
+a los demás (el límite por cuenta sigue activo). Enviar la IP del visitante en `X-Forwarded-For` no sirve
+todavía: el backend usa `getRemoteAddr()` sin `server.forward-headers-strategy` (ver
+[`docs/PENDIENTES.md`](docs/PENDIENTES.md)).
+
+**Servidor dormido.** El plan gratuito de Render duerme el backend tras 15 minutos sin uso. Si no responde a
+la comprobación rápida (3 s), el frontend lo despierta en segundo plano (hasta 3 intentos de 60 s con pausas
+crecientes) y mientras tanto lee y escribe directamente en la base de datos compartida. La cabecera lo
+indica: «Servidor conectado», «Despertando el servidor, puede tardar hasta un minuto…» o «Respaldo: base de
+datos directa»; la gráfica de lecturas dice de dónde salieron los datos y la hora de la última lectura.
+`GET /api/ui/backend-status` devuelve ese estado.
 
 ## Scripts (TypeScript)
 
@@ -89,5 +99,9 @@ borra cuando el pull request se cierra. Necesita el secreto `NEON_API_KEY` y la 
 
 ## Más información
 
-La arquitectura, las decisiones y la tabla de qué es real y qué es demostración están en
-[`docs/ARQUITECTURA.md`](../docs/ARQUITECTURA.md).
+- [`docs/PENDIENTES.md`](docs/PENDIENTES.md): cambios que dependen del backend o de la base de datos.
+- [`docs/CREDITOS.md`](docs/CREDITOS.md): autores y licencias de las fotografías.
+- La arquitectura, las decisiones y la tabla de qué es real y qué es demostración están en
+  `docs/ARQUITECTURA.md` del espacio de trabajo del proyecto; ese documento no se publica en este repositorio.
+- Integración continua: `.github/workflows/ci.yml` ejecuta `./mvnw -q -B verify`, `npm run typecheck` y
+  comprueba que `src/main/resources/static/js` corresponde a `npm run build`.

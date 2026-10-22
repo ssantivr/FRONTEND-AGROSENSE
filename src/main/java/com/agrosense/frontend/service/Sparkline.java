@@ -15,7 +15,8 @@ public final class Sparkline {
     }
 
     public static String points(List<BigDecimal> values) {
-        if (values == null || values.size() < 2) {
+        // Fewer than three hourly averages are not a trend.
+        if (values == null || values.size() < 3) {
             return null;
         }
         double lowest = values.stream().mapToDouble(BigDecimal::doubleValue).min().orElse(0);

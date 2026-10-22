@@ -3,15 +3,22 @@ export const LIMITS = {
     name: { min: 2, max: 18 },
     password: { min: 8, max: 32 },
 };
+/** Spaces at the ends and repeated ones in between do not count: the server trims them before checking. */
+export const normalizedText = (value) => value.trim().replace(/\s+/g, ' ');
+// A hard maxlength would cut a pasted compound surname or password without a word, so the limit is soft
+// (data-max): the counter turns red past it and the field's check explains it.
 export function initCounters() {
     all('input[data-counter]', HTMLInputElement).forEach((input) => {
         const counter = find(input.dataset['counter'] ?? '', HTMLElement);
-        if (!counter || input.maxLength < 0)
+        const max = Number(input.dataset['max'] ?? input.maxLength);
+        if (!counter || !(max > 0))
             return;
+        const counted = () => (input.type === 'password' ? input.value : normalizedText(input.value)).length;
         const update = () => {
-            const { length } = input.value;
-            counter.textContent = `${length}/${input.maxLength}`;
-            counter.classList.toggle('is-limit', length >= input.maxLength);
+            const length = counted();
+            counter.textContent = `${length}/${max}`;
+            counter.classList.toggle('is-limit', length === max);
+            counter.classList.toggle('is-over', length > max);
             counter.classList.toggle('is-short', length > 0 && length < input.minLength);
         };
         input.addEventListener('input', update);

@@ -8,7 +8,10 @@ const isReadingSeries = (value) => isRecord(value) &&
     isNullable(isString)(value['unit']) &&
     isNullable(isNumber)(value['thresholdMin']) &&
     isNullable(isNumber)(value['thresholdMax']) &&
-    isArrayOf(isReadingPoint)(value['points']);
+    isArrayOf(isReadingPoint)(value['points']) &&
+    isNumber(value['windowHours']) &&
+    (value['source'] === 'api' || value['source'] === 'database') &&
+    isString(value['loadedAt']);
 const isDailyWater = (value) => isRecord(value) && isString(value['date']) && isNumber(value['liters']);
 const isCorner = (value) => Array.isArray(value) && value.length === 2 && isNumber(value[0]) && isNumber(value[1]);
 export const isBoundary = (value) => isArrayOf(isCorner)(value) && value.length >= 3;
@@ -57,7 +60,7 @@ export function embeddedEstate(json) {
     return embedded(json, isEstateMarker);
 }
 export const embeddedWaterUsage = (json) => embedded(json, isArrayOf(isDailyWater));
-export const fetchReadings = (sensorId, signal) => requestJson(`/api/ui/sensors/${encodeURIComponent(sensorId)}/readings`, isReadingSeries, signal ? { signal } : {});
+export const fetchReadings = (sensorId, hours, signal) => requestJson(`/api/ui/sensors/${encodeURIComponent(sensorId)}/readings?hours=${hours}`, isReadingSeries, signal ? { signal } : {});
 export const fetchWaterUsage = () => requestJson('/api/ui/water-usage', isArrayOf(isDailyWater));
 export const fetchEstateMarkers = () => requestJson('/api/ui/estates/markers', isArrayOf(isEstateMarker));
 export const startIrrigation = (irrigation) => requestJson('/api/ui/irrigations', isRecord, { method: 'POST', body: irrigation });

@@ -1,5 +1,7 @@
 package com.agrosense.frontend.controller;
 
+import com.agrosense.frontend.backend.BackendClient;
+import com.agrosense.frontend.backend.BackendStatus;
 import com.agrosense.frontend.dto.IrrigationForm;
 import com.agrosense.frontend.dto.Views.DailyWater;
 import com.agrosense.frontend.dto.Views.EstateMarker;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -32,10 +35,17 @@ public class UiApiController {
     private final EstateService estateService;
     private final IrrigationService irrigationService;
     private final DashboardService dashboardService;
+    private final BackendClient backendClient;
 
     @GetMapping("/sensors/{sensorId}/readings")
-    public ReadingSeries readings(@PathVariable Integer sensorId, Principal principal) {
-        return sensorService.findLast24Hours(principal.getName(), sensorId);
+    public ReadingSeries readings(@PathVariable Integer sensorId,
+            @RequestParam(defaultValue = "24") int hours, Principal principal) {
+        return sensorService.findReadings(principal.getName(), sensorId, hours);
+    }
+
+    @GetMapping("/backend-status")
+    public BackendStatus backendStatus() {
+        return backendClient.status();
     }
 
     @GetMapping("/estates/markers")

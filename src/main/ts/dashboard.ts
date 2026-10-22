@@ -65,6 +65,30 @@ const thresholdPlugin: Plugin<'line', { lines: ThresholdLine[] }> = {
 let readingsChart: ChartInstance<'line', number[], string> | undefined;
 let readingsSeries: ReadingSeries | undefined;
 let readingsRequest: AbortController | undefined;
+let readingsDrawn = false;
+let readingsHours = 24;
+
+const WINDOW_TEXT: Record<number, string> = { 6: '6 horas', 24: '24 horas', 72: '3 días', 168: '7 días' };
+
+function renderSource(series: ReadingSeries | null): void {
+  const line = find('readingsSource', HTMLElement);
+  if (!line) return;
+  if (!series) {
+    line.hidden = true;
+    return;
+  }
+  const last = series.points[series.points.length - 1];
+  const origin =
+    series.source === 'api'
+      ? 'Origen: servidor de AgroSense'
+      : 'Origen: base de datos de respaldo (el servidor no respondió)';
+  const lastText = last
+    ? `última lectura conocida: ${dateTimeFormat.format(new Date(last.recordedAt))}`
+    : 'sin lecturas en el periodo';
+  line.dataset['source'] = series.source;
+  line.textContent = `${origin} · ${lastText} · consultado a las ${timeFormat.format(new Date(series.loadedAt))}`;
+  line.hidden = false;
+}
 
 function renderReadings(series: ReadingSeries): void {
   const canvas = find('readingsChart', HTMLCanvasElement);
@@ -83,13 +107,19 @@ function renderReadings(series: ReadingSeries): void {
   const highest = Math.max(...bounds);
   const padding = (highest - lowest || 1) * 0.1;
 
+  const labelFormat = series.windowHours > 24 ? dateTimeFormat : timeFormat;
+  // The line draws itself only the first time the chart appears; later loads replace it in place.
+  const animate = !readingsDrawn && !prefersReducedMotion();
+  readingsDrawn = true;
+
   readingsChart?.destroy();
   readingsChart = new Chart(canvas, {
     type: 'line',
     data: {
-      labels: series.points.map((point) => timeFormat.format(new Date(point.recordedAt))),
+      labels: series.points.map((point) => labelFormat.format(new Date(point.recordedAt))),
       datasets: [
         {
+          label: unit === '' ? series.sensorCode : `${series.sensorCode} (${unit})`,
           data: values,
           borderColor: token('--chart-1'),
           backgroundColor: token('--chart-fill'),
@@ -104,10 +134,14 @@ function renderReadings(series: ReadingSeries): void {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      animation: false,
+      animation: animate ? { duration: 700, easing: 'easeOutCubic' } : false,
       interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { display: false },
+        legend: {
+          display: true,
+          position: 'bottom',
+          labels: { color: token('--text-muted'), boxWidth: 12, boxHeight: 2 },
+        },
         thresholds: { lines },
         tooltip: { callbacks: { label: (context) => `${numberFormat.format(context.parsed.y)} ${unit}` } },
       },
@@ -154,9 +188,10 @@ async function loadReadings(sensorId: string): Promise<void> {
 
   let series: ReadingSeries;
   try {
-    series = await fetchReadings(sensorId, readingsRequest.signal);
+    series = await fetchReadings(sensorId, readingsHours, readingsRequest.signal);
   } catch (error) {
     if (error instanceof DOMException) return;
+    renderSource(null);
     showMessage('readingsChartBox', 'readingsMessage', `No se pudieron cargar las lecturas. ${messageOf(error)}`);
     return;
   }
@@ -165,9 +200,14 @@ async function loadReadings(sensorId: string): Promise<void> {
   readingsChart = undefined;
   readingsSeries = undefined;
   find('readingsTable', HTMLTableSectionElement)?.replaceChildren();
+  renderSource(series);
 
   if (series.points.length === 0) {
-    showMessage('readingsChartBox', 'readingsMessage', 'Este sensor no tiene lecturas en las últimas 24 horas.');
+    showMessage(
+      'readingsChartBox',
+      'readingsMessage',
+      `Sin datos: este sensor no tiene lecturas en las últimas ${WINDOW_TEXT[series.windowHours] ?? `${series.windowHours} horas`}.`,
+    );
     return;
   }
   readingsSeries = series;
@@ -179,6 +219,14 @@ function initReadings(): void {
   const select = find('chartSensor', HTMLSelectElement);
   if (!select) return;
   select.addEventListener('change', () => void loadReadings(select.value));
+  const windows = all('#readingsWindow [data-hours]', HTMLButtonElement);
+  windows.forEach((button) =>
+    button.addEventListener('click', () => {
+      readingsHours = Number(button.dataset['hours']) || 24;
+      windows.forEach((other) => other.setAttribute('aria-pressed', String(other === button)));
+      void loadReadings(select.value);
+    }),
+  );
   void loadReadings(select.value);
 }
 

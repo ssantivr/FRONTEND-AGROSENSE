@@ -43,18 +43,25 @@ export function csrfHeaders() {
     return token && header ? { [header]: token } : {};
 }
 const DEFAULT_TIMEOUT_MS = 15_000;
+const MAX_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 600;
+const RETRIABLE_STATUS = new Set([502, 503, 504]);
+// Reads that failed for lack of an answer are tried again, up to MAX_ATTEMPTS times, waiting longer each time
+// (0.6 s, then 1.2 s). Writes are never repeated: the first one may have been applied.
 export async function requestJson(url, guard, options = {}) {
     const method = options.method ?? 'GET';
-    try {
-        return await attempt(url, guard, options);
-    }
-    catch (error) {
-        const retriable = error instanceof ApiError && error.kind === 'network' && method === 'GET';
-        if (!retriable || options.signal?.aborted)
-            throw error;
-        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
-        return attempt(url, guard, options);
+    for (let attemptNumber = 1;; attemptNumber++) {
+        try {
+            return await attempt(url, guard, options);
+        }
+        catch (error) {
+            const retriable = error instanceof ApiError &&
+                (error.kind === 'network' || error.kind === 'timeout' || RETRIABLE_STATUS.has(error.status ?? 0)) &&
+                method === 'GET';
+            if (!retriable || attemptNumber >= MAX_ATTEMPTS || options.signal?.aborted)
+                throw error;
+            await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * 2 ** (attemptNumber - 1)));
+        }
     }
 }
 async function attempt(url, guard, options) {

@@ -9,6 +9,10 @@ export interface ReadingSeries {
   thresholdMin: number | null;
   thresholdMax: number | null;
   points: ReadingPoint[];
+  windowHours: number;
+  /** 'api': through the backend; 'database': read straight from the shared database (fallback). */
+  source: 'api' | 'database';
+  loadedAt: string;
 }
 
 export interface DailyWater {

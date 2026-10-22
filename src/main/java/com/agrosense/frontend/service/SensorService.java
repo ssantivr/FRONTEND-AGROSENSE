@@ -26,7 +26,9 @@ import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -43,6 +45,7 @@ public class SensorService {
             SensorType.CONDUCTIVITY);
 
     private static final int CHART_WINDOW_HOURS = 24;
+    private static final Set<Integer> CHART_WINDOWS_HOURS = Set.of(6, 24, 72, 168);
     private static final int BACKEND_READING_LIMIT = 500;
 
     private final SensorRepository sensorRepository;
@@ -99,20 +102,28 @@ public class SensorService {
     }
 
     public ReadingSeries findLast24Hours(String email, Integer sensorId) {
+        return findReadings(email, sensorId, CHART_WINDOW_HOURS);
+    }
+
+    public ReadingSeries findReadings(String email, Integer sensorId, int hours) {
         Sensor sensor = sensorRepository.findByIdSensorAndCropEstateUserEmail(sensorId, email)
                 .orElseThrow(() -> new NotFoundException("Sensor not found"));
-        LocalDateTime since = LocalDateTime.now().minusHours(CHART_WINDOW_HOURS);
-        List<ReadingResponse> readings = backendClient
+        int window = CHART_WINDOWS_HOURS.contains(hours) ? hours : CHART_WINDOW_HOURS;
+        LocalDateTime since = LocalDateTime.now().minusHours(window);
+        // The API returns the latest BACKEND_READING_LIMIT readings: when they do not reach back to the start of
+        // the window, the database (the same one the backend writes to) answers instead.
+        Optional<List<ReadingResponse>> fromApi = backendClient
                 .attempt(() -> backendClient.latestReadings(email, sensorId, BACKEND_READING_LIMIT))
+                .filter(latest -> latest.size() < BACKEND_READING_LIMIT
+                        || latest.stream().anyMatch(reading -> !reading.recordedAt().isAfter(since)))
                 .map(latest -> latest.stream()
                         .filter(reading -> !reading.recordedAt().isBefore(since))
                         .sorted(Comparator.comparing(ReadingResponse::recordedAt))
-                        .toList())
-                .orElseGet(() -> readingRepository
-                        .findBySensorIdSensorAndRecordedAtGreaterThanEqualOrderByRecordedAt(sensorId, since).stream()
-                        .map(reading -> new ReadingResponse(
-                                reading.getValue(), reading.getUnit(), reading.getRecordedAt()))
                         .toList());
+        List<ReadingResponse> readings = fromApi.orElseGet(() -> readingRepository
+                .findBySensorIdSensorAndRecordedAtGreaterThanEqualOrderByRecordedAt(sensorId, since).stream()
+                .map(reading -> new ReadingResponse(reading.getValue(), reading.getUnit(), reading.getRecordedAt()))
+                .toList());
 
         BigDecimal[] range = thresholds(sensor.getSensorType(), sensor.getCrop());
         return new ReadingSeries(
@@ -122,7 +133,10 @@ public class SensorService {
                 range[1],
                 readings.stream()
                         .map(reading -> new ReadingPoint(reading.recordedAt(), reading.value()))
-                        .toList());
+                        .toList(),
+                window,
+                fromApi.isPresent() ? ReadingSeries.SOURCE_API : ReadingSeries.SOURCE_DATABASE,
+                LocalDateTime.now());
     }
 
     private SensorView toView(Sensor sensor, Optional<SensorReading> latest, LocalDateTime now) {
@@ -155,11 +169,13 @@ public class SensorService {
                 .filter(sensor -> sensor.type() == type && sensor.active() && sensor.lastValue() != null)
                 .toList();
         if (withData.isEmpty()) {
-            return new SensorSummary(type, null, null, 0, null);
+            return new SensorSummary(type, null, null, 0, null, null);
         }
         BigDecimal total = withData.stream().map(SensorView::lastValue).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal average = total.divide(BigDecimal.valueOf(withData.size()), 1, RoundingMode.HALF_UP);
-        return new SensorSummary(type, average, withData.get(0).unit(), withData.size(), sparkline);
+        LocalDateTime latest = withData.stream().map(SensorView::lastReadingAt).filter(Objects::nonNull)
+                .max(Comparator.naturalOrder()).orElse(null);
+        return new SensorSummary(type, average, withData.get(0).unit(), withData.size(), sparkline, latest);
     }
 
     private static BigDecimal[] thresholds(SensorType type, Crop crop) {

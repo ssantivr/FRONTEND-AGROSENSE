@@ -515,10 +515,42 @@ class WebFlowTests {
     }
 
     @Test
+    void withoutABackendThePagesSayTheDataComesFromTheDatabase() throws Exception {
+        mvc.perform(get("/api/ui/backend-status").with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.state").value("OFF"));
+        mvc.perform(get("/").with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-state=\"off\"")))
+                .andExpect(content().string(containsString("Modo local: base de datos")));
+
+        Sensor sensor = sensorRepository.findByCropEstateUserEmailOrderBySensorCode(DEMO_EMAIL).get(0);
+        mvc.perform(get("/api/ui/sensors/{id}/readings", sensor.getIdSensor()).param("hours", "168").with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.windowHours").value(168))
+                .andExpect(jsonPath("$.source").value("database"));
+        mvc.perform(get("/api/ui/sensors/{id}/readings", sensor.getIdSensor()).param("hours", "5000").with(user(demoUser)))
+                .andExpect(jsonPath("$.windowHours").value(24));
+    }
+
+    @Test
+    void compoundNamesAreStoredWithSingleSpaces() throws Exception {
+        mvc.perform(post("/registro").with(csrf())
+                        .param("name", "  Ana   María ").param("lastName", "De  la   Cruz")
+                        .param("email", "spaces@agrosense.test")
+                        .param("password", "p".repeat(12)).param("confirmPassword", "p".repeat(12)))
+                .andExpect(redirectedUrl("/login?registered"));
+        assertThat(userRepository.findByEmail("spaces@agrosense.test").orElseThrow().getLastName())
+                .isEqualTo("De la Cruz");
+    }
+
+    @Test
     void registrationLimitsCountSpacesAndAreShownInTheForm() throws Exception {
         mvc.perform(get("/registro")).andExpect(status().isOk())
-                .andExpect(content().string(containsString("maxlength=\"18\"")))
-                .andExpect(content().string(containsString("maxlength=\"32\"")))
+                // Soft limits: a hard maxlength would cut a pasted compound surname or password without a word.
+                .andExpect(content().string(containsString("data-max=\"18\"")))
+                .andExpect(content().string(containsString("data-max=\"32\"")))
+                .andExpect(content().string(not(containsString("maxlength=\"18\""))))
                 .andExpect(content().string(containsString("id=\"nameCounter\"")))
                 .andExpect(content().string(containsString("data-strength-for=\"password\"")));
 

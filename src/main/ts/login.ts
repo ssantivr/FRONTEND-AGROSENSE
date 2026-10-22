@@ -9,6 +9,7 @@ import {
   initPasswordMeters,
   initPasswordRules,
   LIMITS,
+  normalizedText,
   setFieldError,
   validateField,
   validateFields,
@@ -270,10 +271,23 @@ function initSignIn(form: HTMLFormElement): void {
   });
 }
 
-function lengthRule(input: HTMLInputElement, missing: string, outOfRange: string, min: number, max: number): FieldRule {
+function nameRule(input: HTMLInputElement, missing: string, what: string): FieldRule {
+  const { min, max } = LIMITS.name;
+  // Extra spaces are removed when leaving the field, so they never count against the limit.
+  input.addEventListener('change', () => {
+    input.value = normalizedText(input.value);
+  });
   return {
     input,
-    check: (value) => required(missing)(value) ?? (value.length < min || value.length > max ? outOfRange : null),
+    check: (value) => {
+      const length = normalizedText(value).length;
+      if (required(missing)(value)) return missing;
+      if (length < min) return `${what} debe tener al menos ${min} caracteres.`;
+      if (length > max) {
+        return `${what} tiene ${length} caracteres y el servidor admite ${max} por ahora (espacios incluidos). Abrevia una parte, por ejemplo la última palabra.`;
+      }
+      return null;
+    },
   };
 }
 
@@ -285,15 +299,15 @@ function initSignUp(form: HTMLFormElement, emailAvailability: () => Availability
   const password = namedInput(form, 'password');
   const confirmation = namedInput(form, 'confirmPassword');
   const availabilityHint = find('emailAvailability', HTMLElement);
-  const { name, password: passwordLimits } = LIMITS;
+  const { password: passwordLimits } = LIMITS;
   const takenEmail = (): string | null => {
     if (emailAvailability() !== 'taken') return null;
     if (availabilityHint) availabilityHint.hidden = true;
     return 'Este correo ya está registrado. Inicia sesión o usa otro.';
   };
   const rules: FieldRule[] = [
-    lengthRule(namedInput(form, 'name'), 'Ingresa tu nombre.', `El nombre debe tener entre ${name.min} y ${name.max} caracteres.`, name.min, name.max),
-    lengthRule(namedInput(form, 'lastName'), 'Ingresa tu apellido.', `El apellido debe tener entre ${name.min} y ${name.max} caracteres.`, name.min, name.max),
+    nameRule(namedInput(form, 'name'), 'Ingresa tu nombre.', 'El nombre'),
+    nameRule(namedInput(form, 'lastName'), 'Ingresa tu apellido.', 'El apellido'),
     {
       input: email,
       check: (value) => emailRule(email).check(value) ?? takenEmail(),
@@ -303,9 +317,11 @@ function initSignUp(form: HTMLFormElement, emailAvailability: () => Availability
       check: (value) =>
         value === ''
           ? 'Ingresa una contraseña.'
-          : value.length < passwordLimits.min || value.length > passwordLimits.max
-            ? `La contraseña debe tener entre ${passwordLimits.min} y ${passwordLimits.max} caracteres.`
-            : null,
+          : value.length < passwordLimits.min
+            ? `La contraseña debe tener al menos ${passwordLimits.min} caracteres.`
+            : value.length > passwordLimits.max
+              ? `La contraseña tiene ${value.length} caracteres y el servidor admite ${passwordLimits.max} por ahora. Acórtala; no se recorta sola.`
+              : null,
     },
     { input: confirmation, check: (value) => (value === password.value ? null : 'Las contraseñas no coinciden.') },
   ];

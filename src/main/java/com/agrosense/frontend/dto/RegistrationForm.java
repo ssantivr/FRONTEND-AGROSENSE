@@ -41,6 +41,19 @@ public class RegistrationForm {
         this.email = email == null ? null : email.trim();
     }
 
+    // Spaces at the ends and repeated ones inside a compound name do not count against the length limit.
+    public void setName(String name) {
+        this.name = collapseSpaces(name);
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = collapseSpaces(lastName);
+    }
+
+    private static String collapseSpaces(String value) {
+        return value == null ? null : value.strip().replaceAll("\\s+", " ");
+    }
+
     @AssertTrue(message = "Las contraseñas no coinciden.")
     public boolean isPasswordConfirmed() {
         return password == null || password.equals(confirmPassword);

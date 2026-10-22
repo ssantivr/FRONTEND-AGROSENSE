@@ -1,5 +1,6 @@
 package com.agrosense.frontend.controller;
 
+import com.agrosense.frontend.backend.BackendClient;
 import com.agrosense.frontend.dto.Views.NavItem;
 import com.agrosense.frontend.service.AlertService;
 import com.agrosense.frontend.service.SensorStatusPolicy;
@@ -32,6 +33,7 @@ public class GlobalModelAttributes {
     private final AlertService alertService;
     private final Environment environment;
     private final SensorStatusPolicy sensorStatusPolicy;
+    private final BackendClient backendClient;
 
     @ModelAttribute
     public void addLayoutAttributes(Model model, HttpServletRequest request, Principal principal) {
@@ -44,6 +46,7 @@ public class GlobalModelAttributes {
                 .toList());
         model.addAttribute("demoMode", environment.acceptsProfiles(Profiles.of("demo")));
         model.addAttribute("sensorThresholds", sensorStatusPolicy);
+        model.addAttribute("backendStatus", backendClient.knownStatus());
         if (principal != null) {
             model.addAttribute("openAlertCount", alertService.countOpen(principal.getName()));
         }
