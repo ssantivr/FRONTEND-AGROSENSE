@@ -160,12 +160,12 @@
   50% { opacity: 0.35; transform: scale(0.8); }
 }
 
-@media (max-width: 1023px) {
-  /* Only the dot, unless the server is waking up: then the sentence matters. */
+@media (max-width: 1439px) {
+  /* Only the dot (its title and the hidden label still say which state), unless the server is waking up. */
   .connection-status:not([data-state='waking']) {
     padding: 0;
     border: 0;
-    min-width: var(--touch-target);
+    min-width: 24px;
     justify-content: center;
   }
 
@@ -174,10 +174,19 @@
     width: 1px;
     height: 1px;
     overflow: hidden;
-    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
     white-space: nowrap;
   }
+}
 
+@media (max-width: 479px) {
+  /* The theme can still be changed in Configuración; the header keeps what is needed on a phone. */
+  .topbar .theme-toggle {
+    display: none;
+  }
+}
+
+@media (max-width: 1023px) {
   .connection-status[data-state='waking'] {
     position: fixed;
     top: calc(var(--topbar-height) + var(--safe-top) + var(--space-2));
