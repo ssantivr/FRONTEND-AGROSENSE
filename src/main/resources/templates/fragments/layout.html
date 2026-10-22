@@ -12,6 +12,15 @@
     <link rel="stylesheet" th:href="@{/css/ai-chat.css}">
 </head>
 <body>
+<div class="brand-intro" id="brandIntro" aria-hidden="true">
+    <svg class="brand-intro-mark" viewBox="0 0 48 48" width="72" height="72" focusable="false">
+        <circle class="brand-intro-seed" cx="12" cy="36" r="4"/>
+        <path class="brand-intro-leaf-2" d="M9 39C9 21 21 9 39 9L9 39Z"/>
+        <path class="brand-intro-leaf" d="M9 39C27 39 39 27 39 9L9 39Z"/>
+    </svg>
+    <span class="brand-intro-name">Agro<span>Sense</span></span>
+    <button type="button" class="brand-intro-skip" id="brandIntroSkip" tabindex="-1">Saltar</button>
+</div>
 <a class="skip-link" href="#main">Saltar al contenido</a>
 <div class="app-shell" id="appShell">
     <aside th:replace="~{fragments/sidebar :: sidebar}"></aside>

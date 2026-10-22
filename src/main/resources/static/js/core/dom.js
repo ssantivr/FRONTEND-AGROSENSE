@@ -55,3 +55,17 @@ export function areaOfOutline(corners) {
 }
 export const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
     document.documentElement.classList.contains('reduce-motion');
+/** Kept in this browser; theme-init.ts applies it before the first paint. */
+export const REDUCE_MOTION_KEY = 'agrosense.reduceMotion';
+export function setReducedMotion(reduce) {
+    document.documentElement.classList.toggle('reduce-motion', reduce);
+    try {
+        if (reduce)
+            localStorage.setItem(REDUCE_MOTION_KEY, '1');
+        else
+            localStorage.removeItem(REDUCE_MOTION_KEY);
+    }
+    catch {
+        // Without storage the choice lasts until the page changes.
+    }
+}

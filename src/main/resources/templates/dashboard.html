@@ -296,7 +296,7 @@
                 <h2 id="irrigationTitle">Riego</h2>
                 <div class="pump" id="pumpStatus" aria-live="polite"
                      th:classappend="${dashboard.runningIrrigation != null} ? 'pump--running'">
-                    <span class="pump-icon" aria-hidden="true"><i class="bi bi-water"></i></span>
+                    <span class="pump-icon" aria-hidden="true"><i class="bi bi-water"></i><span class="pump-drops" th:if="${dashboard.runningIrrigation != null}"><i></i><i></i><i></i></span></span>
                     <div th:if="${dashboard.runningIrrigation != null}">
                         <span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-play-circle-fill', 'Riego en curso')}"></span>
                         <p th:text="|${dashboard.runningIrrigation.cropName} · termina a las ${#temporals.format(dashboard.runningIrrigation.endsAt, 'HH:mm')}|">

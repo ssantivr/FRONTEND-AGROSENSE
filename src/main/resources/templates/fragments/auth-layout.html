@@ -12,26 +12,37 @@
         <div class="auth-hero-placeholder" aria-hidden="true"></div>
         <img class="auth-hero-photo" id="authHeroPhoto" alt="" width="1600" height="1200"
              fetchpriority="high" decoding="async"
-             th:src="@{|/img/photos/${photo}-960.jpg|}"
-             th:srcset="@{|/img/photos/${photo}-960.jpg|} + ' 960w, ' + @{|/img/photos/${photo}-1600.jpg|} + ' 1600w'"
+             th:src="@{|/img/photos/${photo}-960.webp|}"
+             th:srcset="@{|/img/photos/${photo}-960.webp|} + ' 960w, ' + @{|/img/photos/${photo}-1600.webp|} + ' 1600w'"
              sizes="(min-width: 1024px) 55vw, 100vw">
         <div class="auth-hero-content">
             <span th:replace="~{fragments/brand :: logo(44, true)}"></span>
         </div>
         <div class="auth-hero-content auth-hero-content--bottom">
-            <p class="auth-hero-title">Tecnología que cultiva un mejor futuro.</p>
-            <p class="auth-hero-lead">Monitoreo inteligente para una agricultura más productiva, sostenible y rentable.</p>
+            <p class="auth-hero-title">Cultiva con inteligencia. Crece con confianza.</p>
+            <p class="auth-hero-lead">Conecta tus sensores, comprende tu cultivo y toma decisiones basadas en datos.</p>
+            <ul class="auth-signals" th:unless="${title == 'Crear cuenta'}" aria-hidden="true">
+                <li class="auth-signal">
+                    <i class="bi bi-moisture"></i>
+                    <span>Humedad del suelo</span>
+                    <svg viewBox="0 0 60 16" focusable="false"><polyline points="0,11 10,9 20,10 30,6 40,7 50,4 60,5"/></svg>
+                </li>
+                <li class="auth-signal">
+                    <i class="bi bi-thermometer-half"></i>
+                    <span>Temperatura</span>
+                    <svg viewBox="0 0 60 16" focusable="false"><polyline points="0,8 10,7 20,9 30,8 40,10 50,9 60,7"/></svg>
+                </li>
+                <li class="auth-signal">
+                    <i class="bi bi-droplet"></i>
+                    <span>Riego</span>
+                    <svg viewBox="0 0 60 16" focusable="false"><polyline points="0,13 12,13 12,5 30,5 30,13 44,13 44,6 60,6"/></svg>
+                </li>
+            </ul>
             <ol class="auth-next" th:if="${title == 'Crear cuenta'}">
                 <li><span class="stepper-number" aria-hidden="true">1</span> Dibuja tu parcela en el mapa</li>
                 <li><span class="stepper-number" aria-hidden="true">2</span> Registra sus cultivos y sus rangos</li>
                 <li><span class="stepper-number" aria-hidden="true">3</span> Ubica tus sensores y lo que cubren</li>
             </ol>
-            <ul class="auth-capabilities" th:unless="${title == 'Crear cuenta'}">
-                <li><i class="bi bi-broadcast" aria-hidden="true"></i> Lecturas de sensores por cultivo</li>
-                <li><i class="bi bi-droplet" aria-hidden="true"></i> Registro de riegos y consumo de agua</li>
-                <li><i class="bi bi-bell" aria-hidden="true"></i> Alertas según los rangos de cada cultivo</li>
-                <li><i class="bi bi-map" aria-hidden="true"></i> Mapa de tus parcelas</li>
-            </ul>
             <p class="auth-hero-foot" th:text="|Fotografía: ${credit}|">Fotografía: autor · licencia</p>
         </div>
     </section>

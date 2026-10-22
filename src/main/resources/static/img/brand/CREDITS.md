@@ -14,10 +14,10 @@ sesión y del registro, y en Configuración → Fotografías.
 
 | Archivo | Lugar | Autor | Licencia | Origen |
 |---|---|---|---|---|
-| `coffee-*.jpg` | Chinchiná, Caldas | Ricohin | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Chinchin%C3%A1_cafetal.jpg |
-| `narino-fields-*.jpg` | Tajumbina, Nariño | Jeyson Diaz | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:Cultivos_en_Tajumbina.jpg |
-| `plantain-*.jpg` | Buga, Valle del Cauca | Samuel Rengifo | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:Plataneras_en_la_zona_rural_de_Buga.JPG |
-| `pivot-*.jpg` | Montana, EE. UU. | Lance Cheung, USDA | Dominio público | https://commons.wikimedia.org/wiki/File:Irrigation_and_Water_(20190829-NRCS-LSC-1092).jpg |
+| `coffee-*.webp` | Chinchiná, Caldas | Ricohin | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Chinchin%C3%A1_cafetal.jpg |
+| `narino-fields-*.webp` | Tajumbina, Nariño | Jeyson Diaz | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:Cultivos_en_Tajumbina.jpg |
+| `plantain-*.webp` | Buga, Valle del Cauca | Samuel Rengifo | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:Plataneras_en_la_zona_rural_de_Buga.JPG |
+| `pivot-*.webp` | Montana, EE. UU. | Lance Cheung, USDA | Dominio público | https://commons.wikimedia.org/wiki/File:Irrigation_and_Water_(20190829-NRCS-LSC-1092).jpg |
 
 Las miniaturas de mapa y el mapa del inicio usan teselas de © colaboradores de OpenStreetMap (ODbL).
 La vista «Satélite» del mapa usa World Imagery de Esri (© Esri, Maxar, Earthstar Geographics), servida

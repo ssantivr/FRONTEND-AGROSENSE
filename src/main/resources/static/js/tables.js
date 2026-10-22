@@ -130,7 +130,26 @@ function initSortableTables() {
         });
     });
 }
+// Chips that keep only the rows whose data-row-status matches. They hide rows with their own attribute, so the
+// page search (which uses `hidden`) and the filter combine.
+function initRowFilters() {
+    all('[data-row-filters]', HTMLElement).forEach((group) => {
+        const chips = all('[data-row-filter]', HTMLButtonElement, group);
+        const count = group.querySelector('[data-row-filter-count]');
+        const rows = all('[data-row-status]', HTMLElement);
+        chips.forEach((chip) => chip.addEventListener('click', () => {
+            const wanted = chip.dataset['rowFilter'] ?? '';
+            chips.forEach((other) => other.setAttribute('aria-pressed', String(other === chip)));
+            rows.forEach((row) => row.toggleAttribute('data-filtered-out', wanted !== '' && row.dataset['rowStatus'] !== wanted));
+            if (count) {
+                const shown = rows.filter((row) => !row.hasAttribute('data-filtered-out') && row.closest('table') === null).length;
+                count.textContent = wanted === '' ? '' : shown === 1 ? '1 sensor' : `${shown} sensores`;
+            }
+        }));
+    });
+}
 export function initTableTools() {
+    initRowFilters();
     initSortableTables();
     initViewToggles();
     initTableSearch();

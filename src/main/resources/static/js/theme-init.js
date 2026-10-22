@@ -1,10 +1,19 @@
 "use strict";
 (() => {
     const root = document.documentElement;
-    const colors = { light: '#ffffff', dark: '#141d18', mono: '#ffffff' };
+    const colors = { light: '#ffffff', dark: '#0b1a15', mono: '#ffffff' };
     let stored = null;
     try {
         stored = localStorage.getItem('agrosense.theme');
+        if (localStorage.getItem('agrosense.reduceMotion') === '1')
+            root.classList.add('reduce-motion');
+        // The brand intro plays once per browser session, on the first page after signing in (only that layout
+        // has it); app.ts records that it played.
+        if (sessionStorage.getItem('agrosense.introShown') === null &&
+            !root.classList.contains('reduce-motion') &&
+            !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            root.classList.add('intro-pending');
+        }
     }
     catch {
     }

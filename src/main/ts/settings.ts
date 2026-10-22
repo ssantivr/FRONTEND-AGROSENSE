@@ -1,5 +1,5 @@
 import { isSidebarCollapsed, setSidebarCollapsed } from './app.js';
-import { find } from './core/dom.js';
+import { find, setReducedMotion } from './core/dom.js';
 
 const sidebarPreference = find('prefSidebarCollapsed', HTMLInputElement);
 if (sidebarPreference) {
@@ -8,6 +8,12 @@ if (sidebarPreference) {
   find('sidebarToggle', HTMLButtonElement)?.addEventListener('click', () => {
     sidebarPreference.checked = isSidebarCollapsed();
   });
+}
+
+const motionPreference = find('prefReduceMotion', HTMLInputElement);
+if (motionPreference) {
+  motionPreference.checked = document.documentElement.classList.contains('reduce-motion');
+  motionPreference.addEventListener('change', () => setReducedMotion(motionPreference.checked));
 }
 
 const modal = find('deleteAccountModal', HTMLDialogElement);

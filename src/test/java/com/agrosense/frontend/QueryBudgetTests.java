@@ -67,7 +67,7 @@ class QueryBudgetTests {
     void fontsImagesAndWebJarsAreCachedWhileTheDemoServesScriptsStylesAndPagesFresh() throws Exception {
         mvc.perform(get("/fonts/PlusJakartaSans.woff2"))
                 .andExpect(header().string("Cache-Control", "max-age=2592000, public"));
-        mvc.perform(get("/img/photos/coffee-960.jpg"))
+        mvc.perform(get("/img/photos/coffee-960.webp"))
                 .andExpect(header().string("Cache-Control", "max-age=2592000, public"));
         mvc.perform(get("/webjars/chart.js/4.4.1/dist/chart.umd.js"))
                 .andExpect(header().string("Cache-Control", "max-age=31536000, public, immutable"));

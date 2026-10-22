@@ -61,6 +61,9 @@
                             <span class="text-muted" th:if="${alert.acknowledged}">
                                 <i class="bi bi-check2" aria-hidden="true"></i> Atendida
                             </span>
+                            <span class="alert-state" th:unless="${alert.acknowledged}">
+                                <i class="bi bi-hourglass-split" aria-hidden="true"></i> Sin atender
+                            </span>
                             <form th:unless="${alert.acknowledged}" th:action="@{/alertas/{id}/atender(id=${alert.id})}"
                                   method="post" data-confirm="¿Marcar esta alerta como atendida?">
                                 <button type="submit" class="button button--ghost button--small">Marcar como atendida</button>

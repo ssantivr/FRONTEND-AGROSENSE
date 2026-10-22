@@ -20,7 +20,7 @@
         <ul class="running-list" th:unless="${running.isEmpty()}">
             <li class="running-item" th:each="irrigation : ${running}" data-countdown
                 th:attr="data-remaining=${irrigation.remainingSeconds()},data-total=${irrigation.totalSeconds()}">
-                <span class="pump-icon" aria-hidden="true"><i class="bi bi-water"></i></span>
+                <span class="pump-icon" aria-hidden="true"><i class="bi bi-water"></i><span class="pump-drops"><i></i><i></i><i></i></span></span>
                 <div class="running-body">
                     <div class="running-head">
                         <strong th:text="|${irrigation.cropName} · ${irrigation.estateName}|">Café · Finca</strong>

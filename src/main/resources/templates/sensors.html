@@ -27,9 +27,25 @@
             '/sensores/nuevo', 'Registrar tu primer sensor')}"></div>
     </section>
 
+    <div class="chip-row" role="group" aria-label="Filtrar por estado" data-row-filters th:if="${!sensors.isEmpty()}">
+        <button type="button" class="chip-link" data-row-filter="" aria-pressed="true">Todos</button>
+        <button type="button" class="chip-link" data-row-filter="ONLINE" aria-pressed="false">En línea</button>
+        <button type="button" class="chip-link" data-row-filter="STALE" aria-pressed="false">Desactualizados</button>
+        <button type="button" class="chip-link" data-row-filter="OFFLINE" aria-pressed="false">Sin conexión</button>
+        <button type="button" class="chip-link" data-row-filter="ERROR" aria-pressed="false">Con error</button>
+        <button type="button" class="chip-link" data-row-filter="NO_DATA" aria-pressed="false">Sin datos</button>
+        <span class="text-muted chip-row-count" data-row-filter-count role="status" aria-live="polite"></span>
+    </div>
+    <p class="note" th:if="${!sensors.isEmpty()}">
+        <i class="bi bi-info-circle" aria-hidden="true"></i>
+        Los valores son la <strong>última lectura conocida</strong> de cada sensor. Se marcan «en vivo» solo cuando llega
+        una lectura nueva mientras ves esta página.
+    </p>
+
     <div id="sensorsView" data-view="cards" th:if="${!sensors.isEmpty()}">
         <ul class="sensor-cards" data-view-panel="cards">
             <li class="card sensor-card" th:each="sensor : ${sensors}" data-search-row th:data-sensor-code="${sensor.code}"
+                th:attr="data-row-status=${sensor.status()}"
                 th:classappend="|sensor-card--${#strings.toLowerCase(sensor.status())}|">
                 <div class="sensor-card-head">
                     <span class="stat-icon" aria-hidden="true"><i class="bi" th:classappend="${sensor.icon()}"></i></span>
@@ -75,7 +91,7 @@
 
         <section class="card" data-view-panel="table">
             <div class="table-scroll">
-                <table class="table" id="sensorsTable">
+                <table class="table" id="sensorsTable" data-sortable>
                     <thead>
                     <tr>
                         <th>Código</th>
@@ -83,14 +99,15 @@
                         <th>Cultivo</th>
                         <th>Finca</th>
                         <th>Ubicación</th>
-                        <th class="numeric">Última lectura</th>
+                        <th class="numeric">Última lectura conocida</th>
                         <th>Recibida</th>
                         <th>Estado</th>
                         <th data-no-export>Acciones</th>
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:each="sensor : ${sensors}" data-search-row th:data-sensor-code="${sensor.code}">
+                    <tr th:each="sensor : ${sensors}" data-search-row th:data-sensor-code="${sensor.code}"
+                        th:attr="data-row-status=${sensor.status()}">
                         <td th:text="${sensor.code}">AS-001</td>
                         <td th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</td>
                         <td th:text="${sensor.cropName}">Café</td>
@@ -98,7 +115,7 @@
                         <td th:text="${sensor.location ?: '—'}">Lote norte</td>
                         <td class="numeric" data-live-value th:data-unit="${sensor.unit}"
                             th:text="${sensor.lastValue != null ? #numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA') + ' ' + sensor.unit : '—'}">52,0 %</td>
-                        <td data-live-time="date" th:text="${sensor.lastReadingAt != null ? #temporals.format(sensor.lastReadingAt, 'd MMM, HH:mm') : '—'}">8 oct, 10:00</td>
+                        <td data-live-time="date" th:attr="data-sort=${sensor.lastReadingAt}" th:text="${sensor.lastReadingAt != null ? #temporals.format(sensor.lastReadingAt, 'd MMM, HH:mm') : '—'}">8 oct, 10:00</td>
                         <td>
                             <span th:replace="~{fragments/status-pill :: sensor-status(${sensor})}"></span>
                         </td>

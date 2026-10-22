@@ -338,8 +338,8 @@ public final class Views {
         return switch (severity) {
             case LOW -> "info";
             case MEDIUM -> "warning";
-            case HIGH -> "danger";
-            case VERY_HIGH -> "critical";
+            // Three levels on screen (information, warning, critical); the pill still names the exact severity.
+            case HIGH, VERY_HIGH -> "critical";
         };
     }
 
