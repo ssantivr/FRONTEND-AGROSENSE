@@ -82,6 +82,6 @@ class CropPredictionTests {
     void thePagesTellTheTruthAboutARelay() throws Exception {
         String page = mvc.perform(get("/riego").with(user(userDetailsService.loadUserByUsername(DEMO_EMAIL)))).andReturn().getResponse().getContentAsString();
 
-        assertThat(page).contains("Modo relé").doesNotContain("Modo simulado");
+        assertThat(page).contains("Modo relé", "funcionó de verdad", "max=\"5\"").doesNotContain("Modo simulado");
     }
 }
