@@ -1,6 +1,6 @@
 import { forgetConversation } from './ai/storage.js';
 import { messageOf } from './api/client.js';
-import { checkEmail } from './api/ui.js';
+import { api } from './api/facade.js';
 import { all, find, icon, need, prefersReducedMotion } from './core/dom.js';
 import {
   type FieldRule,
@@ -90,7 +90,7 @@ function initEmailAvailability(): () => Availability {
     request = new AbortController();
     show('checking', 'Comprobando…');
     try {
-      const { available } = await checkEmail(url, input.value.trim(), request.signal);
+      const { available } = await api.checkEmail(url, input.value.trim(), request.signal);
       if (available) show('available', 'Correo disponible.');
       else show('taken', 'Este correo ya está registrado. Inicia sesión o usa otro.');
     } catch (error) {

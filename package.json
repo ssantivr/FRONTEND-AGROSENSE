@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test \"src/test/ts/*.test.mjs\"",
     "watch": "tsc -p tsconfig.json --watch"
   },
   "devDependencies": {
