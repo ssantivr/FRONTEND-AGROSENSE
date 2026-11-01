@@ -1,6 +1,6 @@
 import { forgetConversation } from './ai/storage.js';
 import { messageOf } from './api/client.js';
-import { checkEmail } from './api/ui.js';
+import { api } from './api/facade.js';
 import { all, find, icon, need, prefersReducedMotion } from './core/dom.js';
 import { initCapsWarnings, initCounters, initPasswordMeters, initPasswordRules, LIMITS, normalizedText, setFieldError, validateField, validateFields, } from './forms.js';
 import { initThemeToggles } from './theme.js';
@@ -72,7 +72,7 @@ function initEmailAvailability() {
         request = new AbortController();
         show('checking', 'Comprobando…');
         try {
-            const { available } = await checkEmail(url, input.value.trim(), request.signal);
+            const { available } = await api.checkEmail(url, input.value.trim(), request.signal);
             if (available)
                 show('available', 'Correo disponible.');
             else

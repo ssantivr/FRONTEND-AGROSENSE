@@ -1,13 +1,7 @@
 import type { Chart as ChartInstance, Plugin } from 'chart.js';
 import { ApiError, messageOf } from './api/client.js';
-import {
-  embeddedEstateMarkers,
-  embeddedWaterUsage,
-  fetchEstateMarkers,
-  fetchReadings,
-  fetchWaterUsage,
-  startIrrigation,
-} from './api/ui.js';
+import { api } from './api/facade.js';
+import { embeddedEstateMarkers, embeddedWaterUsage } from './api/ui.js';
 import { confirmAction, showToast } from './app.js';
 import { all, el, find, prefersReducedMotion, setButtonBusy } from './core/dom.js';
 import { createBaseLayers, cropChip, estateGround, hasValidCoordinates, initMapLayers } from './map-shapes.js';
@@ -188,7 +182,7 @@ async function loadReadings(sensorId: string): Promise<void> {
 
   let series: ReadingSeries;
   try {
-    series = await fetchReadings(sensorId, readingsHours, readingsRequest.signal);
+    series = await api.readings(sensorId, readingsHours, readingsRequest.signal);
   } catch (error) {
     if (error instanceof DOMException) return;
     renderSource(null);
@@ -272,7 +266,7 @@ async function initWater(): Promise<void> {
   if (!box) return;
   let days: DailyWater[];
   try {
-    days = embeddedWaterUsage(box.dataset['days']) ?? (await fetchWaterUsage());
+    days = embeddedWaterUsage(box.dataset['days']) ?? (await api.waterUsage());
   } catch (error) {
     showMessage('waterChartBox', 'waterMessage', `No se pudo cargar el consumo de agua. ${messageOf(error)}`);
     return;
@@ -347,7 +341,7 @@ async function initMap(): Promise<void> {
   }
   const leaflet = L;
   try {
-    const markers = embeddedEstateMarkers(container.dataset['markers']) ?? (await fetchEstateMarkers());
+    const markers = embeddedEstateMarkers(container.dataset['markers']) ?? (await api.estateMarkers());
     const estates = markers.filter(hasValidCoordinates);
     if (estates.length === 0) {
       showMapFallback('Sin coordenadas registradas');
@@ -498,7 +492,7 @@ function initQuickIrrigation(): void {
 
     setButtonBusy(button, true);
     try {
-      await startIrrigation({ cropId: Number(crop.value), durationMin: minutes, waterLiters: Number(water.value) });
+      await api.startIrrigation({ cropId: Number(crop.value), durationMin: minutes, waterLiters: Number(water.value) });
       window.location.reload();
     } catch (error) {
       showToast(error instanceof ApiError ? error.message : 'No se pudo registrar el riego.', 'error');
