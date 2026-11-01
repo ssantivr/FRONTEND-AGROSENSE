@@ -201,6 +201,14 @@ public class BackendClient {
                 }));
     }
 
+    public List<CropTemplateResponse> cropTemplates(String email) {
+        return attempt(() -> executeRead(() -> api.get().uri("/api/crop-templates")
+                .header(HttpHeaders.AUTHORIZATION, token.bearerFor(email))
+                .retrieve().onStatus(HttpStatusCode::isError, BackendClient::fail)
+                .body(new ParameterizedTypeReference<List<CropTemplateResponse>>() {
+                }))).orElse(List.of());
+    }
+
     public Optional<PredictionResponse> latestPrediction(String email, Integer cropId) {
         return attempt(() -> executeRead(() -> api.get().uri("/api/crops/{cropId}/predictions?limit=1", cropId)
                 .header(HttpHeaders.AUTHORIZATION, token.bearerFor(email))
@@ -419,6 +427,11 @@ public class BackendClient {
         public boolean localFallback() {
             return LOCAL_MODEL.equals(modelUsed);
         }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record CropTemplateResponse(String key, String label, BigDecimal humidityMin, BigDecimal humidityMax,
+            BigDecimal tempMin, BigDecimal tempMax, BigDecimal phMin, BigDecimal phMax) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

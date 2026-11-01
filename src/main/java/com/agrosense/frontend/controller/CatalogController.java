@@ -1,5 +1,6 @@
 package com.agrosense.frontend.controller;
 
+import com.agrosense.frontend.backend.BackendClient;
 import com.agrosense.frontend.dto.CropForm;
 import com.agrosense.frontend.dto.EstateForm;
 import com.agrosense.frontend.dto.SensorForm;
@@ -35,6 +36,7 @@ import java.security.Principal;
 @RequiredArgsConstructor
 public class CatalogController {
 
+    private final BackendClient backendClient;
     private final CatalogService catalogService;
     private final EstateService estateService;
     private final SensorService sensorService;
@@ -90,6 +92,7 @@ public class CatalogController {
         guide(model, guide, 2);
         String estateName = catalogService.findEstateName(principal.getName(), estateId);
         model.addAttribute("cropForm", new CropForm());
+        model.addAttribute("cropTemplates", backendClient.cropTemplates(principal.getName()));
         return cropFormView(model, "Nuevo cultivo en " + estateName, "/parcelas/" + estateId + "/cultivos");
     }
 
@@ -100,6 +103,7 @@ public class CatalogController {
         String estateName = catalogService.findEstateName(principal.getName(), estateId);
         if (result.hasErrors()) {
             guide(model, guide, 2);
+            model.addAttribute("cropTemplates", backendClient.cropTemplates(principal.getName()));
             return cropFormView(model, "Nuevo cultivo en " + estateName, "/parcelas/" + estateId + "/cultivos");
         }
         Integer cropId = catalogService.createCrop(principal.getName(), estateId, form);
