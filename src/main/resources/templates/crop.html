@@ -107,6 +107,25 @@
             </ul>
         </section>
 
+        <section class="card" aria-labelledby="predictionTitle" th:if="${prediction != null}">
+            <div class="card-header">
+                <h2 id="predictionTitle">Última recomendación de riego</h2>
+                <th:block th:if="${prediction.localFallback()}">
+                    <span th:replace="~{fragments/status-pill :: status-pill('warning', 'bi-exclamation-triangle', 'Respaldo local')}"></span>
+                </th:block>
+                <th:block th:unless="${prediction.localFallback()}">
+                    <span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-cpu', 'Modelo de reglas')}"></span>
+                </th:block>
+            </div>
+            <p th:text="${prediction.recommendation}">Riega ahora durante unos 20 minutos.</p>
+            <p class="note" th:if="${prediction.localFallback()}">
+                <i class="bi bi-info-circle" aria-hidden="true"></i>
+                El servicio de IA no respondió: esta recomendación solo compara la última humedad con el mínimo del cultivo.
+            </p>
+            <p class="text-muted" th:if="${prediction.createdAt != null}"
+               th:text="${#temporals.format(prediction.createdAt, 'd MMM, HH:mm')}">17 oct, 10:27</p>
+        </section>
+
         <section class="card" aria-labelledby="alertsTitle">
             <div class="card-header">
                 <h2 id="alertsTitle">Alertas</h2>

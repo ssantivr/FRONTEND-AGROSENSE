@@ -201,6 +201,14 @@ public class BackendClient {
                 }));
     }
 
+    public Optional<PredictionResponse> latestPrediction(String email, Integer cropId) {
+        return attempt(() -> executeRead(() -> api.get().uri("/api/crops/{cropId}/predictions?limit=1", cropId)
+                .header(HttpHeaders.AUTHORIZATION, token.bearerFor(email))
+                .retrieve().onStatus(HttpStatusCode::isError, BackendClient::fail)
+                .body(new ParameterizedTypeReference<List<PredictionResponse>>() {
+                }))).flatMap(predictions -> predictions.stream().findFirst());
+    }
+
     public EventStreamToken eventStreamToken(String email) {
         return executeRead(() -> api.get().uri("/api/events/token")
                 .header(HttpHeaders.AUTHORIZATION, token.bearerFor(email))
@@ -400,6 +408,17 @@ public class BackendClient {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ReadingResponse(BigDecimal value, String unit, LocalDateTime recordedAt) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record PredictionResponse(BigDecimal confidence, String recommendation, String modelUsed,
+            LocalDateTime createdAt) {
+
+        private static final String LOCAL_MODEL = "agrosense-reglas-locales";
+
+        public boolean localFallback() {
+            return LOCAL_MODEL.equals(modelUsed);
+        }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

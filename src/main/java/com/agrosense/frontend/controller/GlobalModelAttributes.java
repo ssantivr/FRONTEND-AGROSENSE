@@ -6,6 +6,7 @@ import com.agrosense.frontend.service.AlertService;
 import com.agrosense.frontend.service.SensorStatusPolicy;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Controller;
@@ -35,6 +36,9 @@ public class GlobalModelAttributes {
     private final SensorStatusPolicy sensorStatusPolicy;
     private final BackendClient backendClient;
 
+    @Value("${agrosense.irrigation.actuator:simulated}")
+    private String actuator = "simulated";
+
     @ModelAttribute
     public void addLayoutAttributes(Model model, HttpServletRequest request, Principal principal) {
         String path = request.getRequestURI().substring(request.getContextPath().length());
@@ -47,6 +51,7 @@ public class GlobalModelAttributes {
         model.addAttribute("demoMode", environment.acceptsProfiles(Profiles.of("demo")));
         model.addAttribute("sensorThresholds", sensorStatusPolicy);
         model.addAttribute("backendStatus", backendClient.knownStatus());
+        model.addAttribute("relayActuator", "relay".equalsIgnoreCase(actuator.trim()));
         if (principal != null) {
             model.addAttribute("openAlertCount", alertService.countOpen(principal.getName()));
         }

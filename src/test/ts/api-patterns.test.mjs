@@ -110,6 +110,16 @@ describe('CachingApiProxy', () => {
     assert.equal(real.calls.length, 1);
   });
 
+  it('keeps nothing beyond the page: the next page, or the next user, starts empty', async () => {
+    const first = bench();
+    await first.proxy.waterUsage();
+
+    const nextPage = new CachingApiProxy(first.real, () => first.clock.time);
+    await nextPage.waterUsage();
+
+    assert.equal(first.real.calls.length, 2);
+  });
+
   it('never caches whether an email is free', async () => {
     const { real, proxy } = bench();
     const signal = new AbortController().signal;
