@@ -325,7 +325,7 @@
                     </label>
                     <label class="field">
                         <span class="field-label">Duración (minutos)</span>
-                        <input type="number" th:field="*{durationMin}" min="1" max="240" inputmode="numeric" required>
+                        <input type="number" th:field="*{durationMin}" min="1" th:max="${relayActuator ? 5 : 240}" inputmode="numeric" required>
                     </label>
                     <label class="field">
                         <span class="field-label">Agua (litros)</span>
@@ -340,7 +340,7 @@
                 <p class="note">
                     <i class="bi bi-info-circle" aria-hidden="true"></i>
                     <span th:unless="${relayActuator}">Modo simulado: registrar un riego lo anota en el historial, pero no acciona ninguna bomba.</span>
-                    <span th:if="${relayActuator}">Modo relé: el riego se registra y la orden llega al dispositivo en su próximo envío. Si no lo hace en 5 minutos, caduca; la bomba funciona hasta 5 minutos seguidos y el dispositivo puede rechazar la orden.</span>
+                    <span th:if="${relayActuator}">Modo relé: la orden llega al dispositivo en su próximo envío y se admiten hasta 5 minutos. El historial se corrige con lo que la bomba funcionó de verdad; una orden rechazada o caducada queda sin agua.</span>
                 </p>
             </section>
 
