@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{fragments/layout :: layout(${formTitle}, ~{::main}, null)}">
+      th:replace="~{fragments/layout :: layout(${formTitle}, ~{::main}, 'crop-form')}">
 <body>
 <main id="main" class="app-content" tabindex="-1" data-motion-stagger>
     <header th:replace="~{fragments/page-header :: page-header(${formTitle}, 'Datos del cultivo y rangos aceptables para las alertas.')}"></header>
@@ -40,6 +40,16 @@
                     <span class="field-error" th:if="${#fields.hasErrors('stage')}" th:errors="*{stage}">Error</span>
                 </label>
             </div>
+
+            <label class="field" th:if="${cropTemplates != null and !cropTemplates.isEmpty()}">
+                <span class="field-label">Plantilla de cultivo</span>
+                <select id="cropTemplate">
+                    <option value="">Sin plantilla</option>
+                    <option th:each="template : ${cropTemplates}" th:value="${template.key}" th:text="${template.label}"
+                            th:attr="data-humidity-min=${template.humidityMin},data-humidity-max=${template.humidityMax},data-temp-min=${template.tempMin},data-temp-max=${template.tempMax},data-ph-min=${template.phMin},data-ph-max=${template.phMax}">Tomate</option>
+                </select>
+                <span class="field-hint">Rellena los rangos de abajo con valores de partida, no validados agronómicamente. Puedes cambiarlos antes de guardar.</span>
+            </label>
 
             <fieldset class="fieldset">
                 <legend>Humedad del suelo (%)</legend>

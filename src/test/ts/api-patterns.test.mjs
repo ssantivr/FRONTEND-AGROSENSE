@@ -4,6 +4,7 @@ import { afterEach, describe, it } from 'node:test';
 
 import { CachingApiProxy, LISTS_TTL_MS, READINGS_TTL_MS } from '../../main/resources/static/js/api/cache-proxy.js';
 import { ApiFacade } from '../../main/resources/static/js/api/facade.js';
+import { fillRanges } from '../../main/resources/static/js/crop-template.js';
 
 const series = { sensorCode: 'AS-1', unit: '%', thresholdMin: null, thresholdMax: null, points: [], windowHours: 24, source: 'api', loadedAt: 'now' };
 
@@ -128,6 +129,28 @@ describe('CachingApiProxy', () => {
     await proxy.checkEmail('/check', 'a@b.co', signal);
 
     assert.equal(real.calls.length, 2);
+  });
+});
+
+describe('crop template', () => {
+  const fields = () => Object.fromEntries(['humidityMin', 'humidityMax', 'tempMin', 'tempMax', 'phMin', 'phMax'].map((name) => [name, { value: '1' }]));
+
+  it('fills the ranges and leaves them editable', () => {
+    const form = fields();
+    const template = { humidityMin: '60', humidityMax: '80', tempMin: '18', tempMax: '27', phMin: '5.5', phMax: '6.8' };
+
+    fillRanges(template, (name) => form[name]);
+    assert.equal(form.humidityMin.value, '60');
+    assert.equal(form.phMax.value, '6.8');
+
+    form.humidityMin.value = '65';
+    assert.equal(template.humidityMin, '60');
+  });
+
+  it('touches nothing with no template', () => {
+    const form = fields();
+    fillRanges({}, (name) => form[name]);
+    assert.equal(form.tempMin.value, '1');
   });
 });
 
