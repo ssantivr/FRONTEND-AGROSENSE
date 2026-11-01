@@ -74,7 +74,8 @@
         </form>
         <p class="note">
             <i class="bi bi-info-circle" aria-hidden="true"></i>
-            El control remoto de bombas y válvulas aún no está disponible: registrar un riego no cambia nada en el campo.
+            <span th:unless="${relayActuator}">Modo simulado: registrar un riego no cambia nada en el campo.</span>
+            <span th:if="${relayActuator}">Modo relé: la orden llega al dispositivo en su próximo envío y caduca a los 5 minutos. La bomba funciona hasta 5 minutos seguidos y el dispositivo puede rechazar la orden.</span>
         </p>
     </section>
 

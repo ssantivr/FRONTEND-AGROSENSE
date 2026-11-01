@@ -314,7 +314,8 @@
                 </div>
 
                 <form th:if="${!dashboard.cropOptions.isEmpty()}" class="form-grid" id="quickIrrigation"
-                      th:action="@{/riego}" method="post" th:object="${irrigationForm}">
+                      th:action="@{/riego}" method="post" th:object="${irrigationForm}"
+                      th:attr="data-relay=${relayActuator}">
                     <label class="field">
                         <span class="field-label">Cultivo</span>
                         <select th:field="*{cropId}" required>
@@ -338,7 +339,8 @@
                 <p class="text-muted" th:if="${dashboard.cropOptions.isEmpty()}">No tienes cultivos activos para regar.</p>
                 <p class="note">
                     <i class="bi bi-info-circle" aria-hidden="true"></i>
-                    Registrar un riego lo anota en el historial. El control remoto de bombas y válvulas aún no está disponible.
+                    <span th:unless="${relayActuator}">Modo simulado: registrar un riego lo anota en el historial, pero no acciona ninguna bomba.</span>
+                    <span th:if="${relayActuator}">Modo relé: el riego se registra y la orden llega al dispositivo en su próximo envío. Si no lo hace en 5 minutos, caduca; la bomba funciona hasta 5 minutos seguidos y el dispositivo puede rechazar la orden.</span>
                 </p>
             </section>
 

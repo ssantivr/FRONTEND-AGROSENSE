@@ -1,5 +1,6 @@
 package com.agrosense.frontend.controller;
 
+import com.agrosense.frontend.backend.BackendClient;
 import com.agrosense.frontend.dto.Views.CropCard;
 import com.agrosense.frontend.dto.Views.CropDetail;
 import com.agrosense.frontend.entity.enums.CropStage;
@@ -21,6 +22,7 @@ import java.util.List;
 public class CropController {
 
     private final CropService cropService;
+    private final BackendClient backendClient;
 
     @GetMapping("/cultivos")
     public String crops(@RequestParam(name = "q", required = false) String query,
@@ -48,6 +50,7 @@ public class CropController {
         CropDetail detail = cropService.findDetail(principal.getName(), cropId);
         model.addAttribute("detail", detail);
         model.addAttribute("crop", detail.card().crop());
+        model.addAttribute("prediction", backendClient.latestPrediction(principal.getName(), cropId).orElse(null));
         return "crop";
     }
 

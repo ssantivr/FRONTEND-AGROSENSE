@@ -444,7 +444,9 @@ function initQuickIrrigation() {
             return;
         const cropLabel = (crop.selectedOptions[0]?.textContent ?? '').trim();
         const minutes = Number(duration.value);
-        if (!(await confirmAction(`¿Registrar un riego de ${minutes} minutos en ${cropLabel}? AgroSense lo anota en el historial; no enciende la bomba ni abre válvulas.`))) {
+        if (!(await confirmAction(form.dataset['relay'] === 'true'
+            ? `¿Regar ${minutes} minutos en ${cropLabel}? La orden llega al dispositivo en su próximo envío y la bomba funciona hasta 5 minutos seguidos.`
+            : `¿Registrar un riego de ${minutes} minutos en ${cropLabel}? Modo simulado: AgroSense lo anota en el historial; no enciende ninguna bomba.`))) {
             return;
         }
         setButtonBusy(button, true);
