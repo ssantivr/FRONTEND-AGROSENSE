@@ -1,6 +1,7 @@
 import { showToast } from '../app.js';
 import { ApiError, isArrayOf, isRecord, requestJson } from '../api/client.js';
 import { all, find } from '../core/dom.js';
+import { LatestStream } from './latest-stream.js';
 const isAccess = (value) => isRecord(value) &&
     typeof value['enabled'] === 'boolean' &&
     (value['enabled'] === false ||
@@ -30,7 +31,7 @@ const shortDate = new Intl.DateTimeFormat('es-CO', {
 class LiveEvents {
     tokenUrl;
     status;
-    source = null;
+    stream = new LatestStream();
     wait = FIRST_WAIT_MS;
     failures = 0;
     timer;
@@ -40,24 +41,23 @@ class LiveEvents {
     }
     async connect() {
         this.close();
-        let access;
         try {
-            access = await requestJson(this.tokenUrl, isAccess, { timeoutMs: 20_000 });
+            await this.stream.open(() => requestJson(this.tokenUrl, isAccess, { timeoutMs: 20_000 }), (access) => this.listen(access));
         }
         catch (error) {
             if (error instanceof ApiError && error.kind === 'unauthorized')
                 return;
             this.retryLater();
-            return;
         }
+    }
+    listen(access) {
         if (!access.enabled || !access.token || !access.streamUrl) {
             this.hide();
-            return;
+            return null;
         }
         const url = new URL(access.streamUrl);
         url.searchParams.set('token', access.token);
         const source = new EventSource(url.toString());
-        this.source = source;
         source.addEventListener('ready', () => {
             this.wait = FIRST_WAIT_MS;
             this.failures = 0;
@@ -72,6 +72,7 @@ class LiveEvents {
             this.close();
             this.retryLater();
         });
+        return source;
     }
     deliver(message) {
         if (!(message instanceof MessageEvent) || typeof message.data !== 'string')
@@ -126,8 +127,7 @@ class LiveEvents {
     }
     close() {
         window.clearTimeout(this.timer);
-        this.source?.close();
-        this.source = null;
+        this.stream.close();
     }
 }
 function showReading(reading) {
@@ -196,6 +196,11 @@ function start() {
     window.addEventListener('pagehide', () => {
         live.close();
         live.hide();
+    });
+    // Going back restores the page from memory, and start() does not run again.
+    window.addEventListener('pageshow', (event) => {
+        if (event.persisted)
+            void live.connect();
     });
 }
 start();
