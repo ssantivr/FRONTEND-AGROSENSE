@@ -4,6 +4,7 @@ import { afterEach, describe, it } from 'node:test';
 
 import { CachingApiProxy, LISTS_TTL_MS, READINGS_TTL_MS } from '../../main/resources/static/js/api/cache-proxy.js';
 import { ApiFacade } from '../../main/resources/static/js/api/facade.js';
+import { LatestStream } from '../../main/resources/static/js/events/latest-stream.js';
 import { fillRanges } from '../../main/resources/static/js/crop-template.js';
 
 const series = { sensorCode: 'AS-1', unit: '%', thresholdMin: null, thresholdMax: null, points: [], windowHours: 24, source: 'api', loadedAt: 'now' };
@@ -175,5 +176,65 @@ describe('ApiFacade', () => {
     globalThis.fetch = async () => new Response('{"nada": true}', { status: 200 });
 
     await assert.rejects(new ApiFacade().waterUsage(), { name: 'ApiError', kind: 'unexpected' });
+  });
+});
+
+describe('LatestStream', () => {
+  const later = () => {
+    let answer;
+    let fail;
+    const promise = new Promise((resolve, reject) => {
+      answer = resolve;
+      fail = reject;
+    });
+    return { promise, answer, fail };
+  };
+  const source = () => ({ closed: false, close() { this.closed = true; } });
+
+  it('a second connection while the first waits for its token leaves one stream open', async () => {
+    const stream = new LatestStream();
+    const first = later();
+    const second = later();
+    const opened = [];
+    const create = (access) => {
+      const created = { ...source(), access };
+      opened.push(created);
+      return created;
+    };
+    const slow = stream.open(() => first.promise, create);
+    const fast = stream.open(() => second.promise, create);
+    second.answer('new');
+    await fast;
+    first.answer('old');
+    await slow;
+    assert.deepEqual(opened.map((created) => created.access), ['new']);
+  });
+
+  it('closing while the token is on its way opens nothing', async () => {
+    const stream = new LatestStream();
+    const token = later();
+    let created = 0;
+    const pending = stream.open(() => token.promise, () => { created += 1; return source(); });
+    stream.close();
+    token.answer('late');
+    assert.equal(await pending, null);
+    assert.equal(created, 0);
+  });
+
+  it('opening again closes the stream that was open', async () => {
+    const stream = new LatestStream();
+    const first = await stream.open(async () => 1, source);
+    await stream.open(async () => 2, source);
+    assert.equal(first.closed, true);
+  });
+
+  it('only the failure of the attempt still wanted reaches the caller', async () => {
+    const stream = new LatestStream();
+    const old = later();
+    const pending = stream.open(() => old.promise, source);
+    await stream.open(async () => 1, source);
+    old.fail(new Error('network'));
+    assert.equal(await pending, null);
+    await assert.rejects(stream.open(async () => { throw new Error('network'); }, source));
   });
 });
