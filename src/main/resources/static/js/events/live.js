@@ -130,7 +130,8 @@ class LiveEvents {
         this.stream.close();
     }
 }
-function showReading(reading) {
+/** Paints one reading on every element of the page marked with its sensor code; crop-live.ts uses it too. */
+export function showReading(reading) {
     const when = reading.recordedAt ? new Date(reading.recordedAt) : new Date();
     for (const holder of all('[data-sensor-code]', HTMLElement)) {
         if (holder.dataset['sensorCode'] !== reading.sensorCode)

@@ -5386,6 +5386,10 @@ kbd {
   min-width: 0;
 }
 
+.device-status {
+  margin-top: var(--space-2);
+}
+
 .detail-header .stat-icon {
   position: static;
   flex: none;
