@@ -10,7 +10,7 @@ backend/
 docs/
 IA/
 event-service/
-raspberry/
+firmware/
 api/
 agrosense-export/
 temp_agrosense/
