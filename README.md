@@ -41,7 +41,7 @@ solo él conoce. Para el usuario no cambia nada.
 
 **Lecturas y alertas en vivo.** Con `EVENTS_PUBLIC_URL`, `src/main/ts/events/live.ts` pide a
 `/api/ui/events/token` un token de 5 minutos (lo firma el backend), abre el canal del manejador de eventos
-(`EventSource`) y, a medida que llegan eventos de las Raspberry, actualiza la última lectura de cada sensor
+(`EventSource`) y, a medida que llegan eventos de los dispositivos, actualiza la última lectura de cada sensor
 (tarjetas y tabla de Sensores, marcadas con `data-sensor-code`) y avisa de cada alerta nueva, sumándola a
 los contadores del menú y de la barra superior. Renueva el token antes de que venza y, si se corta, vuelve
 a conectar con una espera creciente (1 s, 2 s, 4 s… hasta 1 min). «En vivo», junto al reloj, indica que el
