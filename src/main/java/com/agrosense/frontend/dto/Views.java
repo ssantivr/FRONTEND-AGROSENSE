@@ -369,7 +369,7 @@ public final class Views {
         }
 
         /** The device counts as connected while its newest reading is younger than this. */
-        public static final java.time.Duration DEVICE_ONLINE_WITHIN = java.time.Duration.ofMinutes(2);
+        public static final java.time.Duration DEVICE_ONLINE_WITHIN = java.time.Duration.ofMinutes(3);
 
         public long deviceOnlineWithinMs() {
             return DEVICE_ONLINE_WITHIN.toMillis();
@@ -380,17 +380,17 @@ public final class Views {
             return last != null && !last.isBefore(LocalDateTime.now().minus(DEVICE_ONLINE_WITHIN));
         }
 
-        /** "ESP32 conectado", "ESP32 sin datos desde 14:05" (with the day when it is not today) or "todavía". */
+        /** "ESP32 conectado", or "Sin datos desde 14:05" (with the day when it is not today) after 3 minutes. */
         public String deviceStatusLabel() {
             LocalDateTime last = lastReadingAt();
             if (last == null) {
-                return "ESP32 sin datos todavía";
+                return "Sin datos todavía";
             }
             if (deviceOnline()) {
                 return "ESP32 conectado";
             }
             String pattern = last.toLocalDate().equals(java.time.LocalDate.now()) ? "HH:mm" : "d MMM, HH:mm";
-            return "ESP32 sin datos desde " + last.format(java.time.format.DateTimeFormatter.ofPattern(pattern,
+            return "Sin datos desde " + last.format(java.time.format.DateTimeFormatter.ofPattern(pattern,
                     java.util.Locale.forLanguageTag("es-CO")));
         }
 
