@@ -52,7 +52,7 @@ class PostgresCompatibilityTests extends SessionStorageTests {
         try (Connection connection = dataSource.getConnection()) {
             assertThat(connection.getSchema()).isEqualTo(SCHEMA);
         }
-        assertThat(jdbc.queryForObject("select count(*) from sensor_readings", Integer.class)).isEqualTo(120);
+        assertThat(jdbc.queryForObject("select count(*) from sensor_readings", Integer.class)).isEqualTo(144);
         assertThatCode(() -> new ResourceDatabasePopulator(new FileSystemResource(databaseDir + "/schema.sql"))
                 .execute(dataSource)).doesNotThrowAnyException();
     }

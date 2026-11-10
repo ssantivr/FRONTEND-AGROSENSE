@@ -334,6 +334,19 @@ class WebFlowTests {
     }
 
     @Test
+    void theAirsHumidityHasNoThresholdBecauseTheCropsHumidityRangeIsTheSoils() throws Exception {
+        Sensor air = sensorRepository.findByCropEstateUserEmailOrderBySensorCode(DEMO_EMAIL).stream()
+                .filter(sensor -> sensor.getSensorCode().equals("AS-007")).findFirst().orElseThrow();
+
+        // The coffee crop's 40–80 % is the soil's: an 85 % of humid air is not out of range.
+        mvc.perform(get("/api/ui/sensors/{id}/readings", air.getIdSensor()).with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.points", hasSize(24)))
+                .andExpect(jsonPath("$.thresholdMin").doesNotExist())
+                .andExpect(jsonPath("$.thresholdMax").doesNotExist());
+    }
+
+    @Test
     void uiApiReturnsOnlyTheUsersOwnData() throws Exception {
         Sensor own = sensorRepository.findByCropEstateUserEmailOrderBySensorCode(DEMO_EMAIL).get(0);
         Sensor foreign = createOtherUsersSensor();
