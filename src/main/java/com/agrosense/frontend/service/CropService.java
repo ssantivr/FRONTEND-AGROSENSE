@@ -2,6 +2,7 @@ package com.agrosense.frontend.service;
 
 import com.agrosense.frontend.dto.Views.CropCard;
 import com.agrosense.frontend.dto.Views.CropDetail;
+import com.agrosense.frontend.dto.Views.CropLatest;
 import com.agrosense.frontend.dto.Views.EstateView;
 import com.agrosense.frontend.dto.Views.SensorView;
 import com.agrosense.frontend.entity.enums.CropStage;
@@ -50,11 +51,19 @@ public class CropService {
                 alertService.countOpenByCrop(email));
     }
 
-    public CropDetail findDetail(String email, Integer cropId) {
-        CropCard card = findCards(email).stream()
+    public CropLatest findLatest(String email, Integer cropId) {
+        return CropLatest.of(findCard(email, cropId));
+    }
+
+    private CropCard findCard(String email, Integer cropId) {
+        return findCards(email).stream()
                 .filter(candidate -> candidate.crop().id().equals(cropId))
                 .findFirst()
                 .orElseThrow(() -> new NotFoundException("Crop not found"));
+    }
+
+    public CropDetail findDetail(String email, Integer cropId) {
+        CropCard card = findCard(email, cropId);
         return new CropDetail(card, alertService.findByCrop(email, cropId, DETAIL_ALERTS),
                 irrigationService.findByCrop(email, cropId, DETAIL_IRRIGATIONS));
     }

@@ -359,6 +359,41 @@ public final class Views {
                     .orElse(null);
         }
 
+        /** The newest reading of any of the crop's sensors, or null without readings. */
+        public LocalDateTime lastReadingAt() {
+            return sensors.stream()
+                    .map(SensorView::lastReadingAt)
+                    .filter(java.util.Objects::nonNull)
+                    .max(java.util.Comparator.naturalOrder())
+                    .orElse(null);
+        }
+
+        /** The device counts as connected while its newest reading is younger than this. */
+        public static final java.time.Duration DEVICE_ONLINE_WITHIN = java.time.Duration.ofMinutes(2);
+
+        public long deviceOnlineWithinMs() {
+            return DEVICE_ONLINE_WITHIN.toMillis();
+        }
+
+        public boolean deviceOnline() {
+            LocalDateTime last = lastReadingAt();
+            return last != null && !last.isBefore(LocalDateTime.now().minus(DEVICE_ONLINE_WITHIN));
+        }
+
+        /** "ESP32 conectado", "ESP32 sin datos desde 14:05" (with the day when it is not today) or "todavía". */
+        public String deviceStatusLabel() {
+            LocalDateTime last = lastReadingAt();
+            if (last == null) {
+                return "ESP32 sin datos todavía";
+            }
+            if (deviceOnline()) {
+                return "ESP32 conectado";
+            }
+            String pattern = last.toLocalDate().equals(java.time.LocalDate.now()) ? "HH:mm" : "d MMM, HH:mm";
+            return "ESP32 sin datos desde " + last.format(java.time.format.DateTimeFormatter.ofPattern(pattern,
+                    java.util.Locale.forLanguageTag("es-CO")));
+        }
+
         public long reportingSensors() {
             return sensors.stream().filter(sensor -> sensor.status().reporting()).count();
         }
@@ -378,6 +413,27 @@ public final class Views {
             CropCard card,
             List<AlertView> alerts,
             List<IrrigationView> irrigations) {
+    }
+
+    /** One sensor's last stored value, in the shape the live scripts already paint (events/live.ts). */
+    public record LatestReading(String sensorCode, BigDecimal value, String unit, LocalDateTime recordedAt) {
+    }
+
+    /**
+     * What the crop page asks for every 30 seconds: the last value of each sensor and the newest of them, which says
+     * whether the field device is sending. Readings that arrive over TCP from the ESP32 do not pass through the event
+     * service, so this is how they reach an open page.
+     */
+    public record CropLatest(Integer cropId, List<LatestReading> readings, LocalDateTime lastReadingAt) {
+
+        public static CropLatest of(CropCard card) {
+            List<LatestReading> readings = card.sensors().stream()
+                    .filter(sensor -> sensor.lastValue() != null)
+                    .map(sensor -> new LatestReading(sensor.code(), sensor.lastValue(), sensor.unit(),
+                            sensor.lastReadingAt()))
+                    .toList();
+            return new CropLatest(card.crop().id(), readings, card.lastReadingAt());
+        }
     }
 
     public record ActivityItem(

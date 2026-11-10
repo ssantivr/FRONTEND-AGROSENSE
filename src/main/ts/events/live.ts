@@ -10,7 +10,7 @@ interface StreamAccess {
   expiresInSeconds?: number;
 }
 
-interface LiveReading {
+export interface LiveReading {
   sensorCode: string;
   value: number;
   unit: string | null;
@@ -176,7 +176,8 @@ class LiveEvents {
   }
 }
 
-function showReading(reading: LiveReading): void {
+/** Paints one reading on every element of the page marked with its sensor code; crop-live.ts uses it too. */
+export function showReading(reading: LiveReading): void {
   const when = reading.recordedAt ? new Date(reading.recordedAt) : new Date();
   for (const holder of all('[data-sensor-code]', HTMLElement)) {
     if (holder.dataset['sensorCode'] !== reading.sensorCode) continue;

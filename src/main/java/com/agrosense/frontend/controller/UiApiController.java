@@ -3,10 +3,12 @@ package com.agrosense.frontend.controller;
 import com.agrosense.frontend.backend.BackendClient;
 import com.agrosense.frontend.backend.BackendStatus;
 import com.agrosense.frontend.dto.IrrigationForm;
+import com.agrosense.frontend.dto.Views.CropLatest;
 import com.agrosense.frontend.dto.Views.DailyWater;
 import com.agrosense.frontend.dto.Views.EstateMarker;
 import com.agrosense.frontend.dto.Views.IrrigationView;
 import com.agrosense.frontend.dto.Views.ReadingSeries;
+import com.agrosense.frontend.service.CropService;
 import com.agrosense.frontend.service.DashboardService;
 import com.agrosense.frontend.service.EstateService;
 import com.agrosense.frontend.service.IrrigationService;
@@ -36,11 +38,18 @@ public class UiApiController {
     private final IrrigationService irrigationService;
     private final DashboardService dashboardService;
     private final BackendClient backendClient;
+    private final CropService cropService;
 
     @GetMapping("/sensors/{sensorId}/readings")
     public ReadingSeries readings(@PathVariable Integer sensorId,
             @RequestParam(defaultValue = "24") int hours, Principal principal) {
         return sensorService.findReadings(principal.getName(), sensorId, hours);
+    }
+
+    /** Polled by the crop page (crop-live.ts); only the owner's crops, a foreign one is 404. */
+    @GetMapping("/crops/{cropId}/latest")
+    public CropLatest latest(@PathVariable Integer cropId, Principal principal) {
+        return cropService.findLatest(principal.getName(), cropId);
     }
 
     @GetMapping("/backend-status")
