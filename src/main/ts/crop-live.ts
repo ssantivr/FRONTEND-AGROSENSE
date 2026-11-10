@@ -101,7 +101,7 @@ function start(): void {
   const status = find('deviceStatus', HTMLElement);
   const url = status?.dataset['latestUrl'];
   if (!status || !url) return;
-  const live = new CropLive(status, url, Number(status.dataset['onlineMs']) || 120_000);
+  const live = new CropLive(status, url, Number(status.dataset['onlineMs']) || 180_000);
   live.start();
   window.addEventListener('pagehide', () => live.stop());
   window.addEventListener('pageshow', (event) => {

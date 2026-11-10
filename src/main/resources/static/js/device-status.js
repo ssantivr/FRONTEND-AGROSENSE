@@ -10,13 +10,13 @@ const dayAndTime = new Intl.DateTimeFormat('es-CO', {
 });
 export function deviceStatus(lastReading, now, onlineWithinMs) {
     if (!lastReading || Number.isNaN(lastReading.getTime())) {
-        return { state: 'none', label: 'ESP32 sin datos todavía' };
+        return { state: 'none', label: 'Sin datos todavía' };
     }
     if (now.getTime() - lastReading.getTime() <= onlineWithinMs) {
         return { state: 'online', label: 'ESP32 conectado' };
     }
     const sameDay = lastReading.toDateString() === now.toDateString();
-    return { state: 'stale', label: `ESP32 sin datos desde ${(sameDay ? time : dayAndTime).format(lastReading)}` };
+    return { state: 'stale', label: `Sin datos desde ${(sameDay ? time : dayAndTime).format(lastReading)}` };
 }
 /** The newest of the readings' times, ignoring those without one. */
 export function newest(times) {

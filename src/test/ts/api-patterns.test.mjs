@@ -245,19 +245,20 @@ describe('deviceStatus', async () => {
   const minutesAgo = (minutes) => new Date(now.getTime() - minutes * 60_000);
 
   it('says connected while the newest reading is recent', () => {
-    assert.deepEqual(deviceStatus(minutesAgo(1), now, 120_000), { state: 'online', label: 'ESP32 conectado' });
+    assert.deepEqual(deviceStatus(minutesAgo(2), now, 180_000), { state: 'online', label: 'ESP32 conectado' });
   });
 
   it('says since when there is no data once it is older, with the day only when it is not today', () => {
-    const stale = deviceStatus(minutesAgo(25), now, 120_000);
+    const stale = deviceStatus(minutesAgo(25), now, 180_000);
+    assert.equal(deviceStatus(minutesAgo(4), now, 180_000).state, 'stale');
     assert.equal(stale.state, 'stale');
-    assert.match(stale.label, /^ESP32 sin datos desde 14:05$/);
-    const yesterday = deviceStatus(minutesAgo(24 * 60), now, 120_000);
-    assert.match(yesterday.label, /^ESP32 sin datos desde 9 (de )?nov/);
+    assert.match(stale.label, /^Sin datos desde 14:05$/);
+    const yesterday = deviceStatus(minutesAgo(24 * 60), now, 180_000);
+    assert.match(yesterday.label, /^Sin datos desde 9 (de )?nov/);
   });
 
   it('says there is no data yet without any reading, and newest() skips missing and broken times', () => {
-    assert.equal(deviceStatus(null, now, 120_000).state, 'none');
+    assert.equal(deviceStatus(null, now, 180_000).state, 'none');
     assert.equal(newest([null, 'not a date']), null);
     assert.equal(newest(['2026-11-10T14:00:00', null, '2026-11-10T14:20:00'])?.getMinutes(), 20);
   });
