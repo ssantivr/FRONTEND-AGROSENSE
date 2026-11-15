@@ -88,8 +88,8 @@ public class SensorService {
         return new ConnectedSensor(deviceCode, crop.getIdCrop(), crop.getName(), crop.getVariety(), crop.getStage(),
                 crop.getSowingDate(), crop.getEstate().getIdEstate(), crop.getEstate().getName(),
                 crop.getEstate().getLocation(), crop.getEstate().getAreaHa(), crop.getHumidityMin(),
-                crop.getHumidityMax(), crop.getTempMin(), crop.getTempMax(), crop.getPhMin(), crop.getPhMax(),
-                sensors, readings);
+                crop.getHumidityMax(), crop.getAirHumidityMin(), crop.getAirHumidityMax(), crop.getTempMin(),
+                crop.getTempMax(), crop.getPhMin(), crop.getPhMax(), sensors, readings);
     }
 
     public List<SensorView> findSensors(String email) {
@@ -219,8 +219,9 @@ public class SensorService {
 
     private static BigDecimal[] thresholds(SensorType type, Crop crop) {
         return switch (type) {
-            // The crop's humidity range is the soil's; the air's humidity has none.
+            // The crop's humidity range is the soil's; the air's has its own, optional one.
             case SOIL_MOISTURE -> new BigDecimal[] {crop.getHumidityMin(), crop.getHumidityMax()};
+            case RELATIVE_HUMIDITY -> new BigDecimal[] {crop.getAirHumidityMin(), crop.getAirHumidityMax()};
             case AIR_TEMPERATURE, SOIL_TEMPERATURE -> new BigDecimal[] {crop.getTempMin(), crop.getTempMax()};
             case PH -> new BigDecimal[] {crop.getPhMin(), crop.getPhMax()};
             default -> new BigDecimal[] {null, null};

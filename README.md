@@ -66,6 +66,10 @@ indica: «Servidor conectado», «Despertando el servidor, puede tardar hasta un
 datos directa»; la gráfica de lecturas dice de dónde salieron los datos y la hora de la última lectura.
 `GET /api/ui/backend-status` devuelve ese estado.
 
+**Humedad del ESP32.** La página Sensores termina con la planta del ESP32 (`ESP32_DEVICE_ID`) y solo sus lecturas de
+humedad, calificadas contra los rangos del cultivo. `src/main/ts/esp32-humidity.ts` consulta `/api/ui/esp32/humidity`
+cada 30 s. Detalle en [docs/SENSOR-ESP32.md](../docs/SENSOR-ESP32.md).
+
 ## Scripts (TypeScript)
 
 El código fuente está en `src/main/ts` y `tsc` lo compila a `src/main/resources/static/js`, que se guarda

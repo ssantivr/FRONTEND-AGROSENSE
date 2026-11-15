@@ -146,8 +146,9 @@ public class ReportService {
             return new BigDecimal[] {null, null};
         }
         return switch (sensor.type()) {
-            // The crop's humidity range is the soil's; the air's humidity has none.
+            // The crop's humidity range is the soil's; the air's has its own, optional one.
             case SOIL_MOISTURE -> new BigDecimal[] {crop.humidityMin(), crop.humidityMax()};
+            case RELATIVE_HUMIDITY -> new BigDecimal[] {crop.airHumidityMin(), crop.airHumidityMax()};
             case AIR_TEMPERATURE, SOIL_TEMPERATURE -> new BigDecimal[] {crop.tempMin(), crop.tempMax()};
             case PH -> new BigDecimal[] {crop.phMin(), crop.phMax()};
             default -> new BigDecimal[] {null, null};

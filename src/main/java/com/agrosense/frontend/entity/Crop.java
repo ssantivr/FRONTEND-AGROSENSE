@@ -64,6 +64,13 @@ public class Crop {
     @Builder.Default
     private BigDecimal phMax = new BigDecimal("7.0");
 
+    /** The air's relative humidity the crop tolerates; optional, so it has no default. */
+    @Column(name = "air_humidity_min", precision = 5, scale = 2)
+    private BigDecimal airHumidityMin;
+
+    @Column(name = "air_humidity_max", precision = 5, scale = 2)
+    private BigDecimal airHumidityMax;
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean active = true;

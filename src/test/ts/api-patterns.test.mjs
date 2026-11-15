@@ -263,3 +263,33 @@ describe('deviceStatus', async () => {
     assert.equal(newest(['2026-11-10T14:00:00', null, '2026-11-10T14:20:00'])?.getMinutes(), 20);
   });
 });
+
+describe('esp32Humidity', async () => {
+  const { isHumidityFeed, isNewer, lastValues } = await import('../../main/resources/static/js/esp32-humidity.js');
+  const row = {
+    recordedAt: '2026-11-15T11:19:00', recordedAtText: '15 nov, 11:19', sensorCode: 'AS-001', measure: 'Humedad del suelo',
+    valueText: '46,8 %', level: 'NORMAL', tone: 'success', icon: 'bi-check-circle', label: 'Normal',
+  };
+
+  it('accepts only a well-formed feed', () => {
+    assert.equal(isHumidityFeed({ readings: [row], newestAt: row.recordedAt }), true);
+    assert.equal(isHumidityFeed({ readings: [], newestAt: null }), true);
+    assert.equal(isHumidityFeed({ readings: [{ ...row, valueText: 46.8 }], newestAt: null }), false);
+    assert.equal(isHumidityFeed({ readings: 'none', newestAt: null }), false);
+  });
+
+  it('repaints only when the server has a newer reading than the page shows', () => {
+    assert.equal(isNewer('2026-11-15T11:19:00', '2026-11-15T11:20:00'), true);
+    assert.equal(isNewer('2026-11-15T11:19:00', '2026-11-15T11:19:00'), false);
+    assert.equal(isNewer('2026-11-15T11:19:00', '2026-11-15T10:00:00'), false);
+    assert.equal(isNewer(null, '2026-11-15T11:19:00'), true);
+    assert.equal(isNewer('2026-11-15T11:19:00', null), false);
+    assert.equal(isNewer(null, 'not a date'), false);
+  });
+
+  it('takes the newest value of each sensor for the sensors table', () => {
+    const older = { ...row, recordedAt: '2026-11-15T10:19:00', valueText: '43,8 %' };
+    const air = { ...row, sensorCode: 'AS-007', valueText: '83,3 %' };
+    assert.deepEqual([...lastValues([row, air, older])], [['AS-001', '46,8 %'], ['AS-007', '83,3 %']]);
+  });
+});

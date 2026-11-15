@@ -127,6 +127,8 @@ public class EstateService {
                 crop.getTempMax(),
                 crop.getPhMin(),
                 crop.getPhMax(),
+                crop.getAirHumidityMin(),
+                crop.getAirHumidityMax(),
                 Boolean.TRUE.equals(crop.getActive()));
     }
 }
