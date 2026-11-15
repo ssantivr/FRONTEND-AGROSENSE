@@ -123,6 +123,21 @@ class WebFlowTests {
     }
 
     @Test
+    void theSensorListAndADetailNameEachSensorByWhatItMeasuresNeverByItsCode() throws Exception {
+        String list = mvc.perform(get("/sensores").with(user(demoUser)))
+                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(list).contains(">Humedad del suelo</a>", ">Temperatura del aire</a>", ">Humedad relativa</a>",
+                "Café · Lote norte", "<th>Sensor</th>", "¿Eliminar el sensor de humedad del suelo de Café")
+                .doesNotContain(">AS-001<", ">AS-002<", ">AS-007<", "<th>Código</th>", "¿Eliminar el sensor AS-");
+
+        Sensor soil = sensorRepository.findBySensorCodeIgnoreCase("AS-001").orElseThrow();
+        String detail = mvc.perform(get("/sensores/{id}", soil.getIdSensor()).with(user(demoUser)))
+                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(detail).contains("<title>Humedad del suelo · Café", "<h1>Humedad del suelo</h1>", "Café · Lote norte · Finca La Esperanza")
+                .doesNotContain(">AS-001<", "Sensor AS-001");
+    }
+
+    @Test
     void liveEventsAreWiredIntoEveryPageAndOffWithoutTheEventService() throws Exception {
         mvc.perform(get("/sensores").with(user(demoUser)))
                 .andExpect(status().isOk())
@@ -217,7 +232,7 @@ class WebFlowTests {
         Sensor own = sensorRepository.findByCropEstateUserEmailOrderBySensorCode(DEMO_EMAIL).get(0);
         mvc.perform(get("/sensores/" + own.getIdSensor()).with(user(demoUser)))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("<h1>" + own.getSensorCode() + "</h1>")))
+                .andExpect(content().string(containsString("<h1>Humedad del suelo</h1>")))
                 .andExpect(content().string(containsString("data-sensor-status=")))
                 .andExpect(content().string(containsString("Rango del cultivo")))
                 .andExpect(content().string(containsString("Lecturas recientes")))
@@ -822,7 +837,8 @@ class WebFlowTests {
         String url = "/sensores/" + sensor.getIdSensor() + "/ubicacion";
 
         mvc.perform(get(url).with(user(demoUser))).andExpect(status().isOk())
-                .andExpect(content().string(containsString("Ubicar el sensor AS-001")))
+                .andExpect(content().string(containsString("Ubicar el sensor de humedad del suelo")))
+                .andExpect(content().string(not(containsString("Ubicar el sensor AS-001"))))
                 .andExpect(content().string(containsString("id=\"pickerMap\"")));
         mvc.perform(get("/sensores/{id}/ubicacion", foreign.getIdSensor()).with(user(demoUser)))
                 .andExpect(status().isNotFound());
