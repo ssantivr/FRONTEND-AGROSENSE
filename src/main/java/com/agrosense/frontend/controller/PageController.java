@@ -41,7 +41,7 @@ public class PageController {
     private final ReportService reportService;
 
     /** The same device the backend reads over TCP (ESP32_DEVICE_ID). */
-    @Value("${agrosense.esp32.device-id:RPI-DEMO-01}")
+    @Value("${agrosense.esp32.device-id:ESP32-PLANTICAS}")
     private String esp32DeviceId;
 
     private static final int ESTATE_ALERTS = 10;

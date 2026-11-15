@@ -108,6 +108,26 @@
                 <span class="field-error" th:if="${#fields.hasErrors('phRangeValid')}" th:errors="*{phRangeValid}">Error</span>
             </fieldset>
 
+            <fieldset class="fieldset">
+                <legend>Humedad del aire (%) · opcional</legend>
+                <p class="field-hint">La lee el ESP32. Déjala vacía si aún no conoces el rango del cultivo.</p>
+                <div class="field-row">
+                    <label class="field">
+                        <span class="field-label">Mínima</span>
+                        <input type="number" th:field="*{airHumidityMin}" min="0" max="100" step="0.1"
+                               th:attr="aria-invalid=${#fields.hasErrors('airHumidityMin')}">
+                        <span class="field-error" th:if="${#fields.hasErrors('airHumidityMin')}" th:errors="*{airHumidityMin}">Error</span>
+                    </label>
+                    <label class="field">
+                        <span class="field-label">Máxima</span>
+                        <input type="number" th:field="*{airHumidityMax}" min="0" max="100" step="0.1"
+                               th:attr="aria-invalid=${#fields.hasErrors('airHumidityMax')}">
+                        <span class="field-error" th:if="${#fields.hasErrors('airHumidityMax')}" th:errors="*{airHumidityMax}">Error</span>
+                    </label>
+                </div>
+                <span class="field-error" th:if="${#fields.hasErrors('airHumidityRangeValid')}" th:errors="*{airHumidityRangeValid}">Error</span>
+            </fieldset>
+
             <label class="switch-row">
                 <input type="checkbox" th:field="*{active}">
                 <span>

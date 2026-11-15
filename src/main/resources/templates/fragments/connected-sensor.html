@@ -3,12 +3,13 @@
 <body>
 <!-- The connected ESP32 inside the Sensors page: the plant it measures and only its humidity. -->
 <section id="sensor-esp32" class="esp32-section" aria-labelledby="esp32Title"
-         th:fragment="connected-sensor(connected, deviceCode)">
+         th:fragment="connected-sensor(connected, deviceCode)"
+         th:attr="data-humidity-url=@{/api/ui/esp32/humidity},data-newest-at=${connected != null and !connected.readings.isEmpty()} ? ${connected.readings[0].recordedAt} : ''">
     <header class="detail-header">
         <span class="stat-icon" aria-hidden="true"><i class="bi bi-cpu"></i></span>
         <div>
             <h2 id="esp32Title">Sensor ESP32 conectado</h2>
-            <p class="text-muted" th:text="|Dispositivo ${deviceCode} · solo niveles de humedad|">Dispositivo RPI-DEMO-01 · solo niveles de humedad</p>
+            <p class="text-muted" th:text="|Dispositivo ${deviceCode} · solo niveles de humedad|">Dispositivo ESP32-PLANTICAS · solo niveles de humedad</p>
         </div>
     </header>
 
@@ -43,12 +44,17 @@
             <dl class="definition-list">
                 <dt>Humedad del suelo</dt>
                 <dd data-humidity-range th:text="|${#numbers.formatDecimal(connected.humidityMin, 1, 1, 'COMMA')} – ${#numbers.formatDecimal(connected.humidityMax, 1, 1, 'COMMA')} %|">40,0 – 80,0 %</dd>
+                <dt>Humedad del aire</dt>
+                <dd data-air-humidity-range th:text="${connected.airHumidityMin != null and connected.airHumidityMax != null} ? |${#numbers.formatDecimal(connected.airHumidityMin, 1, 1, 'COMMA')} – ${#numbers.formatDecimal(connected.airHumidityMax, 1, 1, 'COMMA')} %| : 'Sin definir'">60,0 – 85,0 %</dd>
                 <dt>Temperatura</dt>
                 <dd th:text="|${#numbers.formatDecimal(connected.tempMin, 1, 1, 'COMMA')} – ${#numbers.formatDecimal(connected.tempMax, 1, 1, 'COMMA')} °C|">15,0 – 35,0 °C</dd>
                 <dt>pH</dt>
                 <dd th:text="|${#numbers.formatDecimal(connected.phMin, 1, 1, 'COMMA')} – ${#numbers.formatDecimal(connected.phMax, 1, 1, 'COMMA')}|">5,5 – 7,0</dd>
             </dl>
-            <p class="text-muted">La humedad relativa del aire no tiene rango en el cultivo: se muestra sin calificar.</p>
+            <p class="text-muted" th:if="${connected.airHumidityMin == null or connected.airHumidityMax == null}">
+                Sin rango de humedad del aire: esas lecturas se muestran sin calificar.
+                <a class="link" th:href="@{/cultivos/{id}/editar(id=${connected.cropId})}">Definirlo en el cultivo</a>
+            </p>
         </section>
 
         <section class="card detail-wide" aria-labelledby="humiditySensorsTitle">
@@ -61,10 +67,10 @@
                 <table class="table">
                     <thead><tr><th>Sensor</th><th>Tipo</th><th class="numeric">Última lectura</th><th>Conexión</th></tr></thead>
                     <tbody>
-                    <tr th:each="sensor : ${connected.humiditySensors}">
+                    <tr th:each="sensor : ${connected.humiditySensors}" th:attr="data-humidity-sensor=${sensor.code}">
                         <td><a class="link" th:href="@{/sensores/{id}(id=${sensor.id})}" th:text="${sensor.code}">AS-001</a></td>
                         <td th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</td>
-                        <td class="numeric" th:text="${sensor.lastValue != null} ? |${#numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA')} ${sensor.unit}| : 'Sin datos'">46,8 %</td>
+                        <td class="numeric" data-humidity-last th:text="${sensor.lastValue != null} ? |${#numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA')} ${sensor.unit}| : 'Sin datos'">46,8 %</td>
                         <td><span th:replace="~{fragments/status-pill :: sensor-status(${sensor})}"></span></td>
                     </tr>
                     </tbody>
@@ -74,7 +80,8 @@
 
         <section class="card detail-wide" aria-labelledby="humidityTitle">
             <h3 id="humidityTitle">Niveles de humedad</h3>
-            <p class="text-muted">Las 50 lecturas más recientes, de la más nueva a la más antigua.</p>
+            <p class="text-muted">Las 50 lecturas más recientes, de la más nueva a la más antigua. Se actualiza cada 30 s.</p>
+            <p class="text-muted" data-humidity-updated role="status" aria-live="polite"></p>
             <th:block th:if="${connected.readings.isEmpty()}">
                 <div th:replace="~{fragments/empty-state :: empty-state('bi-hourglass', 'Sin lecturas',
                     'El ESP32 aún no ha enviado lecturas de humedad.')}"></div>

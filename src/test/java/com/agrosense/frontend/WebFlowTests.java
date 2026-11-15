@@ -31,6 +31,8 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders.formLogin;
@@ -234,14 +236,57 @@ class WebFlowTests {
 
         assertThat(page).contains("id=\"sensor-esp32\"");
         String section = page.substring(page.indexOf("id=\"sensor-esp32\""));
-        assertThat(section).contains("RPI-DEMO-01", ">Café</a>", ">Finca La Esperanza</a>", "Rangos del cultivo",
+        assertThat(section).contains("ESP32-PLANTICAS", ">Café</a>", ">Finca La Esperanza</a>", "Rangos del cultivo",
                 "data-humidity-range", "40,0 – 80,0 %", "Niveles de humedad", "data-humidity-list");
         String list = section.substring(section.indexOf("data-humidity-list"));
         assertThat(list).contains("AS-001", "AS-007").doesNotContain("AS-002", "AS-003", "AS-004", "AS-005");
         assertThat(list).contains("Humedad del suelo", "Humedad relativa")
                 .doesNotContain("Temperatura del aire", "Conductividad");
-        assertThat(list).containsAnyOf("data-level=\"LOW\"", "data-level=\"NORMAL\"", "data-level=\"HIGH\"");
-        assertThat(list).contains("data-level=\"NO_RANGE\"");
+        // The demo coffee has an air range (60–85 %): the air's humidity is judged too, and its 89 % is high.
+        assertThat(section).contains("data-air-humidity-range", "60,0 – 85,0 %");
+        assertThat(list).contains("data-level=\"NORMAL\"", "data-level=\"HIGH\"").doesNotContain("data-level=\"NO_RANGE\"");
+    }
+
+    @Test
+    void theEsp32HumidityFeedRefreshesOnlyTheOwnersHumidityNewestFirst() throws Exception {
+        String page = mvc.perform(get("/sensores").with(user(demoUser)))
+                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(page).contains("data-humidity-url=\"/api/ui/esp32/humidity\"", "/js/esp32-humidity.js",
+                "data-humidity-updated");
+
+        mvc.perform(get("/api/ui/esp32/humidity").with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.readings", hasSize(greaterThan(0))))
+                .andExpect(jsonPath("$.newestAt").value(org.hamcrest.Matchers.notNullValue()))
+                .andExpect(jsonPath("$.readings[*].sensorCode", everyItem(org.hamcrest.Matchers.in(List.of("AS-001", "AS-007")))))
+                .andExpect(jsonPath("$.readings[*].measure",
+                        everyItem(org.hamcrest.Matchers.in(List.of("Humedad del suelo", "Humedad relativa")))))
+                .andExpect(jsonPath("$.readings[0].valueText", containsString(",")))
+                .andExpect(jsonPath("$.readings[0].level", org.hamcrest.Matchers.in(List.of("LOW", "NORMAL", "HIGH"))));
+
+        createOtherUsersSensor();
+        mvc.perform(get("/api/ui/esp32/humidity").with(user(userDetailsService.loadUserByUsername(OTHER_EMAIL))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.readings", hasSize(0)))
+                .andExpect(jsonPath("$.newestAt").doesNotExist());
+        mvc.perform(get("/api/ui/esp32/humidity")).andExpect(status().is3xxRedirection());
+    }
+
+    @Test
+    void withoutAnAirRangeTheAirHumidityIsShownUnjudgedWithALinkToSetIt() throws Exception {
+        Crop coffee = cropRepository.findAll().stream()
+                .filter(crop -> crop.getName().equals("Café") && crop.getEstate().getUser().getEmail().equals(DEMO_EMAIL))
+                .findFirst().orElseThrow();
+        coffee.setAirHumidityMin(null);
+        coffee.setAirHumidityMax(null);
+        cropRepository.saveAndFlush(coffee);
+
+        String page = mvc.perform(get("/sensores").with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        String section = page.substring(page.indexOf("id=\"sensor-esp32\""));
+        assertThat(section).contains("Sin rango de humedad del aire", "/cultivos/" + coffee.getIdCrop() + "/editar");
+        assertThat(section.substring(section.indexOf("data-humidity-list"))).contains("data-level=\"NO_RANGE\"");
     }
 
     @Test
@@ -365,14 +410,24 @@ class WebFlowTests {
     }
 
     @Test
-    void theAirsHumidityHasNoThresholdBecauseTheCropsHumidityRangeIsTheSoils() throws Exception {
+    void theAirsHumidityUsesItsOwnRangeAndNeverTheSoils() throws Exception {
         Sensor air = sensorRepository.findByCropEstateUserEmailOrderBySensorCode(DEMO_EMAIL).stream()
                 .filter(sensor -> sensor.getSensorCode().equals("AS-007")).findFirst().orElseThrow();
 
-        // The coffee crop's 40–80 % is the soil's: an 85 % of humid air is not out of range.
+        // The demo coffee's air range is 60–85 %, not its soil's 40–80 %.
         mvc.perform(get("/api/ui/sensors/{id}/readings", air.getIdSensor()).with(user(demoUser)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.points", hasSize(24)))
+                .andExpect(jsonPath("$.thresholdMin").value(60.0))
+                .andExpect(jsonPath("$.thresholdMax").value(85.0));
+
+        // Without an air range, the soil's 40–80 % is still never used for the air: an 85 % of humid air is not out of range.
+        Crop coffee = air.getCrop();
+        coffee.setAirHumidityMin(null);
+        coffee.setAirHumidityMax(null);
+        cropRepository.saveAndFlush(coffee);
+        mvc.perform(get("/api/ui/sensors/{id}/readings", air.getIdSensor()).with(user(demoUser)))
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.thresholdMin").doesNotExist())
                 .andExpect(jsonPath("$.thresholdMax").doesNotExist());
     }

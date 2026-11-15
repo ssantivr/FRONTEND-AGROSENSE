@@ -63,7 +63,21 @@ public class CropForm {
     @DecimalMax(value = "14", message = "El pH debe estar entre 0 y 14.")
     private BigDecimal phMax = new BigDecimal("7.0");
 
+    // Optional: the air's relative humidity range is left empty until the farmer knows it.
+    @DecimalMin(value = "0", message = "La humedad del aire debe estar entre 0 y 100.")
+    @DecimalMax(value = "100", message = "La humedad del aire debe estar entre 0 y 100.")
+    private BigDecimal airHumidityMin;
+
+    @DecimalMin(value = "0", message = "La humedad del aire debe estar entre 0 y 100.")
+    @DecimalMax(value = "100", message = "La humedad del aire debe estar entre 0 y 100.")
+    private BigDecimal airHumidityMax;
+
     private boolean active = true;
+
+    @AssertTrue(message = "Escribe la humedad del aire mínima y la máxima, o deja las dos vacías; la mínima debe ser menor.")
+    public boolean isAirHumidityRangeValid() {
+        return (airHumidityMin == null) == (airHumidityMax == null) && isAscending(airHumidityMin, airHumidityMax);
+    }
 
     @AssertTrue(message = "La humedad mínima debe ser menor que la máxima.")
     public boolean isHumidityRangeValid() {

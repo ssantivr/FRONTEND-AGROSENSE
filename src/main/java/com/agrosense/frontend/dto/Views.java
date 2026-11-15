@@ -40,6 +40,8 @@ public final class Views {
             BigDecimal tempMax,
             BigDecimal phMin,
             BigDecimal phMax,
+            BigDecimal airHumidityMin,
+            BigDecimal airHumidityMax,
             boolean active) {
 
         public int tone() {
@@ -285,12 +287,12 @@ public final class Views {
     public record ReadingPoint(LocalDateTime recordedAt, BigDecimal value) {
     }
 
-    /** Where one humidity reading falls against the crop's range; the air's humidity has no range of its own. */
+    /** Where one humidity reading falls against the crop's range for it (the soil's, or the air's when set). */
     public enum HumidityLevel {
         LOW("warning", "bi-arrow-down-circle", "Baja"),
         NORMAL("success", "bi-check-circle", "Normal"),
         HIGH("danger", "bi-arrow-up-circle", "Alta"),
-        NO_RANGE("neutral", "bi-dash-circle", "Sin rango del cultivo");
+        NO_RANGE("neutral", "bi-dash-circle", "Sin rango definido");
 
         private final String tone;
         private final String icon;
@@ -334,6 +336,35 @@ public final class Views {
             HumidityLevel level) {
     }
 
+    /** One row of the ESP32's humidity list as the browser repaints it: already worded and formatted like the page. */
+    public record HumidityRow(
+            String recordedAt,
+            String recordedAtText,
+            String sensorCode,
+            String measure,
+            String valueText,
+            String level,
+            String tone,
+            String icon,
+            String label) {
+
+        private static final java.time.format.DateTimeFormatter DAY_AND_TIME =
+                java.time.format.DateTimeFormatter.ofPattern("d MMM, HH:mm", java.util.Locale.forLanguageTag("es-CO"));
+
+        public static HumidityRow of(HumidityReading reading, String measure) {
+            String value = reading.value() == null ? "—"
+                    : reading.value().setScale(1, java.math.RoundingMode.HALF_UP).toPlainString().replace('.', ',')
+                            + (reading.unit() != null ? " " + reading.unit() : "");
+            return new HumidityRow(reading.recordedAt().toString(), DAY_AND_TIME.format(reading.recordedAt()),
+                    reading.sensorCode(), measure, value, reading.level().name(), reading.level().tone(),
+                    reading.level().icon(), reading.level().label());
+        }
+    }
+
+    /** The newest humidity readings of the connected ESP32; empty when there is none for this user. */
+    public record HumidityFeed(List<HumidityRow> readings, String newestAt) {
+    }
+
     /** The ESP32 that is configured, the plant it measures and only its humidity readings, newest first. */
     public record ConnectedSensor(
             String deviceCode,
@@ -348,6 +379,8 @@ public final class Views {
             BigDecimal areaHa,
             BigDecimal humidityMin,
             BigDecimal humidityMax,
+            BigDecimal airHumidityMin,
+            BigDecimal airHumidityMax,
             BigDecimal tempMin,
             BigDecimal tempMax,
             BigDecimal phMin,
