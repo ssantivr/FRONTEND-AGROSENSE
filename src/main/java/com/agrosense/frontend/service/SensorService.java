@@ -4,6 +4,8 @@ import com.agrosense.frontend.backend.BackendClient;
 import com.agrosense.frontend.backend.BackendClient.ReadingResponse;
 import com.agrosense.frontend.dto.Views.ConnectedSensor;
 import com.agrosense.frontend.dto.Views.HumidityCard;
+import com.agrosense.frontend.dto.Views.HumidityDayReport;
+import com.agrosense.frontend.dto.Views.HumidityDaySummary;
 import com.agrosense.frontend.dto.Views.HumidityPoint;
 import com.agrosense.frontend.dto.Views.HumiditySeries;
 import com.agrosense.frontend.dto.Views.HumidityLevel;
@@ -106,9 +108,15 @@ public class SensorService {
      * {@link #DAY_BUCKET_MINUTES} minutes. Empty when the device does not exist or its crop belongs to someone else.
      */
     public List<HumiditySeries> findHumidityDay(String email, String deviceCode, Function<SensorType, String> measureOf) {
+        return findHumidityDayReport(email, deviceCode, measureOf).map(HumidityDayReport::series).orElse(List.of());
+    }
+
+    /** The same 24 hours with the crop they belong to, for the irrigation page. Empty without the user's ESP32. */
+    public Optional<HumidityDayReport> findHumidityDayReport(String email, String deviceCode,
+            Function<SensorType, String> measureOf) {
         Optional<Crop> found = cropRepository.findMeasuredByDevice(deviceCode, email).stream().findFirst();
         if (found.isEmpty()) {
-            return List.of();
+            return Optional.empty();
         }
         Crop crop = found.get();
         List<Sensor> sensors = sensorRepository.findByCropEstateUserEmailAndSensorTypeInOrderBySensorCode(email,
@@ -116,7 +124,8 @@ public class SensorService {
                 .filter(sensor -> crop.getIdCrop().equals(sensor.getCrop().getIdCrop()))
                 .toList();
         if (sensors.isEmpty()) {
-            return List.of();
+            return Optional.of(new HumidityDayReport(crop.getIdCrop(), crop.getName(), crop.getEstate().getName(),
+                    List.of(), List.of()));
         }
         Map<Integer, List<ReadingPoint>> bySensor = readingRepository
                 .findBySensorIdSensorInAndRecordedAtGreaterThanEqualOrderByRecordedAt(
@@ -125,7 +134,7 @@ public class SensorService {
                 .collect(Collectors.groupingBy(reading -> reading.getSensor().getIdSensor(),
                         Collectors.mapping(reading -> new ReadingPoint(reading.getRecordedAt(), reading.getValue()),
                                 Collectors.toList())));
-        return sensors.stream()
+        List<HumiditySeries> series = sensors.stream()
                 .map(sensor -> {
                     BigDecimal[] range = thresholds(sensor.getSensorType(), crop);
                     List<HumidityPoint> points = bucket(bySensor.getOrDefault(sensor.getIdSensor(), List.of()),
@@ -136,6 +145,29 @@ public class SensorService {
                             range[0], range[1], points);
                 })
                 .toList();
+        return Optional.of(new HumidityDayReport(crop.getIdCrop(), crop.getName(), crop.getEstate().getName(), series,
+                sensors.stream().map(Sensor::getSensorType).toList()));
+    }
+
+    /**
+     * Sums up one measure's day from its averaged buckets (oldest first, each {@code bucketMinutes} long): the newest
+     * value, the lowest, the highest, the average, and the minutes spent below and above the ideal range. A bucket on
+     * the range's edge counts as inside it.
+     */
+    public static HumidityDaySummary summarize(SensorType type, HumiditySeries series, int bucketMinutes) {
+        List<BigDecimal> values = series.points().stream().map(HumidityPoint::value).filter(Objects::nonNull).toList();
+        if (values.isEmpty()) {
+            return new HumidityDaySummary(type, series.measure(), null, null, null, null, series.min(), series.max(), 0,
+                    0, 0);
+        }
+        BigDecimal average = values.stream().reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(BigDecimal.valueOf(values.size()), 1, RoundingMode.HALF_UP);
+        long low = series.min() == null ? 0 : values.stream().filter(value -> value.compareTo(series.min()) < 0).count();
+        long high = series.max() == null ? 0 : values.stream().filter(value -> value.compareTo(series.max()) > 0).count();
+        return new HumidityDaySummary(type, series.measure(), values.get(values.size() - 1),
+                values.stream().min(BigDecimal::compareTo).orElseThrow(),
+                values.stream().max(BigDecimal::compareTo).orElseThrow(), average, series.min(), series.max(),
+                values.size() * bucketMinutes, (int) low * bucketMinutes, (int) high * bucketMinutes);
     }
 
     /**

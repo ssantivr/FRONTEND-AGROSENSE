@@ -278,26 +278,36 @@ class Esp32Humidity {
             text.textContent = silence.text;
     }
 }
+// The irrigation page has only the day's chart; it is redrawn every few minutes, the time a new bucket takes to fill.
+const CHART_ONLY_REFRESH_MS = 5 * 60_000;
+function chartIn(host) {
+    const box = host.querySelector('[data-humidity-chart-box]');
+    const canvas = host.querySelector('[data-humidity-chart]');
+    const message = host.querySelector('[data-humidity-chart-message]');
+    const dayUrl = host.dataset['humidityDayUrl'];
+    return box && canvas && message && dayUrl ? new HumidityDayChart(box, canvas, message, dayUrl) : undefined;
+}
 function start() {
-    const section = document.getElementById('sensor-esp32');
-    const url = section?.dataset['humidityUrl'];
-    if (!section || !url)
-        return;
-    const box = section.querySelector('[data-humidity-chart-box]');
-    const canvas = section.querySelector('[data-humidity-chart]');
-    const message = section.querySelector('[data-humidity-chart-message]');
-    const dayUrl = section.dataset['humidityDayUrl'];
-    const chart = box && canvas && message && dayUrl ? new HumidityDayChart(box, canvas, message, dayUrl) : undefined;
+    const host = document.querySelector('[data-humidity-day-url]');
+    const chart = host ? chartIn(host) : undefined;
     void chart?.load();
     // The chart reads its colors from the tokens, so a theme change redraws it.
     document.addEventListener('agrosense:theme', () => chart?.render());
-    const live = new Esp32Humidity(section, url, section.dataset['newestAt'] || null, chart);
-    live.start();
-    window.addEventListener('pagehide', () => live.stop());
-    window.addEventListener('pageshow', (event) => {
-        if (event.persisted)
-            live.start();
-    });
+    const section = document.getElementById('sensor-esp32');
+    const url = section?.dataset['humidityUrl'];
+    if (section && url) {
+        const live = new Esp32Humidity(section, url, section.dataset['newestAt'] || null, chart);
+        live.start();
+        window.addEventListener('pagehide', () => live.stop());
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted)
+                live.start();
+        });
+    }
+    else if (chart) {
+        const timer = window.setInterval(() => void chart.load(), CHART_ONLY_REFRESH_MS);
+        window.addEventListener('pagehide', () => window.clearInterval(timer), { once: true });
+    }
 }
 if (typeof document !== 'undefined')
     start();
