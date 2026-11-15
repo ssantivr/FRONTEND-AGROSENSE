@@ -6,6 +6,7 @@ import com.agrosense.frontend.dto.IrrigationForm;
 import com.agrosense.frontend.dto.Views.CropLatest;
 import com.agrosense.frontend.dto.Views.DailyWater;
 import com.agrosense.frontend.dto.Views.EstateMarker;
+import com.agrosense.frontend.dto.Views.HumidityDay;
 import com.agrosense.frontend.dto.Views.HumidityFeed;
 import com.agrosense.frontend.dto.Views.HumidityRow;
 import com.agrosense.frontend.dto.Views.IrrigationView;
@@ -64,6 +65,14 @@ public class UiApiController {
                         .toList())
                 .orElse(List.of());
         return new HumidityFeed(rows, rows.isEmpty() ? null : rows.get(0).recordedAt());
+    }
+
+    /** The Sensors page's 24-hour chart of the ESP32's humidity (esp32-humidity.ts); empty for anyone but the owner. */
+    @GetMapping("/esp32/humidity/day")
+    public HumidityDay esp32HumidityDay(Principal principal) {
+        return new HumidityDay(sensorService.findHumidityDay(principal.getName(), esp32DeviceId,
+                type -> messages.getMessage("sensorType." + type, null, type.name(), LocaleContextHolder.getLocale())),
+                SensorService.DAY_BUCKET_MINUTES);
     }
 
     @GetMapping("/sensors/{sensorId}/readings")

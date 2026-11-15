@@ -331,6 +331,35 @@ class WebFlowTests {
     }
 
     @Test
+    void theEsp32DayChartHasTheOwnersSoilAndAirHumidityWithTheirRanges() throws Exception {
+        String page = mvc.perform(get("/sensores").with(user(demoUser)))
+                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(page).contains("data-humidity-day-url=\"/api/ui/esp32/humidity/day\"", "data-humidity-chart",
+                "Humedad en las últimas 24 horas", "/webjars/chart.js/");
+
+        // The demo seeds one reading per hour for 24 hours: each lands in its own 15-minute bucket.
+        mvc.perform(get("/api/ui/esp32/humidity/day").with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.bucketMinutes").value(15))
+                .andExpect(jsonPath("$.series[*].sensorCode").value(org.hamcrest.Matchers.contains("AS-001", "AS-007")))
+                .andExpect(jsonPath("$.series[0].measure").value("Humedad del suelo"))
+                .andExpect(jsonPath("$.series[0].min").value(40.0))
+                .andExpect(jsonPath("$.series[0].max").value(80.0))
+                .andExpect(jsonPath("$.series[1].measure").value("Humedad relativa"))
+                .andExpect(jsonPath("$.series[1].min").value(60.0))
+                .andExpect(jsonPath("$.series[1].max").value(85.0))
+                .andExpect(jsonPath("$.series[0].points", hasSize(greaterThan(20))))
+                .andExpect(jsonPath("$.series[0].points[0].at").isString())
+                .andExpect(jsonPath("$.series[0].points[0].value").isNumber());
+
+        createOtherUsersSensor();
+        mvc.perform(get("/api/ui/esp32/humidity/day").with(user(userDetailsService.loadUserByUsername(OTHER_EMAIL))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.series", hasSize(0)));
+        mvc.perform(get("/api/ui/esp32/humidity/day")).andExpect(status().is3xxRedirection());
+    }
+
+    @Test
     void withoutAnAirRangeTheAirHumidityIsShownUnjudgedWithALinkToSetIt() throws Exception {
         Crop coffee = cropRepository.findAll().stream()
                 .filter(crop -> crop.getName().equals("Café") && crop.getEstate().getUser().getEmail().equals(DEMO_EMAIL))

@@ -4,7 +4,7 @@
 <!-- The connected ESP32 inside the Sensors page: the plant it measures and only its humidity. -->
 <section id="sensor-esp32" class="esp32-section" aria-labelledby="esp32Title"
          th:fragment="connected-sensor(connected, deviceCode)"
-         th:attr="data-humidity-url=@{/api/ui/esp32/humidity},data-newest-at=${connected != null and !connected.readings.isEmpty()} ? ${connected.readings[0].recordedAt} : ''">
+         th:attr="data-humidity-url=@{/api/ui/esp32/humidity},data-humidity-day-url=@{/api/ui/esp32/humidity/day},data-newest-at=${connected != null and !connected.readings.isEmpty()} ? ${connected.readings[0].recordedAt} : ''">
     <header class="detail-header">
         <span class="stat-icon" aria-hidden="true"><i class="bi bi-cpu"></i></span>
         <div>
@@ -74,6 +74,15 @@
                     </tbody>
                 </table>
             </div>
+        </section>
+
+        <section class="card detail-wide" aria-labelledby="humidityDayTitle" th:unless="${connected.humiditySensors.isEmpty()}">
+            <h3 id="humidityDayTitle">Humedad en las últimas 24 horas</h3>
+            <p class="text-muted">Promedio cada 15 minutos. Las líneas punteadas marcan el mínimo y el máximo de cada rango; un hueco es un rato sin lecturas.</p>
+            <div class="chart skeleton" data-humidity-chart-box>
+                <canvas data-humidity-chart role="img" aria-label="Gráfica de la humedad del suelo y del aire en las últimas 24 horas"></canvas>
+            </div>
+            <p class="chart-message" data-humidity-chart-message role="status" hidden></p>
         </section>
 
         <section class="card detail-wide" aria-labelledby="humidityTitle">

@@ -14,5 +14,6 @@ declare global {
 declare module 'chart.js' {
   interface PluginOptionsByType<TType extends ChartType> {
     thresholds?: { lines: ThresholdLine[] };
+    humidityRanges?: { lines: (ThresholdLine & { color: string; left: boolean })[] };
   }
 }
