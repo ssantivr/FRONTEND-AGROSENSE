@@ -1,6 +1,7 @@
 package com.agrosense.frontend.dto;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import com.agrosense.frontend.entity.enums.SensorType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -29,4 +30,9 @@ public class SensorForm {
 
     @Valid
     private SensorPositionForm position = new SensorPositionForm();
+
+    @AssertTrue(message = "Elige humedad del suelo, temperatura del aire o humedad relativa: es lo que mide el ESP32.")
+    public boolean isSensorTypeMeasured() {
+        return sensorType == null || sensorType.isMeasuredByEsp32();
+    }
 }

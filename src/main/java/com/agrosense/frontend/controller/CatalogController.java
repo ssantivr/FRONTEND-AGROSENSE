@@ -238,7 +238,7 @@ public class CatalogController {
                 .forEach(crop -> sites.put(String.valueOf(crop.id()), toSite(estate))));
         model.addAttribute("sitesJson", objectMapper.writeValueAsString(sites));
         model.addAttribute("cropOptions", estateService.findActiveCropOptions(principal.getName()));
-        model.addAttribute("sensorTypes", SensorType.values());
+        model.addAttribute("sensorTypes", SensorType.ESP32);
         return "sensor-form";
     }
 

@@ -60,8 +60,10 @@ class CropTemplateFormTests {
                 new BigDecimal("80"), new BigDecimal("18"), new BigDecimal("27"), new BigDecimal("5.5"),
                 new BigDecimal("6.8"))));
 
-        assertThat(page).contains("id=\"cropTemplate\"", ">Tomate<", "data-humidity-min=\"60\"", "data-ph-max=\"6.8\"",
+        assertThat(page).contains("id=\"cropTemplate\"", ">Tomate<", "data-humidity-min=\"60\"", "data-temp-max=\"27\"",
                 "/js/crop-form.js", "no validados agronómicamente");
+        // The ESP32 measures no pH, so the template's pH is not copied into a form that has no pH field.
+        assertThat(page).doesNotContain("data-ph-max", "phMin");
     }
 
     @Test

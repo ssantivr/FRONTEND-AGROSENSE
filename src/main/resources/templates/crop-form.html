@@ -46,7 +46,7 @@
                 <select id="cropTemplate">
                     <option value="">Sin plantilla</option>
                     <option th:each="template : ${cropTemplates}" th:value="${template.key}" th:text="${template.label}"
-                            th:attr="data-humidity-min=${template.humidityMin},data-humidity-max=${template.humidityMax},data-temp-min=${template.tempMin},data-temp-max=${template.tempMax},data-ph-min=${template.phMin},data-ph-max=${template.phMax}">Tomate</option>
+                            th:attr="data-humidity-min=${template.humidityMin},data-humidity-max=${template.humidityMax},data-temp-min=${template.tempMin},data-temp-max=${template.tempMax}">Tomate</option>
                 </select>
                 <span class="field-hint">Rellena los rangos de abajo con valores de partida, no validados agronómicamente. Puedes cambiarlos antes de guardar.</span>
             </label>
@@ -87,25 +87,6 @@
                     </label>
                 </div>
                 <span class="field-error" th:if="${#fields.hasErrors('tempRangeValid')}" th:errors="*{tempRangeValid}">Error</span>
-            </fieldset>
-
-            <fieldset class="fieldset">
-                <legend>pH</legend>
-                <div class="field-row">
-                    <label class="field">
-                        <span class="field-label">Mínimo</span>
-                        <input type="number" th:field="*{phMin}" min="0" max="14" step="0.1" required
-                               th:attr="aria-invalid=${#fields.hasErrors('phMin')}">
-                        <span class="field-error" th:if="${#fields.hasErrors('phMin')}" th:errors="*{phMin}">Error</span>
-                    </label>
-                    <label class="field">
-                        <span class="field-label">Máximo</span>
-                        <input type="number" th:field="*{phMax}" min="0" max="14" step="0.1" required
-                               th:attr="aria-invalid=${#fields.hasErrors('phMax')}">
-                        <span class="field-error" th:if="${#fields.hasErrors('phMax')}" th:errors="*{phMax}">Error</span>
-                    </label>
-                </div>
-                <span class="field-error" th:if="${#fields.hasErrors('phRangeValid')}" th:errors="*{phRangeValid}">Error</span>
             </fieldset>
 
             <fieldset class="fieldset">

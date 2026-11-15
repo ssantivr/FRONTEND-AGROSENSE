@@ -53,15 +53,6 @@ public class CropForm {
     @DecimalMax(value = "70", message = "La temperatura debe estar entre -50 y 70 °C.")
     private BigDecimal tempMax = new BigDecimal("35");
 
-    @NotNull(message = "Indica el pH mínimo.")
-    @DecimalMin(value = "0", message = "El pH debe estar entre 0 y 14.")
-    @DecimalMax(value = "14", message = "El pH debe estar entre 0 y 14.")
-    private BigDecimal phMin = new BigDecimal("5.5");
-
-    @NotNull(message = "Indica el pH máximo.")
-    @DecimalMin(value = "0", message = "El pH debe estar entre 0 y 14.")
-    @DecimalMax(value = "14", message = "El pH debe estar entre 0 y 14.")
-    private BigDecimal phMax = new BigDecimal("7.0");
 
     // Optional: the air's relative humidity range is left empty until the farmer knows it.
     @DecimalMin(value = "0", message = "La humedad del aire debe estar entre 0 y 100.")
@@ -89,10 +80,6 @@ public class CropForm {
         return isAscending(tempMin, tempMax);
     }
 
-    @AssertTrue(message = "El pH mínimo debe ser menor que el máximo.")
-    public boolean isPhRangeValid() {
-        return isAscending(phMin, phMax);
-    }
 
     private static boolean isAscending(BigDecimal min, BigDecimal max) {
         return min == null || max == null || min.compareTo(max) < 0;

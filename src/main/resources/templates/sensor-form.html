@@ -40,6 +40,7 @@
                                 th:text="#{${'sensorType.' + type}}">Humedad del suelo</option>
                     </select>
                     <span class="field-error" th:if="${#fields.hasErrors('sensorType')}" th:errors="*{sensorType}">Error</span>
+                    <span class="field-error" th:if="${#fields.hasErrors('sensorTypeMeasured')}" th:errors="*{sensorTypeMeasured}">Error</span>
                 </label>
             </div>
             <label class="field">

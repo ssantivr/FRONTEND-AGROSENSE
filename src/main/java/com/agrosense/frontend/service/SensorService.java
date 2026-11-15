@@ -41,12 +41,8 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class SensorService {
 
-    public static final List<SensorType> DASHBOARD_TYPES = List.of(
-            SensorType.SOIL_MOISTURE,
-            SensorType.AIR_TEMPERATURE,
-            SensorType.PH,
-            SensorType.LIGHT,
-            SensorType.CONDUCTIVITY);
+    /** The dashboard's cards: one per value the ESP32 measures. */
+    public static final List<SensorType> DASHBOARD_TYPES = SensorType.ESP32;
 
     private static final int CHART_WINDOW_HOURS = 24;
     private static final Set<Integer> CHART_WINDOWS_HOURS = Set.of(6, 24, 72, 168);
@@ -89,11 +85,13 @@ public class SensorService {
                 crop.getSowingDate(), crop.getEstate().getIdEstate(), crop.getEstate().getName(),
                 crop.getEstate().getLocation(), crop.getEstate().getAreaHa(), crop.getHumidityMin(),
                 crop.getHumidityMax(), crop.getAirHumidityMin(), crop.getAirHumidityMax(), crop.getTempMin(),
-                crop.getTempMax(), crop.getPhMin(), crop.getPhMax(), sensors, readings);
+                crop.getTempMax(), sensors, readings);
     }
 
+    /** The user's sensors of the types the ESP32 measures; old sensors of other types stay stored but are not shown. */
     public List<SensorView> findSensors(String email) {
-        List<Sensor> sensors = sensorRepository.findByCropEstateUserEmailOrderBySensorCode(email);
+        List<Sensor> sensors = sensorRepository.findByCropEstateUserEmailAndSensorTypeInOrderBySensorCode(email,
+                SensorType.ESP32);
         Map<Integer, SensorReading> latest = latestReadings(sensors);
         LocalDateTime now = LocalDateTime.now();
         return sensors.stream()

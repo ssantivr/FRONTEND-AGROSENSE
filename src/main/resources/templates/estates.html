@@ -82,7 +82,6 @@
                             <th>Etapa</th>
                             <th>Humedad (%)</th>
                             <th>Temperatura (°C)</th>
-                            <th>pH</th>
                             <th>Estado</th>
                             <th>Acciones</th>
                         </tr>
@@ -95,7 +94,6 @@
                             <td th:text="#{${'cropStage.' + crop.stage}}">Floración</td>
                             <td th:text="|${crop.humidityMin} – ${crop.humidityMax}|">40 – 80</td>
                             <td th:text="|${crop.tempMin} – ${crop.tempMax}|">15 – 35</td>
-                            <td th:text="|${crop.phMin} – ${crop.phMax}|">5.5 – 7</td>
                             <td>
                                 <th:block th:if="${crop.active}"><span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-check-circle-fill', 'Activo')}"></span></th:block>
                                 <th:block th:unless="${crop.active}"><span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-dash-circle', 'Inactivo')}"></span></th:block>

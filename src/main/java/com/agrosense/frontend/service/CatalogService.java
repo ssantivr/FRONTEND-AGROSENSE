@@ -92,8 +92,6 @@ public class CatalogService {
         form.setHumidityMax(crop.getHumidityMax());
         form.setTempMin(crop.getTempMin());
         form.setTempMax(crop.getTempMax());
-        form.setPhMin(crop.getPhMin());
-        form.setPhMax(crop.getPhMax());
         form.setAirHumidityMin(crop.getAirHumidityMin());
         form.setAirHumidityMax(crop.getAirHumidityMax());
         form.setActive(Boolean.TRUE.equals(crop.getActive()));
@@ -217,8 +215,6 @@ public class CatalogService {
         crop.setHumidityMax(form.getHumidityMax());
         crop.setTempMin(form.getTempMin());
         crop.setTempMax(form.getTempMax());
-        crop.setPhMin(form.getPhMin());
-        crop.setPhMax(form.getPhMax());
         crop.setAirHumidityMin(form.getAirHumidityMin());
         crop.setAirHumidityMax(form.getAirHumidityMax());
         crop.setActive(form.isActive());

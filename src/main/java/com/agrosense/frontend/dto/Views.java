@@ -383,8 +383,6 @@ public final class Views {
             BigDecimal airHumidityMax,
             BigDecimal tempMin,
             BigDecimal tempMax,
-            BigDecimal phMin,
-            BigDecimal phMax,
             List<SensorView> humiditySensors,
             List<HumidityReading> readings) {
     }
