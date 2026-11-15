@@ -32,7 +32,7 @@ public interface SensorReadingRepository extends JpaRepository<SensorReading, Lo
     List<SensorReading> findTop10BySensorIdSensorOrderByRecordedAtDesc(Integer idSensor);
 
     @EntityGraph(attributePaths = "sensor")
-    List<SensorReading> findTop50BySensorIdSensorInOrderByRecordedAtDesc(Collection<Integer> idSensors);
+    List<SensorReading> findTop20BySensorIdSensorInOrderByRecordedAtDesc(Collection<Integer> idSensors);
 
     @EntityGraph(attributePaths = "sensor")
     List<SensorReading> findBySensorIdSensorInAndRecordedAtGreaterThanEqualOrderByRecordedAt(

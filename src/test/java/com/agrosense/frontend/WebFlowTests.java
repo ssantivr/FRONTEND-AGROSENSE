@@ -296,14 +296,19 @@ class WebFlowTests {
 
         assertThat(page).contains("id=\"sensor-esp32\"");
         String section = page.substring(page.indexOf("id=\"sensor-esp32\""));
-        assertThat(section).contains("ESP32-PLANTICAS", ">Café</a>", ">Finca La Esperanza</a>", "Rangos del cultivo",
-                "data-humidity-range", "40,0 – 80,0 %", "Niveles de humedad", "data-humidity-list");
+        assertThat(section).contains("Humedad de tu cultivo en vivo", ">Café</a>", ">Finca La Esperanza</a>",
+                "Últimas lecturas", "data-humidity-list");
+        // One result card per humidity measure, like the sensor list: the value, its ideal range and what it means.
+        assertThat(section).contains("data-humidity-card=\"AS-001\"", "data-humidity-card=\"AS-007\"",
+                "En la tierra del cultivo", "En el aire alrededor de la planta", "Lo ideal: 40 – 80 %", "Lo ideal: 60 – 85 %",
+                "La tierra tiene la humedad que el cultivo necesita.", "El aire tiene la humedad que el cultivo necesita.");
+        // Only results: no device code, no setting names, no sensor codes as text and no technical tables.
+        assertThat(section).doesNotContain("ESP32-PLANTICAS", "ESP32_DEVICE_ID", ">AS-0", "<table", "Temperatura del aire",
+                "AS-002", "AS-003", "AS-004", "AS-005");
         String list = section.substring(section.indexOf("data-humidity-list"));
-        assertThat(list).contains("AS-001", "AS-007").doesNotContain("AS-002", "AS-003", "AS-004", "AS-005");
         assertThat(list).contains("Humedad del suelo", "Humedad relativa")
-                .doesNotContain("Temperatura del aire", "Conductividad");
+                .doesNotContain("AS-0", "Temperatura del aire", "Conductividad");
         // The demo coffee has an air range (60–85 %): the air's humidity is judged too, and its 89 % is high.
-        assertThat(section).contains("data-air-humidity-range", "60,0 – 85,0 %");
         assertThat(list).contains("data-level=\"NORMAL\"", "data-level=\"HIGH\"").doesNotContain("data-level=\"NO_RANGE\"");
     }
 
@@ -379,7 +384,7 @@ class WebFlowTests {
         String page = mvc.perform(get("/sensores").with(user(demoUser)))
                 .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
         assertThat(page).contains("data-humidity-day-url=\"/api/ui/esp32/humidity/day\"", "data-humidity-chart",
-                "Humedad en las últimas 24 horas", "/webjars/chart.js/");
+                "Las últimas 24 horas", "/webjars/chart.js/");
 
         // The demo seeds one reading per hour for 24 hours: each lands in its own 15-minute bucket.
         mvc.perform(get("/api/ui/esp32/humidity/day").with(user(demoUser)))
@@ -416,7 +421,8 @@ class WebFlowTests {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
         String section = page.substring(page.indexOf("id=\"sensor-esp32\""));
-        assertThat(section).contains("Sin rango de humedad del aire", "/cultivos/" + coffee.getIdCrop() + "/editar");
+        assertThat(section).contains("Sin humedad ideal definida.", "/cultivos/" + coffee.getIdCrop() + "/editar",
+                "Define la humedad ideal del cultivo para saber si está bien.");
         assertThat(section.substring(section.indexOf("data-humidity-list"))).contains("data-level=\"NO_RANGE\"");
     }
 
@@ -427,7 +433,7 @@ class WebFlowTests {
         mvc.perform(get("/sensores").with(user(other)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("OTHER-001")))
-                .andExpect(content().string(containsString("Sin sensor conectado")))
+                .andExpect(content().string(containsString("Aún no hay un ESP32 en tus cultivos")))
                 .andExpect(content().string(not(containsString("Finca La Esperanza"))))
                 .andExpect(content().string(not(containsString("AS-001"))));
     }

@@ -15,6 +15,7 @@ export interface HumidityRow {
   tone: string;
   icon: string;
   label: string;
+  advice: string;
 }
 
 /** Worded by the server in its own clock, so the browser's time zone never changes it; text is null while it talks. */
@@ -48,7 +49,7 @@ export interface HumidityDay {
 }
 
 const POLL_MS = 30_000;
-const ROW_FIELDS = ['recordedAt', 'recordedAtText', 'sensorCode', 'measure', 'valueText', 'level', 'tone', 'icon', 'label'];
+const ROW_FIELDS = ['recordedAt', 'recordedAtText', 'sensorCode', 'measure', 'valueText', 'level', 'tone', 'icon', 'label', 'advice'];
 const TONES = new Set(['success', 'warning', 'danger', 'neutral', 'info', 'critical']);
 
 const isRow = (value: unknown): value is HumidityRow =>
@@ -95,13 +96,6 @@ export function alignSeries(series: readonly HumiditySeries[]): { times: string[
   return { times, values };
 }
 
-/** The newest value of each sensor in a feed that is newest first: what the sensors table shows as last reading. */
-export function lastValues(readings: readonly HumidityRow[]): Map<string, string> {
-  const last = new Map<string, string>();
-  for (const reading of readings) if (!last.has(reading.sensorCode)) last.set(reading.sensorCode, reading.valueText);
-  return last;
-}
-
 /** Repaint only when the server has a reading newer than the one the page shows. */
 export function isNewer(shown: string | null, latest: string | null): boolean {
   if (!latest) return false;
@@ -112,20 +106,45 @@ export function isNewer(shown: string | null, latest: string | null): boolean {
   return Number.isNaN(shownMs) || latestMs > shownMs;
 }
 
-function rowOf(reading: HumidityRow): HTMLTableRowElement {
-  const row = el('tr');
-  row.dataset['level'] = reading.level;
-  const time = el('time', '', reading.recordedAtText);
-  time.dateTime = reading.recordedAt;
-  const when = el('td');
-  when.append(time);
+/** The newest reading of each sensor in a feed that is newest first: what each humidity card shows. */
+export function newestBySensor(readings: readonly HumidityRow[]): Map<string, HumidityRow> {
+  const newest = new Map<string, HumidityRow>();
+  for (const reading of readings) if (!newest.has(reading.sensorCode)) newest.set(reading.sensorCode, reading);
+  return newest;
+}
+
+/** "32,1 %" becomes "32,1": the card prints the unit apart, in smaller type. */
+export const numberOf = (valueText: string): string => valueText.replace(/\s*%$/, '');
+
+/** "15 nov, 16:43" becomes "16:43": the list only says the time, like the page. */
+export const timeOf = (recordedAtText: string): string => recordedAtText.split(', ').pop() ?? recordedAtText;
+
+function pillOf(reading: HumidityRow): HTMLElement {
   // The tone comes from the server; anything unexpected falls back to a neutral pill instead of an unknown class.
   const pill = el('span', `status-pill status-pill--${TONES.has(reading.tone) ? reading.tone : 'neutral'}`);
   pill.append(icon(reading.icon), el('span', '', reading.label));
-  const level = el('td');
-  level.append(pill);
-  row.append(when, el('td', '', reading.sensorCode), el('td', '', reading.measure), el('td', 'numeric', reading.valueText), level);
+  return pill;
+}
+
+function rowOf(reading: HumidityRow): HTMLLIElement {
+  const row = el('li');
+  row.dataset['level'] = reading.level;
+  const time = el('time', '', timeOf(reading.recordedAtText));
+  time.dateTime = reading.recordedAt;
+  row.append(time, el('span', 'humidity-log-what', reading.measure), el('strong', 'humidity-log-value', reading.valueText),
+    pillOf(reading));
   return row;
+}
+
+function paintCard(card: HTMLElement, reading: HumidityRow): void {
+  card.dataset['level'] = reading.level;
+  const value = card.querySelector<HTMLElement>('[data-humidity-last]');
+  if (value) value.textContent = numberOf(reading.valueText);
+  card.querySelector<HTMLElement>('[data-humidity-pill]')?.replaceChildren(pillOf(reading));
+  const advice = card.querySelector<HTMLElement>('[data-humidity-advice]');
+  if (advice) advice.textContent = reading.advice;
+  const time = card.querySelector<HTMLElement>('[data-humidity-time]');
+  if (time) time.textContent = `Última lectura a las ${timeOf(reading.recordedAtText)}`;
 }
 
 // One color per series, in the order the server sends them (by sensor code: the soil's AS-001 before the air's AS-007).
@@ -225,7 +244,7 @@ class HumidityDayChart {
       data: {
         labels: times.map((time) => timeFormat.format(new Date(time))),
         datasets: day.series.map((one, index) => ({
-          label: `${one.measure} (${one.sensorCode})`,
+          label: one.measure,
           data: values[index] ?? [],
           borderColor: colors[index] ?? token('--chart-1'),
           backgroundColor: colors[index] ?? token('--chart-1'),
@@ -298,16 +317,14 @@ class Esp32Humidity {
   private async refresh(): Promise<void> {
     try {
       const feed = await requestJson(this.url, isHumidityFeed, { timeoutMs: 15_000 });
-      const body = this.section.querySelector<HTMLTableSectionElement>('[data-humidity-list] tbody');
-      if (body && isNewer(this.newestAt, feed.newestAt)) {
-        body.replaceChildren(...feed.readings.map(rowOf));
+      if (isNewer(this.newestAt, feed.newestAt)) {
+        this.section.querySelector<HTMLOListElement>('[data-humidity-list]')?.replaceChildren(...feed.readings.map(rowOf));
         this.newestAt = feed.newestAt;
         void this.chart?.load();
-        const last = lastValues(feed.readings);
-        for (const row of this.section.querySelectorAll<HTMLElement>('[data-humidity-sensor]')) {
-          const value = last.get(row.dataset['humiditySensor'] ?? '');
-          const cell = row.querySelector<HTMLElement>('[data-humidity-last]');
-          if (value && cell) cell.textContent = value;
+        const newest = newestBySensor(feed.readings);
+        for (const card of this.section.querySelectorAll<HTMLElement>('[data-humidity-card]')) {
+          const reading = newest.get(card.dataset['humidityCard'] ?? '');
+          if (reading) paintCard(card, reading);
         }
       }
       this.showSilence(feed.silence);

@@ -5405,6 +5405,72 @@ kbd {
 }
 
 /* The connected ESP32 at the end of the Sensors page. */
+/* The ESP32's humidity, laid out like the sensor list: a header, result cards, then the chart, the crop and the log. */
+.esp32-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.esp32-head .stat-icon {
+  position: static;
+  flex: none;
+}
+
+.esp32-card h3 {
+  font-size: var(--text-h3);
+  line-height: var(--leading-h3);
+}
+
+.esp32-card-advice {
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.esp32-section .detail-grid {
+  align-items: start;
+}
+
+.esp32-plant {
+  margin-top: var(--space-2);
+  padding-top: 0;
+  border-top: 0;
+}
+
+.humidity-log {
+  display: grid;
+  max-height: 26rem;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.humidity-log li {
+  display: grid;
+  grid-template-columns: 3.25rem minmax(0, 1fr) auto auto;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.humidity-log li:last-child {
+  border-bottom: 0;
+}
+
+.humidity-log time {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.humidity-log-value {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
 /* Said only while the ESP32 stopped sending: warning tones from the tokens, the icon before the sentence. */
 .esp32-silence {
   display: flex;

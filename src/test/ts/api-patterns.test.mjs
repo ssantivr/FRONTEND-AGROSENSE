@@ -265,12 +265,13 @@ describe('deviceStatus', async () => {
 });
 
 describe('esp32Humidity', async () => {
-  const { alignSeries, isHumidityDay, isHumidityFeed, isNewer, lastValues, shortMeasure } = await import(
+  const { alignSeries, isHumidityDay, isHumidityFeed, isNewer, newestBySensor, numberOf, shortMeasure, timeOf } = await import(
     '../../main/resources/static/js/esp32-humidity.js'
   );
   const row = {
     recordedAt: '2026-11-15T11:19:00', recordedAtText: '15 nov, 11:19', sensorCode: 'AS-001', measure: 'Humedad del suelo',
     valueText: '46,8 %', level: 'NORMAL', tone: 'success', icon: 'bi-check-circle', label: 'Normal',
+    advice: 'La tierra tiene la humedad que el cultivo necesita.',
   };
 
   const listening = { silent: false, text: null };
@@ -299,10 +300,24 @@ describe('esp32Humidity', async () => {
     assert.equal(isNewer(null, 'not a date'), false);
   });
 
-  it('takes the newest value of each sensor for the sensors table', () => {
+  it('takes the newest reading of each sensor for its card', () => {
     const older = { ...row, recordedAt: '2026-11-15T10:19:00', valueText: '43,8 %' };
     const air = { ...row, sensorCode: 'AS-007', valueText: '83,3 %' };
-    assert.deepEqual([...lastValues([row, air, older])], [['AS-001', '46,8 %'], ['AS-007', '83,3 %']]);
+    const newest = newestBySensor([row, air, older]);
+    assert.deepEqual([...newest.keys()], ['AS-001', 'AS-007']);
+    assert.equal(newest.get('AS-001').valueText, '46,8 %');
+  });
+
+  it('shows the number apart from its unit and only the time in the list', () => {
+    assert.equal(numberOf('46,8 %'), '46,8');
+    assert.equal(numberOf('—'), '—');
+    assert.equal(timeOf('15 nov, 11:19'), '11:19');
+  });
+
+  it('refuses a reading without its advice', () => {
+    const { advice, ...withoutAdvice } = row;
+    assert.equal(typeof advice, 'string');
+    assert.equal(isHumidityFeed({ readings: [withoutAdvice], newestAt: null, silence: listening }), false);
   });
 
   const soil = { sensorCode: 'AS-001', measure: 'Humedad del suelo', min: 40, max: 80, points: [
