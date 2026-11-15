@@ -61,6 +61,8 @@
                     <span th:replace="~{fragments/stepper :: crop-dot(${crop})}"></span>
                     <span th:text="${crop.name}">Café</span>
                     <span class="chip-detail" th:text="${crop.active} ? #{${'cropStage.' + crop.stage}} : 'Inactivo'">Floración</span>
+                    <span class="chip-detail" th:each="sensor : ${readingsByCrop.get(crop.id)}"
+                          th:text="${sensor.showsValue()} ? |${sensor.shortName()} ${#numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA')} ${sensor.unit}| : |${sensor.shortName()} sin lecturas|">Suelo 32,6 %</span>
                 </li>
             </ul>
 

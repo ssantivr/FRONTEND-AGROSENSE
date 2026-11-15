@@ -103,13 +103,14 @@
                     <span class="stat-icon" aria-hidden="true"><i class="bi" th:classappend="${sensor.icon()}"></i></span>
                     <div class="reading-list-body">
                         <strong th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</strong>
-                        <span class="text-muted"><a class="link" th:href="@{/sensores/{id}(id=${sensor.id})}" th:text="${sensor.code}">AS-001</a><th:block th:if="${sensor.location != null}" th:text="| · ${sensor.location}|"> · Lote norte</th:block></span>
+                        <span class="text-muted"><a class="link" th:href="@{/sensores/{id}(id=${sensor.id})}">Ver sensor</a><th:block th:if="${sensor.location != null}" th:text="| · ${sensor.location}|"> · Lote norte</th:block></span>
                     </div>
                     <div class="reading-list-value">
-                        <strong th:if="${sensor.lastValue != null}" data-live-value th:attr="data-unit=${sensor.unit}"
+                        <strong th:if="${sensor.showsValue()}" data-live-value th:attr="data-unit=${sensor.unit}"
                                 th:text="|${#numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA')} ${sensor.unit}|">55,8 %</strong>
-                        <span class="text-muted" th:if="${sensor.lastValue == null}">Sin lecturas</span>
-                        <time class="text-muted" data-live-time="date" th:if="${sensor.lastReadingAt != null}"
+                        <span class="text-muted" th:if="${sensor.active and sensor.lastValue == null}">Sin lecturas</span>
+                        <span class="text-muted" th:unless="${sensor.active}">Desactivado: no muestra datos</span>
+                        <time class="text-muted" data-live-time="date" th:if="${sensor.active and sensor.lastReadingAt != null}"
                               th:datetime="${sensor.lastReadingAt}"
                               th:text="${#temporals.format(sensor.lastReadingAt, 'd MMM, HH:mm')}">17 oct, 11:54</time>
                     </div>
