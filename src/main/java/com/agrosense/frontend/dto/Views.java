@@ -285,6 +285,77 @@ public final class Views {
     public record ReadingPoint(LocalDateTime recordedAt, BigDecimal value) {
     }
 
+    /** Where one humidity reading falls against the crop's range; the air's humidity has no range of its own. */
+    public enum HumidityLevel {
+        LOW("warning", "bi-arrow-down-circle", "Baja"),
+        NORMAL("success", "bi-check-circle", "Normal"),
+        HIGH("danger", "bi-arrow-up-circle", "Alta"),
+        NO_RANGE("neutral", "bi-dash-circle", "Sin rango del cultivo");
+
+        private final String tone;
+        private final String icon;
+        private final String label;
+
+        HumidityLevel(String tone, String icon, String label) {
+            this.tone = tone;
+            this.icon = icon;
+            this.label = label;
+        }
+
+        public String tone() {
+            return tone;
+        }
+
+        public String icon() {
+            return icon;
+        }
+
+        public String label() {
+            return label;
+        }
+
+        public static HumidityLevel of(BigDecimal value, BigDecimal min, BigDecimal max) {
+            if (value == null || min == null || max == null) {
+                return NO_RANGE;
+            }
+            if (value.compareTo(min) < 0) {
+                return LOW;
+            }
+            return value.compareTo(max) > 0 ? HIGH : NORMAL;
+        }
+    }
+
+    public record HumidityReading(
+            LocalDateTime recordedAt,
+            String sensorCode,
+            SensorType type,
+            BigDecimal value,
+            String unit,
+            HumidityLevel level) {
+    }
+
+    /** The ESP32 that is configured, the plant it measures and only its humidity readings, newest first. */
+    public record ConnectedSensor(
+            String deviceCode,
+            Integer cropId,
+            String cropName,
+            String variety,
+            CropStage stage,
+            LocalDate sowingDate,
+            Integer estateId,
+            String estateName,
+            String estateLocation,
+            BigDecimal areaHa,
+            BigDecimal humidityMin,
+            BigDecimal humidityMax,
+            BigDecimal tempMin,
+            BigDecimal tempMax,
+            BigDecimal phMin,
+            BigDecimal phMax,
+            List<SensorView> humiditySensors,
+            List<HumidityReading> readings) {
+    }
+
     public record SensorDetail(
             SensorView sensor,
             BigDecimal rangeMin,

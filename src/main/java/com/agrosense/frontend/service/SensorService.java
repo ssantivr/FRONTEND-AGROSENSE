@@ -2,6 +2,9 @@ package com.agrosense.frontend.service;
 
 import com.agrosense.frontend.backend.BackendClient;
 import com.agrosense.frontend.backend.BackendClient.ReadingResponse;
+import com.agrosense.frontend.dto.Views.ConnectedSensor;
+import com.agrosense.frontend.dto.Views.HumidityLevel;
+import com.agrosense.frontend.dto.Views.HumidityReading;
 import com.agrosense.frontend.dto.Views.ReadingPoint;
 import com.agrosense.frontend.dto.Views.ReadingSeries;
 import com.agrosense.frontend.dto.Views.SensorDetail;
@@ -12,6 +15,7 @@ import com.agrosense.frontend.entity.Sensor;
 import com.agrosense.frontend.entity.SensorReading;
 import com.agrosense.frontend.entity.enums.SensorType;
 import com.agrosense.frontend.exception.NotFoundException;
+import com.agrosense.frontend.repository.CropRepository;
 import com.agrosense.frontend.repository.SensorReadingRepository;
 import com.agrosense.frontend.repository.SensorRepository;
 import lombok.RequiredArgsConstructor;
@@ -48,10 +52,48 @@ public class SensorService {
     private static final Set<Integer> CHART_WINDOWS_HOURS = Set.of(6, 24, 72, 168);
     private static final int BACKEND_READING_LIMIT = 500;
 
+    /** What the ESP32 measures about water: the soil's moisture and the air's relative humidity. */
+    public static final List<SensorType> HUMIDITY_TYPES = List.of(SensorType.SOIL_MOISTURE, SensorType.RELATIVE_HUMIDITY);
+
     private final SensorRepository sensorRepository;
     private final SensorReadingRepository readingRepository;
+    private final CropRepository cropRepository;
     private final BackendClient backendClient;
     private final SensorStatusPolicy statusPolicy;
+
+    /**
+     * The configured ESP32, the plant it measures and only its humidity readings. Empty when the device does not exist or
+     * its crop belongs to someone else, so nobody sees another user's plant by guessing a device code.
+     */
+    public Optional<ConnectedSensor> findConnected(String email, String deviceCode) {
+        return cropRepository.findCropIdOfDevice(deviceCode)
+                .flatMap(cropId -> cropRepository.findWithEstateByIdCropAndEstateUserEmail(cropId, email))
+                .map(crop -> connected(deviceCode, crop));
+    }
+
+    private ConnectedSensor connected(String deviceCode, Crop crop) {
+        List<Sensor> sensors = sensorRepository.findByCropIdCropAndSensorTypeInOrderBySensorCode(crop.getIdCrop(),
+                HUMIDITY_TYPES);
+        Map<Integer, SensorReading> latest = latestReadings(sensors);
+        LocalDateTime now = LocalDateTime.now();
+        List<HumidityReading> readings = sensors.isEmpty() ? List.of() : readingRepository
+                .findTop50BySensorIdSensorInOrderByRecordedAtDesc(sensors.stream().map(Sensor::getIdSensor).toList())
+                .stream()
+                .map(reading -> {
+                    SensorType type = reading.getSensor().getSensorType();
+                    BigDecimal[] range = thresholds(type, crop);
+                    return new HumidityReading(reading.getRecordedAt(), reading.getSensor().getSensorCode(), type,
+                            reading.getValue(), reading.getUnit(), HumidityLevel.of(reading.getValue(), range[0], range[1]));
+                })
+                .toList();
+        return new ConnectedSensor(deviceCode, crop.getIdCrop(), crop.getName(), crop.getVariety(), crop.getStage(),
+                crop.getSowingDate(), crop.getEstate().getIdEstate(), crop.getEstate().getName(),
+                crop.getEstate().getLocation(), crop.getEstate().getAreaHa(), crop.getHumidityMin(),
+                crop.getHumidityMax(), crop.getTempMin(), crop.getTempMax(), crop.getPhMin(), crop.getPhMax(),
+                sensors.stream().map(sensor -> toView(sensor, Optional.ofNullable(latest.get(sensor.getIdSensor())), now))
+                        .toList(),
+                readings);
+    }
 
     public List<SensorView> findSensors(String email) {
         List<Sensor> sensors = sensorRepository.findByCropEstateUserEmailOrderBySensorCode(email);

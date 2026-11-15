@@ -1,6 +1,7 @@
 package com.agrosense.frontend.repository;
 
 import com.agrosense.frontend.entity.SensorReading;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -29,6 +30,9 @@ public interface SensorReadingRepository extends JpaRepository<SensorReading, Lo
             Integer idSensor, LocalDateTime since);
 
     List<SensorReading> findTop10BySensorIdSensorOrderByRecordedAtDesc(Integer idSensor);
+
+    @EntityGraph(attributePaths = "sensor")
+    List<SensorReading> findTop50BySensorIdSensorInOrderByRecordedAtDesc(Collection<Integer> idSensors);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from SensorReading r where r.sensor.idSensor in "
