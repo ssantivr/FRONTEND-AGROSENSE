@@ -17,6 +17,7 @@
             <button type="button" class="button button--ghost" data-export-csv="sensorsTable" data-filename="sensores">
                 <i class="bi bi-download" aria-hidden="true"></i> Exportar CSV
             </button>
+            <a class="button button--ghost" href="#sensor-esp32"><i class="bi bi-moisture" aria-hidden="true"></i> Humedad del ESP32</a>
             <a class="button" th:href="@{/sensores/nuevo}"><i class="bi bi-plus-lg" aria-hidden="true"></i> Nuevo sensor</a>
         </div>
     </div>
@@ -131,6 +132,8 @@
             </div>
         </section>
     </div>
+
+    <section th:replace="~{fragments/connected-sensor :: connected-sensor(${connected}, ${deviceCode})}"></section>
 </main>
 </body>
 </html>

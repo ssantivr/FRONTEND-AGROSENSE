@@ -99,7 +99,8 @@ class QueryBudgetTests {
         budgets.put("/", 8);
         budgets.put("/parcelas", 2);
         budgets.put("/parcelas/1", 6);
-        budgets.put("/sensores", 3);
+        // 3 for the list, plus 2 for the connected ESP32: its crop with the estate, and its humidity readings.
+        budgets.put("/sensores", 5);
         budgets.put("/riego", 3);
         budgets.put("/alertas", 2);
         budgets.put("/reportes", 7);
