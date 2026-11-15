@@ -97,7 +97,8 @@ class QueryBudgetTests {
                 .getIdSensor();
         Map<String, Integer> budgets = new LinkedHashMap<>();
         budgets.put("/", 8);
-        budgets.put("/parcelas", 2);
+        // Each crop shows what its activated sensors measure: their sensors and their newest readings add two.
+        budgets.put("/parcelas", 4);
         budgets.put("/parcelas/1", 6);
         // 3 for the list, plus 2 for the connected ESP32: its crop with the estate, and its humidity readings.
         budgets.put("/sensores", 5);

@@ -211,6 +211,38 @@ public final class Views {
         public String icon() {
             return iconOf(type);
         }
+
+        /** Only an activated sensor shows its own value; a deactivated one shows none, even if it once had readings. */
+        public boolean showsValue() {
+            return active && lastValue != null;
+        }
+
+        /** The short name of what it measures, for a line with several measures: «Suelo 32,6 %». */
+        public String shortName() {
+            return switch (type) {
+                case SOIL_MOISTURE -> "Suelo";
+                case AIR_TEMPERATURE -> "Temperatura";
+                case RELATIVE_HUMIDITY -> "Aire";
+                default -> type.name();
+            };
+        }
+
+        /**
+         * What a crop's sensors measure: one activated sensor per ESP32 measure (soil moisture, air temperature, air
+         * humidity), in that order, the one with the newest reading when there are several. A measure without an
+         * activated sensor is left out, so the crop shows only what its own sensors measure.
+         */
+        public static List<SensorView> readingsOf(Integer cropId, List<SensorView> sensors) {
+            return SensorType.ESP32.stream()
+                    .map(type -> sensors.stream()
+                            .filter(sensor -> sensor.active() && sensor.type() == type
+                                    && cropId.equals(sensor.cropId()))
+                            .max(java.util.Comparator.comparing(SensorView::lastReadingAt,
+                                    java.util.Comparator.nullsFirst(java.util.Comparator.naturalOrder())))
+                            .orElse(null))
+                    .filter(java.util.Objects::nonNull)
+                    .toList();
+        }
     }
 
     public static String iconOf(SensorType type) {
@@ -573,9 +605,14 @@ public final class Views {
             List<SensorView> sensors,
             long openAlerts) {
 
+        /** What the crop's activated sensors measure, one per measure; see {@link SensorView#readingsOf}. */
+        public List<SensorView> readings() {
+            return SensorView.readingsOf(crop.id(), sensors);
+        }
+
         public SensorView latest(SensorType type) {
             return sensors.stream()
-                    .filter(sensor -> sensor.type() == type && sensor.lastValue() != null)
+                    .filter(sensor -> sensor.type() == type && sensor.showsValue())
                     .max(java.util.Comparator.comparing(SensorView::lastReadingAt,
                             java.util.Comparator.nullsFirst(java.util.Comparator.naturalOrder())))
                     .orElse(null);
@@ -627,7 +664,7 @@ public final class Views {
             if (openAlerts > 0) {
                 return "attention";
             }
-            return sensors.isEmpty() ? "unmonitored" : "ok";
+            return readings().isEmpty() ? "unmonitored" : "ok";
         }
     }
 
@@ -650,7 +687,7 @@ public final class Views {
 
         public static CropLatest of(CropCard card) {
             List<LatestReading> readings = card.sensors().stream()
-                    .filter(sensor -> sensor.lastValue() != null)
+                    .filter(SensorView::showsValue)
                     .map(sensor -> new LatestReading(sensor.code(), sensor.lastValue(), sensor.unit(),
                             sensor.lastReadingAt()))
                     .toList();

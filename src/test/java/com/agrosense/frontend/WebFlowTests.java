@@ -138,6 +138,46 @@ class WebFlowTests {
     }
 
     @Test
+    void estatesAndCropsShowWhatEachCropsActivatedSensorsMeasureAndADeactivatedSensorShowsNoData() throws Exception {
+        Sensor temperature = sensorRepository.findBySensorCodeIgnoreCase("AS-002").orElseThrow();
+        Integer coffee = temperature.getCrop().getIdCrop();
+        Integer estate = temperature.getCrop().getEstate().getIdEstate();
+
+        String crops = page("/cultivos");
+        assertThat(crops).contains("aria-label=\"Lo que miden sus sensores\"", ">Humedad del suelo</span>",
+                ">Temperatura del aire</span>", ">Humedad relativa</span>")
+                .doesNotContain("Sensores en línea", ">AS-00");
+        assertThat(org.springframework.util.StringUtils.countOccurrencesOf(crops, "Sin sensores activados"))
+                .as("only Papa, whose one sensor is deactivated").isEqualTo(1);
+        assertThat(page("/parcelas")).contains("class=\"chip-detail\">Suelo ", "class=\"chip-detail\">Temperatura ",
+                "class=\"chip-detail\">Aire ");
+        assertThat(page("/parcelas/" + estate)).contains(">Humedad del suelo</dt>", ">Temperatura del aire</dt>",
+                ">Humedad relativa</dt>", "Humedad del suelo · Café").doesNotContain(">AS-00", "AS-001 · ");
+        assertThat(page("/cultivos/" + coffee)).contains(">Ver sensor</a>").doesNotContain(">AS-00", "Desactivado");
+
+        temperature.setActive(false);
+        sensorRepository.saveAndFlush(temperature);
+        try {
+            assertThat(page("/cultivos/" + coffee)).contains("Desactivado: no muestra datos");
+            mvc.perform(get("/api/ui/crops/" + coffee + "/latest").with(user(demoUser)))
+                    .andExpect(jsonPath("$.readings[?(@.sensorCode == 'AS-002')]").isEmpty())
+                    .andExpect(jsonPath("$.readings[?(@.sensorCode == 'AS-001')]").isNotEmpty());
+            assertThat(page("/parcelas/" + estate)).doesNotContain(">Temperatura del aire</dt>")
+                    .contains(">Humedad del suelo</dt>", "Desactivado: no muestra datos");
+            assertThat(page("/parcelas")).doesNotContain("class=\"chip-detail\">Temperatura ");
+        } finally {
+            temperature.setActive(true);
+            sensorRepository.saveAndFlush(temperature);
+        }
+    }
+
+    private String page(String path) throws Exception {
+        return mvc.perform(get(path).with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    @Test
     void liveEventsAreWiredIntoEveryPageAndOffWithoutTheEventService() throws Exception {
         mvc.perform(get("/sensores").with(user(demoUser)))
                 .andExpect(status().isOk())

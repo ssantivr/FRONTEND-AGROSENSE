@@ -97,31 +97,19 @@
                     </div>
                 </dl>
 
-                <ul class="crop-card-readings" th:if="${!card.sensors.isEmpty()}" aria-label="Últimas lecturas">
-                    <li th:with="sensor=${card.latest(T(com.agrosense.frontend.entity.enums.SensorType).SOIL_MOISTURE)}">
-                        <i class="bi bi-moisture" aria-hidden="true"></i>
-                        <span class="crop-card-reading-label">Humedad</span>
-                        <strong th:if="${sensor != null}" th:attr="data-sensor-code=${sensor.code}">
+                <ul class="crop-card-readings" th:if="${!card.readings().isEmpty()}"
+                    aria-label="Lo que miden sus sensores">
+                    <li th:each="sensor : ${card.readings()}">
+                        <i class="bi" th:classappend="${sensor.icon()}" aria-hidden="true"></i>
+                        <span class="crop-card-reading-label" th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</span>
+                        <strong th:if="${sensor.showsValue()}" th:attr="data-sensor-code=${sensor.code}">
                             <span data-live-value th:attr="data-unit=${sensor.unit}"
                                   th:text="|${#numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA')} ${sensor.unit}|">55,8 %</span>
                         </strong>
-                        <span class="text-muted" th:if="${sensor == null}">Sin dato</span>
-                    </li>
-                    <li th:with="sensor=${card.latest(T(com.agrosense.frontend.entity.enums.SensorType).AIR_TEMPERATURE)}">
-                        <i class="bi bi-thermometer-half" aria-hidden="true"></i>
-                        <span class="crop-card-reading-label">Temperatura</span>
-                        <strong th:if="${sensor != null}" th:attr="data-sensor-code=${sensor.code}">
-                            <span data-live-value th:attr="data-unit=${sensor.unit}"
-                                  th:text="|${#numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA')} ${sensor.unit}|">21,8 °C</span>
-                        </strong>
-                        <span class="text-muted" th:if="${sensor == null}">Sin dato</span>
-                    </li>
-                    <li>
-                        <i class="bi bi-broadcast" aria-hidden="true"></i>
-                        <span class="crop-card-reading-label">Sensores en línea</span>
-                        <strong th:text="|${card.reportingSensors()} de ${card.sensors.size()}|">2 de 3</strong>
+                        <span class="text-muted" th:unless="${sensor.showsValue()}">Sin lecturas</span>
                     </li>
                 </ul>
+                <p class="crop-card-readings text-muted" th:if="${card.readings().isEmpty()}">Sin sensores activados</p>
 
                 <p class="crop-card-foot">
                     <span>Ver detalle</span>

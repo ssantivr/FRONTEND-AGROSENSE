@@ -88,8 +88,9 @@
                                 <th:block th:unless="${crop.active}"><span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-dash-circle', 'Inactivo')}"></span></th:block>
                             </div>
                             <dl class="crop-ranges">
-                                <div><dt>Humedad</dt><dd th:text="|${crop.humidityMin.stripTrailingZeros().toPlainString()} – ${crop.humidityMax.stripTrailingZeros().toPlainString()} %|">40 – 80 %</dd></div>
-                                <div><dt>Temperatura</dt><dd th:text="|${crop.tempMin.stripTrailingZeros().toPlainString()} – ${crop.tempMax.stripTrailingZeros().toPlainString()} °C|">15 – 35 °C</dd></div>
+                                <div th:each="sensor : ${readingsByCrop.get(crop.id)}"><dt th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</dt>
+                                    <dd th:text="${sensor.showsValue()} ? |${#numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA')} ${sensor.unit}| : 'Sin lecturas'">32,6 %</dd></div>
+                                <div th:if="${readingsByCrop.get(crop.id).isEmpty()}"><dt>Sensores</dt><dd>Sin sensores activados</dd></div>
                                 <div th:if="${crop.sowingDate != null}"><dt>Siembra</dt><dd th:text="${#temporals.format(crop.sowingDate, 'd MMM yyyy')}">14 mar 2025</dd></div>
                             </dl>
                         </div>
@@ -129,12 +130,12 @@
                     <li th:each="sensor : ${sensors}">
                         <span class="stat-icon mini-icon" aria-hidden="true"><i class="bi" th:classappend="${sensor.icon()}"></i></span>
                         <div>
-                            <strong th:text="|${sensor.code} · ${#messages.msg('sensorType.' + sensor.type)}|">AS-001 · Humedad</strong>
-                            <p th:if="${sensor.lastValue != null}">
+                            <strong th:text="|${#messages.msg('sensorType.' + sensor.type)} · ${sensor.cropName}|">Humedad del suelo · Café</strong>
+                            <p th:if="${sensor.showsValue()}">
                                 <span class="mini-value" th:text="|${#numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA')} ${sensor.unit}|">52,0 %</span>
                                 <span class="text-muted" th:text="| · ${sensor.lastReadingAgo()}|"> · hace 3 h</span>
                             </p>
-                            <p class="text-muted" th:if="${sensor.lastValue == null}" th:text="${sensor.active} ? 'Sin lecturas' : 'Inactivo'">Sin lecturas</p>
+                            <p class="text-muted" th:unless="${sensor.showsValue()}" th:text="${sensor.active} ? 'Sin lecturas' : 'Desactivado: no muestra datos'">Sin lecturas</p>
                             <a class="link" th:href="@{/sensores/{id}/ubicacion(id=${sensor.id})}"
                                th:text="${sensor.placed()} ? |Cubre ${sensor.coverageM} m · mover| : 'Ubicar en el mapa'">Ubicar en el mapa</a>
                         </div>

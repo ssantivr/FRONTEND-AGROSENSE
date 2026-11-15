@@ -75,8 +75,18 @@ public class PageController {
 
     @GetMapping("/parcelas")
     public String estates(Principal principal, Model model) {
-        model.addAttribute("estates", estateService.findEstates(principal.getName()));
+        List<EstateView> estates = estateService.findEstates(principal.getName());
+        model.addAttribute("estates", estates);
+        model.addAttribute("readingsByCrop", readingsByCrop(estates, sensorService.findSensors(principal.getName())));
         return "estates";
+    }
+
+    /** What each crop's activated sensors measure, so a crop shows only its own sensors' data. */
+    private static Map<Integer, List<SensorView>> readingsByCrop(List<EstateView> estates, List<SensorView> sensors) {
+        Map<Integer, List<SensorView>> readings = new LinkedHashMap<>();
+        estates.forEach(estate -> estate.crops()
+                .forEach(crop -> readings.put(crop.id(), SensorView.readingsOf(crop.id(), sensors))));
+        return readings;
     }
 
     @GetMapping("/parcelas/{estateId}")
@@ -93,6 +103,7 @@ public class PageController {
         List<AlertView> alerts = alertService.findOpenByEstate(email, estateId, ESTATE_ALERTS);
         model.addAttribute("estate", estate);
         model.addAttribute("sensors", sensors);
+        model.addAttribute("readingsByCrop", readingsByCrop(List.of(estate), sensors));
         model.addAttribute("alerts", alerts);
         model.addAttribute("irrigations", irrigationService.findByEstate(email, estateId, ESTATE_IRRIGATIONS));
         model.addAttribute("estateJson", objectMapper.writeValueAsString(
