@@ -4,9 +4,14 @@ const POLL_MS = 30_000;
 const ROW_FIELDS = ['recordedAt', 'recordedAtText', 'sensorCode', 'measure', 'valueText', 'level', 'tone', 'icon', 'label'];
 const TONES = new Set(['success', 'warning', 'danger', 'neutral', 'info', 'critical']);
 const isRow = (value) => isRecord(value) && ROW_FIELDS.every((field) => typeof value[field] === 'string');
+const isSilence = (value) => isRecord(value) &&
+    typeof value['silent'] === 'boolean' &&
+    (value['text'] === null || typeof value['text'] === 'string') &&
+    (value['silent'] === false || typeof value['text'] === 'string');
 export const isHumidityFeed = (value) => isRecord(value) &&
     isArrayOf(isRow)(value['readings']) &&
-    (value['newestAt'] === null || typeof value['newestAt'] === 'string');
+    (value['newestAt'] === null || typeof value['newestAt'] === 'string') &&
+    isSilence(value['silence']);
 const isNumberOrNull = (value) => value === null || typeof value === 'number';
 const isPoint = (value) => isRecord(value) && typeof value['at'] === 'string' && typeof value['value'] === 'number';
 const isSeries = (value) => isRecord(value) &&
@@ -239,6 +244,7 @@ class Esp32Humidity {
                         cell.textContent = value;
                 }
             }
+            this.showSilence(feed.silence);
             const updated = this.section.querySelector('[data-humidity-updated]');
             if (updated)
                 updated.textContent = `Actualizado a las ${new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false })}`;
@@ -247,6 +253,15 @@ class Esp32Humidity {
             // The page keeps what it shows and the next poll tries again.
         }
         this.schedule();
+    }
+    showSilence(silence) {
+        const banner = this.section.querySelector('[data-esp32-silence]');
+        const text = banner?.querySelector('[data-esp32-silence-text]');
+        if (!banner || !text)
+            return;
+        banner.hidden = !silence.silent;
+        if (silence.silent && silence.text !== null && text.textContent !== silence.text)
+            text.textContent = silence.text;
     }
 }
 function start() {

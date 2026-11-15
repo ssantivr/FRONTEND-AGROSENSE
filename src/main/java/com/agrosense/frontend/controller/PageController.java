@@ -3,6 +3,8 @@ package com.agrosense.frontend.controller;
 import com.agrosense.frontend.dto.IrrigationForm;
 import com.agrosense.frontend.dto.Views;
 import com.agrosense.frontend.dto.Views.AlertView;
+import com.agrosense.frontend.dto.Views.ConnectedSensor;
+import com.agrosense.frontend.dto.Views.Esp32Silence;
 import com.agrosense.frontend.dto.Views.DashboardView;
 import com.agrosense.frontend.dto.Views.EstateView;
 import com.agrosense.frontend.dto.Views.ReportView;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import com.agrosense.frontend.service.DashboardService;
+import com.agrosense.frontend.service.Esp32SilencePolicy;
 import com.agrosense.frontend.service.EstateService;
 import com.agrosense.frontend.service.IrrigationService;
 import com.agrosense.frontend.service.SensorService;
@@ -26,6 +29,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import tools.jackson.databind.ObjectMapper;
 
 import java.security.Principal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Controller
@@ -39,6 +43,7 @@ public class PageController {
     private final ObjectMapper objectMapper;
     private final AlertService alertService;
     private final ReportService reportService;
+    private final Esp32SilencePolicy esp32SilencePolicy;
 
     /** The same device the backend reads over TCP (ESP32_DEVICE_ID). */
     @Value("${agrosense.esp32.device-id:ESP32-PLANTICAS}")
@@ -101,8 +106,10 @@ public class PageController {
         model.addAttribute("sensors", sensors);
         // The connected ESP32: its plant and only its humidity, shown in the same page.
         model.addAttribute("deviceCode", esp32DeviceId);
-        model.addAttribute("connected",
-                sensorService.findConnected(principal.getName(), esp32DeviceId, sensors).orElse(null));
+        ConnectedSensor connected = sensorService.findConnected(principal.getName(), esp32DeviceId, sensors).orElse(null);
+        model.addAttribute("connected", connected);
+        model.addAttribute("esp32Silence", connected == null ? Esp32Silence.LISTENING : esp32SilencePolicy.of(
+                connected.readings().isEmpty() ? null : connected.readings().get(0).recordedAt(), LocalDateTime.now()));
         return "sensors";
     }
 

@@ -18,6 +18,12 @@
             |No hay ningún cultivo tuyo con el dispositivo ${deviceCode}. Revisa ESP32_DEVICE_ID.|)}"></div>
     </section>
 
+    <p class="esp32-silence" data-esp32-silence role="status" aria-live="polite"
+       th:if="${connected != null}" th:hidden="${!esp32Silence.silent()}">
+        <i class="bi bi-wifi-off" aria-hidden="true"></i>
+        <span data-esp32-silence-text th:text="${esp32Silence.text()}">Sin datos del ESP32 desde las 14:32 (hace 12 minutos).</span>
+    </p>
+
     <div class="detail-grid" th:if="${connected != null}">
         <section class="card" aria-labelledby="plantTitle">
             <h3 id="plantTitle">La planta</h3>

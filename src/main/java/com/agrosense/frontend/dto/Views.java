@@ -362,7 +362,13 @@ public final class Views {
     }
 
     /** The newest humidity readings of the connected ESP32; empty when there is none for this user. */
-    public record HumidityFeed(List<HumidityRow> readings, String newestAt) {
+    public record HumidityFeed(List<HumidityRow> readings, String newestAt, Esp32Silence silence) {
+    }
+
+    /** Whether the ESP32 stopped sending, and the sentence that says since when; text is null while it talks. */
+    public record Esp32Silence(boolean silent, String text) {
+
+        public static final Esp32Silence LISTENING = new Esp32Silence(false, null);
     }
 
     /** One averaged point of the ESP32's day chart: when the bucket starts (ISO, local time) and its average. */

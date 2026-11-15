@@ -4,7 +4,9 @@ import com.agrosense.frontend.backend.BackendClient;
 import com.agrosense.frontend.backend.BackendStatus;
 import com.agrosense.frontend.dto.IrrigationForm;
 import com.agrosense.frontend.dto.Views.CropLatest;
+import com.agrosense.frontend.dto.Views.ConnectedSensor;
 import com.agrosense.frontend.dto.Views.DailyWater;
+import com.agrosense.frontend.dto.Views.Esp32Silence;
 import com.agrosense.frontend.dto.Views.EstateMarker;
 import com.agrosense.frontend.dto.Views.HumidityDay;
 import com.agrosense.frontend.dto.Views.HumidityFeed;
@@ -13,6 +15,7 @@ import com.agrosense.frontend.dto.Views.IrrigationView;
 import com.agrosense.frontend.dto.Views.ReadingSeries;
 import com.agrosense.frontend.service.CropService;
 import com.agrosense.frontend.service.DashboardService;
+import com.agrosense.frontend.service.Esp32SilencePolicy;
 import com.agrosense.frontend.service.EstateService;
 import com.agrosense.frontend.service.IrrigationService;
 import com.agrosense.frontend.service.SensorService;
@@ -32,7 +35,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/ui")
@@ -46,6 +51,7 @@ public class UiApiController {
     private final BackendClient backendClient;
     private final CropService cropService;
     private final MessageSource messages;
+    private final Esp32SilencePolicy silencePolicy;
 
     /** The same device the backend reads over TCP (ESP32_DEVICE_ID). */
     @Value("${agrosense.esp32.device-id:ESP32-PLANTICAS}")
@@ -58,13 +64,19 @@ public class UiApiController {
     @GetMapping("/esp32/humidity")
     public HumidityFeed esp32Humidity(Principal principal) {
         String email = principal.getName();
-        List<HumidityRow> rows = sensorService.findConnected(email, esp32DeviceId, sensorService.findSensors(email))
-                .map(connected -> connected.readings().stream()
+        Optional<ConnectedSensor> connected =
+                sensorService.findConnected(email, esp32DeviceId, sensorService.findSensors(email));
+        List<HumidityRow> rows = connected
+                .map(found -> found.readings().stream()
                         .map(reading -> HumidityRow.of(reading, messages.getMessage("sensorType." + reading.type(), null,
                                 reading.type().name(), LocaleContextHolder.getLocale())))
                         .toList())
                 .orElse(List.of());
-        return new HumidityFeed(rows, rows.isEmpty() ? null : rows.get(0).recordedAt());
+        // Only an ESP32 of this user can be silent; for anyone else there is nothing to listen to.
+        Esp32Silence silence = connected.map(found -> silencePolicy.of(
+                found.readings().isEmpty() ? null : found.readings().get(0).recordedAt(), LocalDateTime.now()))
+                .orElse(Esp32Silence.LISTENING);
+        return new HumidityFeed(rows, rows.isEmpty() ? null : rows.get(0).recordedAt(), silence);
     }
 
     /** The Sensors page's 24-hour chart of the ESP32's humidity (esp32-humidity.ts); empty for anyone but the owner. */

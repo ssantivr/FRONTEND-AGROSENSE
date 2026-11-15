@@ -5405,6 +5405,22 @@ kbd {
 }
 
 /* The connected ESP32 at the end of the Sensors page. */
+/* Said only while the ESP32 stopped sending: warning tones from the tokens, the icon before the sentence. */
+.esp32-silence {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
+}
+
+.esp32-silence[hidden] {
+  display: none;
+}
+
 .esp32-section {
   display: grid;
   gap: var(--space-5);
