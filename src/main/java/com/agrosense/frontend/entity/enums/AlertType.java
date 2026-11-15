@@ -12,5 +12,7 @@ public enum AlertType {
     WATER_STRESS,
     FROST_RISK,
     SENSOR_OFFLINE,
-    SENSOR_FAULT
+    SENSOR_FAULT,
+    LOW_AIR_HUMIDITY,
+    HIGH_AIR_HUMIDITY
 }
