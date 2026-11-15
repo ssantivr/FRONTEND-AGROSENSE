@@ -36,7 +36,7 @@
 <div th:replace="~{fragments/toast :: toast}"></div>
 <section th:replace="~{fragments/ai-chat :: ai-chat}"></section>
 
-<script th:if="${script == 'dashboard' or script == 'reports'}" th:src="@{/webjars/chart.js/4.4.1/dist/chart.umd.js}"></script>
+<script th:if="${script == 'dashboard' or script == 'reports' or script == 'esp32-humidity'}" th:src="@{/webjars/chart.js/4.4.1/dist/chart.umd.js}"></script>
 <script th:if="${script == 'dashboard' or script == 'sensor-map' or script == 'estate-map' or script == 'estate-detail'}" th:src="@{/webjars/leaflet/1.9.4/leaflet.js}"></script>
 <script type="module" th:src="@{/js/app.js}"></script>
 <script type="module" th:src="@{/js/ai/chat-widget.js}"></script>

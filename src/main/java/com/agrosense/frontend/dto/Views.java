@@ -365,6 +365,19 @@ public final class Views {
     public record HumidityFeed(List<HumidityRow> readings, String newestAt) {
     }
 
+    /** One averaged point of the ESP32's day chart: when the bucket starts (ISO, local time) and its average. */
+    public record HumidityPoint(String at, BigDecimal value) {
+    }
+
+    /** One humidity sensor of the ESP32 over the last 24 hours, with the range it is judged against (null if none). */
+    public record HumiditySeries(String sensorCode, String measure, BigDecimal min, BigDecimal max,
+            List<HumidityPoint> points) {
+    }
+
+    /** The ESP32's humidity of the last 24 hours, averaged every {@code bucketMinutes}; empty when there is none. */
+    public record HumidityDay(List<HumiditySeries> series, int bucketMinutes) {
+    }
+
     /** The ESP32 that is configured, the plant it measures and only its humidity readings, newest first. */
     public record ConnectedSensor(
             String deviceCode,

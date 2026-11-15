@@ -3,6 +3,8 @@ package com.agrosense.frontend.service;
 import com.agrosense.frontend.backend.BackendClient;
 import com.agrosense.frontend.backend.BackendClient.ReadingResponse;
 import com.agrosense.frontend.dto.Views.ConnectedSensor;
+import com.agrosense.frontend.dto.Views.HumidityPoint;
+import com.agrosense.frontend.dto.Views.HumiditySeries;
 import com.agrosense.frontend.dto.Views.HumidityLevel;
 import com.agrosense.frontend.dto.Views.HumidityReading;
 import com.agrosense.frontend.dto.Views.ReadingPoint;
@@ -25,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -33,6 +36,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -89,6 +93,70 @@ public class SensorService {
     }
 
     /** The user's sensors of the types the ESP32 measures; old sensors of other types stay stored but are not shown. */
+    /** The ESP32's day chart averages its readings in buckets this long; it must divide an hour. */
+    public static final int DAY_BUCKET_MINUTES = 15;
+
+    /**
+     * The last 24 hours of each humidity sensor of the configured ESP32's crop, averaged every
+     * {@link #DAY_BUCKET_MINUTES} minutes. Empty when the device does not exist or its crop belongs to someone else.
+     */
+    public List<HumiditySeries> findHumidityDay(String email, String deviceCode, Function<SensorType, String> measureOf) {
+        Optional<Crop> found = cropRepository.findMeasuredByDevice(deviceCode, email).stream().findFirst();
+        if (found.isEmpty()) {
+            return List.of();
+        }
+        Crop crop = found.get();
+        List<Sensor> sensors = sensorRepository.findByCropEstateUserEmailAndSensorTypeInOrderBySensorCode(email,
+                        HUMIDITY_TYPES).stream()
+                .filter(sensor -> crop.getIdCrop().equals(sensor.getCrop().getIdCrop()))
+                .toList();
+        if (sensors.isEmpty()) {
+            return List.of();
+        }
+        Map<Integer, List<ReadingPoint>> bySensor = readingRepository
+                .findBySensorIdSensorInAndRecordedAtGreaterThanEqualOrderByRecordedAt(
+                        sensors.stream().map(Sensor::getIdSensor).toList(), LocalDateTime.now().minusHours(24))
+                .stream()
+                .collect(Collectors.groupingBy(reading -> reading.getSensor().getIdSensor(),
+                        Collectors.mapping(reading -> new ReadingPoint(reading.getRecordedAt(), reading.getValue()),
+                                Collectors.toList())));
+        return sensors.stream()
+                .map(sensor -> {
+                    BigDecimal[] range = thresholds(sensor.getSensorType(), crop);
+                    List<HumidityPoint> points = bucket(bySensor.getOrDefault(sensor.getIdSensor(), List.of()),
+                            DAY_BUCKET_MINUTES).stream()
+                            .map(point -> new HumidityPoint(point.recordedAt().toString(), point.value()))
+                            .toList();
+                    return new HumiditySeries(sensor.getSensorCode(), measureOf.apply(sensor.getSensorType()),
+                            range[0], range[1], points);
+                })
+                .toList();
+    }
+
+    /**
+     * Averages the points in clock-aligned buckets of {@code minutes} (which must divide an hour), oldest first, rounded
+     * to one decimal. Points without a value are skipped and empty buckets are left out, so a gap stays a gap.
+     */
+    public static List<ReadingPoint> bucket(List<ReadingPoint> points, int minutes) {
+        if (minutes <= 0 || 60 % minutes != 0) {
+            throw new IllegalArgumentException("The bucket must divide an hour: " + minutes);
+        }
+        Map<LocalDateTime, List<BigDecimal>> buckets = new TreeMap<>();
+        for (ReadingPoint point : points) {
+            if (point.value() == null || point.recordedAt() == null) {
+                continue;
+            }
+            LocalDateTime start = point.recordedAt().truncatedTo(ChronoUnit.HOURS)
+                    .plusMinutes((long) (point.recordedAt().getMinute() / minutes) * minutes);
+            buckets.computeIfAbsent(start, key -> new ArrayList<>()).add(point.value());
+        }
+        return buckets.entrySet().stream()
+                .map(entry -> new ReadingPoint(entry.getKey(), entry.getValue().stream()
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .divide(BigDecimal.valueOf(entry.getValue().size()), 1, RoundingMode.HALF_UP)))
+                .toList();
+    }
+
     public List<SensorView> findSensors(String email) {
         List<Sensor> sensors = sensorRepository.findByCropEstateUserEmailAndSensorTypeInOrderBySensorCode(email,
                 SensorType.ESP32);

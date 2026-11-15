@@ -265,7 +265,9 @@ describe('deviceStatus', async () => {
 });
 
 describe('esp32Humidity', async () => {
-  const { isHumidityFeed, isNewer, lastValues } = await import('../../main/resources/static/js/esp32-humidity.js');
+  const { alignSeries, isHumidityDay, isHumidityFeed, isNewer, lastValues, shortMeasure } = await import(
+    '../../main/resources/static/js/esp32-humidity.js'
+  );
   const row = {
     recordedAt: '2026-11-15T11:19:00', recordedAtText: '15 nov, 11:19', sensorCode: 'AS-001', measure: 'Humedad del suelo',
     valueText: '46,8 %', level: 'NORMAL', tone: 'success', icon: 'bi-check-circle', label: 'Normal',
@@ -291,5 +293,32 @@ describe('esp32Humidity', async () => {
     const older = { ...row, recordedAt: '2026-11-15T10:19:00', valueText: '43,8 %' };
     const air = { ...row, sensorCode: 'AS-007', valueText: '83,3 %' };
     assert.deepEqual([...lastValues([row, air, older])], [['AS-001', '46,8 %'], ['AS-007', '83,3 %']]);
+  });
+
+  const soil = { sensorCode: 'AS-001', measure: 'Humedad del suelo', min: 40, max: 80, points: [
+    { at: '2026-11-15T10:00', value: 30.5 }, { at: '2026-11-15T10:30', value: 31 },
+  ] };
+  const air = { sensorCode: 'AS-007', measure: 'Humedad relativa', min: null, max: null, points: [
+    { at: '2026-11-15T10:15', value: 45 }, { at: '2026-11-15T10:30', value: 46 },
+  ] };
+
+  it('accepts only a well-formed day chart', () => {
+    assert.equal(isHumidityDay({ series: [soil, air], bucketMinutes: 15 }), true);
+    assert.equal(isHumidityDay({ series: [], bucketMinutes: 15 }), true);
+    assert.equal(isHumidityDay({ series: [{ ...soil, min: '40' }], bucketMinutes: 15 }), false);
+    assert.equal(isHumidityDay({ series: [{ ...soil, points: [{ at: 1, value: 2 }] }], bucketMinutes: 15 }), false);
+    assert.equal(isHumidityDay({ series: [soil] }), false);
+  });
+
+  it('puts both sensors on one time axis and leaves a gap where one has no value', () => {
+    const { times, values } = alignSeries([soil, air]);
+    assert.deepEqual(times, ['2026-11-15T10:00', '2026-11-15T10:15', '2026-11-15T10:30']);
+    assert.deepEqual(values, [[30.5, null, 31], [null, 45, 46]]);
+    assert.deepEqual(alignSeries([]), { times: [], values: [] });
+  });
+
+  it('names each range by what it measures', () => {
+    assert.equal(shortMeasure('Humedad del suelo'), 'Suelo');
+    assert.equal(shortMeasure('Humedad relativa'), 'Aire');
   });
 });
