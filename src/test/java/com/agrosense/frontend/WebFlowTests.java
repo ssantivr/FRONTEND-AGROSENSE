@@ -79,6 +79,8 @@ class WebFlowTests {
     private SensorRepository sensorRepository;
     @Autowired
     private AlertRepository alertRepository;
+    @Autowired
+    private com.agrosense.frontend.repository.SensorReadingRepository readingRepository;
 
     private MockMvc mvc;
     private UserDetails demoUser;
@@ -328,6 +330,48 @@ class WebFlowTests {
                 .andExpect(jsonPath("$.readings", hasSize(0)))
                 .andExpect(jsonPath("$.newestAt").doesNotExist());
         mvc.perform(get("/api/ui/esp32/humidity")).andExpect(status().is3xxRedirection());
+    }
+
+    @Test
+    void anEsp32ThatStoppedSendingIsSaidOnThePageAndInTheFeed() throws Exception {
+        // The newest humidity reading is from now (not from whenever the demo data was loaded): the ESP32 is listening.
+        shiftHumidityReadingsSoTheNewestIsAt(java.time.LocalDateTime.now());
+        String page = mvc.perform(get("/sensores").with(user(demoUser)))
+                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(page).contains("data-esp32-silence");
+        assertThat(page.substring(page.indexOf("data-esp32-silence"))).startsWith("data-esp32-silence role=\"status\"");
+        assertThat(page).containsPattern("data-esp32-silence role=\"status\" aria-live=\"polite\"\\s+hidden");
+        mvc.perform(get("/api/ui/esp32/humidity").with(user(demoUser)))
+                .andExpect(jsonPath("$.silence.silent").value(false))
+                .andExpect(jsonPath("$.silence.text").doesNotExist());
+
+        // Every humidity reading moved 20 minutes back: the board went quiet.
+        shiftHumidityReadingsSoTheNewestIsAt(java.time.LocalDateTime.now().minusMinutes(20).minusSeconds(30));
+
+        String quiet = mvc.perform(get("/sensores").with(user(demoUser)))
+                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(quiet).doesNotContainPattern("data-esp32-silence role=\"status\" aria-live=\"polite\"\\s+hidden")
+                .contains("Sin datos del ESP32 desde", "(hace 20 minutos)");
+        mvc.perform(get("/api/ui/esp32/humidity").with(user(demoUser)))
+                .andExpect(jsonPath("$.silence.silent").value(true))
+                .andExpect(jsonPath("$.silence.text", containsString("(hace 20 minutos)")));
+
+        // Someone without an ESP32 is never told that one is silent.
+        createOtherUsersSensor();
+        mvc.perform(get("/api/ui/esp32/humidity").with(user(userDetailsService.loadUserByUsername(OTHER_EMAIL))))
+                .andExpect(jsonPath("$.silence.silent").value(false));
+    }
+
+    private void shiftHumidityReadingsSoTheNewestIsAt(java.time.LocalDateTime newest) {
+        List<com.agrosense.frontend.entity.SensorReading> humidity = readingRepository.findAll().stream()
+                .filter(reading -> reading.getSensor().getSensorType() == SensorType.SOIL_MOISTURE
+                        || reading.getSensor().getSensorType() == SensorType.RELATIVE_HUMIDITY)
+                .toList();
+        java.time.LocalDateTime current = humidity.stream().map(com.agrosense.frontend.entity.SensorReading::getRecordedAt)
+                .max(java.util.Comparator.naturalOrder()).orElseThrow();
+        java.time.Duration shift = java.time.Duration.between(current, newest);
+        humidity.forEach(reading -> reading.setRecordedAt(reading.getRecordedAt().plus(shift)));
+        readingRepository.flush();
     }
 
     @Test

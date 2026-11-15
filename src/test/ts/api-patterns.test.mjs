@@ -273,11 +273,21 @@ describe('esp32Humidity', async () => {
     valueText: '46,8 %', level: 'NORMAL', tone: 'success', icon: 'bi-check-circle', label: 'Normal',
   };
 
+  const listening = { silent: false, text: null };
+  const quiet = { silent: true, text: 'Sin datos del ESP32 desde las 14:32 (hace 12 minutos).' };
+
   it('accepts only a well-formed feed', () => {
-    assert.equal(isHumidityFeed({ readings: [row], newestAt: row.recordedAt }), true);
-    assert.equal(isHumidityFeed({ readings: [], newestAt: null }), true);
-    assert.equal(isHumidityFeed({ readings: [{ ...row, valueText: 46.8 }], newestAt: null }), false);
-    assert.equal(isHumidityFeed({ readings: 'none', newestAt: null }), false);
+    assert.equal(isHumidityFeed({ readings: [row], newestAt: row.recordedAt, silence: listening }), true);
+    assert.equal(isHumidityFeed({ readings: [], newestAt: null, silence: listening }), true);
+    assert.equal(isHumidityFeed({ readings: [{ ...row, valueText: 46.8 }], newestAt: null, silence: listening }), false);
+    assert.equal(isHumidityFeed({ readings: 'none', newestAt: null, silence: listening }), false);
+  });
+
+  it('accepts a silence only with the sentence that says since when', () => {
+    assert.equal(isHumidityFeed({ readings: [row], newestAt: row.recordedAt, silence: quiet }), true);
+    assert.equal(isHumidityFeed({ readings: [row], newestAt: row.recordedAt, silence: { silent: true, text: null } }), false);
+    assert.equal(isHumidityFeed({ readings: [row], newestAt: row.recordedAt, silence: { silent: 'no', text: null } }), false);
+    assert.equal(isHumidityFeed({ readings: [row], newestAt: row.recordedAt }), false);
   });
 
   it('repaints only when the server has a newer reading than the page shows', () => {

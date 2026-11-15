@@ -17,9 +17,16 @@ export interface HumidityRow {
   label: string;
 }
 
+/** Worded by the server in its own clock, so the browser's time zone never changes it; text is null while it talks. */
+export interface Esp32Silence {
+  silent: boolean;
+  text: string | null;
+}
+
 export interface HumidityFeed {
   readings: HumidityRow[];
   newestAt: string | null;
+  silence: Esp32Silence;
 }
 
 export interface HumidityPoint {
@@ -47,10 +54,17 @@ const TONES = new Set(['success', 'warning', 'danger', 'neutral', 'info', 'criti
 const isRow = (value: unknown): value is HumidityRow =>
   isRecord(value) && ROW_FIELDS.every((field) => typeof value[field] === 'string');
 
+const isSilence = (value: unknown): value is Esp32Silence =>
+  isRecord(value) &&
+  typeof value['silent'] === 'boolean' &&
+  (value['text'] === null || typeof value['text'] === 'string') &&
+  (value['silent'] === false || typeof value['text'] === 'string');
+
 export const isHumidityFeed = (value: unknown): value is HumidityFeed =>
   isRecord(value) &&
   isArrayOf(isRow)(value['readings']) &&
-  (value['newestAt'] === null || typeof value['newestAt'] === 'string');
+  (value['newestAt'] === null || typeof value['newestAt'] === 'string') &&
+  isSilence(value['silence']);
 
 const isNumberOrNull = (value: unknown): boolean => value === null || typeof value === 'number';
 
@@ -296,12 +310,21 @@ class Esp32Humidity {
           if (value && cell) cell.textContent = value;
         }
       }
+      this.showSilence(feed.silence);
       const updated = this.section.querySelector<HTMLElement>('[data-humidity-updated]');
       if (updated) updated.textContent = `Actualizado a las ${new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false })}`;
     } catch {
       // The page keeps what it shows and the next poll tries again.
     }
     this.schedule();
+  }
+
+  private showSilence(silence: Esp32Silence): void {
+    const banner = this.section.querySelector<HTMLElement>('[data-esp32-silence]');
+    const text = banner?.querySelector<HTMLElement>('[data-esp32-silence-text]');
+    if (!banner || !text) return;
+    banner.hidden = !silence.silent;
+    if (silence.silent && silence.text !== null && text.textContent !== silence.text) text.textContent = silence.text;
   }
 }
 
