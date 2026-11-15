@@ -226,30 +226,31 @@ class WebFlowTests {
     }
 
     @Test
-    void connectedSensorPageListsOnlyHumidityAndTheWholePlant() throws Exception {
-        String page = mvc.perform(get("/sensor-conectado").with(user(demoUser)))
+    void theSensorsPageShowsTheConnectedEsp32WithOnlyHumidityAndTheWholePlant() throws Exception {
+        String page = mvc.perform(get("/sensores").with(user(demoUser)))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("aria-current=\"page\"")))
+                .andExpect(content().string(containsString("href=\"#sensor-esp32\"")))
                 .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
 
-        assertThat(page).contains("RPI-DEMO-01", ">Café</a>", ">Finca La Esperanza</a>", "Rangos del cultivo",
+        assertThat(page).contains("id=\"sensor-esp32\"");
+        String section = page.substring(page.indexOf("id=\"sensor-esp32\""));
+        assertThat(section).contains("RPI-DEMO-01", ">Café</a>", ">Finca La Esperanza</a>", "Rangos del cultivo",
                 "data-humidity-range", "40,0 – 80,0 %", "Niveles de humedad", "data-humidity-list");
-        String list = page.substring(page.indexOf("data-humidity-list"));
+        String list = section.substring(section.indexOf("data-humidity-list"));
         assertThat(list).contains("AS-001", "AS-007").doesNotContain("AS-002", "AS-003", "AS-004", "AS-005");
         assertThat(list).contains("Humedad del suelo", "Humedad relativa")
                 .doesNotContain("Temperatura del aire", "Conductividad");
         assertThat(list).containsAnyOf("data-level=\"LOW\"", "data-level=\"NORMAL\"", "data-level=\"HIGH\"");
         assertThat(list).contains("data-level=\"NO_RANGE\"");
-
-        mvc.perform(get("/sensor-conectado")).andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/login"));
     }
 
     @Test
     void theConnectedSensorOfAnotherUserIsNeverShown() throws Exception {
         createOtherUsersSensor();
         UserDetails other = userDetailsService.loadUserByUsername(OTHER_EMAIL);
-        mvc.perform(get("/sensor-conectado").with(user(other)))
+        mvc.perform(get("/sensores").with(user(other)))
                 .andExpect(status().isOk())
+                .andExpect(content().string(containsString("OTHER-001")))
                 .andExpect(content().string(containsString("Sin sensor conectado")))
                 .andExpect(content().string(not(containsString("Finca La Esperanza"))))
                 .andExpect(content().string(not(containsString("AS-001"))));

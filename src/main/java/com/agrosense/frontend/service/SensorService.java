@@ -65,19 +65,18 @@ public class SensorService {
      * The configured ESP32, the plant it measures and only its humidity readings. Empty when the device does not exist or
      * its crop belongs to someone else, so nobody sees another user's plant by guessing a device code.
      */
-    public Optional<ConnectedSensor> findConnected(String email, String deviceCode) {
-        return cropRepository.findCropIdOfDevice(deviceCode)
-                .flatMap(cropId -> cropRepository.findWithEstateByIdCropAndEstateUserEmail(cropId, email))
-                .map(crop -> connected(deviceCode, crop));
+    public Optional<ConnectedSensor> findConnected(String email, String deviceCode, List<SensorView> userSensors) {
+        return cropRepository.findMeasuredByDevice(deviceCode, email).stream().findFirst()
+                .map(crop -> connected(deviceCode, crop, userSensors));
     }
 
-    private ConnectedSensor connected(String deviceCode, Crop crop) {
-        List<Sensor> sensors = sensorRepository.findByCropIdCropAndSensorTypeInOrderBySensorCode(crop.getIdCrop(),
-                HUMIDITY_TYPES);
-        Map<Integer, SensorReading> latest = latestReadings(sensors);
-        LocalDateTime now = LocalDateTime.now();
+    /** Reuses the sensors the page already loaded, so the section costs two statements: the crop and its readings. */
+    private ConnectedSensor connected(String deviceCode, Crop crop, List<SensorView> userSensors) {
+        List<SensorView> sensors = userSensors.stream()
+                .filter(sensor -> crop.getIdCrop().equals(sensor.cropId()) && HUMIDITY_TYPES.contains(sensor.type()))
+                .toList();
         List<HumidityReading> readings = sensors.isEmpty() ? List.of() : readingRepository
-                .findTop50BySensorIdSensorInOrderByRecordedAtDesc(sensors.stream().map(Sensor::getIdSensor).toList())
+                .findTop50BySensorIdSensorInOrderByRecordedAtDesc(sensors.stream().map(SensorView::id).toList())
                 .stream()
                 .map(reading -> {
                     SensorType type = reading.getSensor().getSensorType();
@@ -90,9 +89,7 @@ public class SensorService {
                 crop.getSowingDate(), crop.getEstate().getIdEstate(), crop.getEstate().getName(),
                 crop.getEstate().getLocation(), crop.getEstate().getAreaHa(), crop.getHumidityMin(),
                 crop.getHumidityMax(), crop.getTempMin(), crop.getTempMax(), crop.getPhMin(), crop.getPhMax(),
-                sensors.stream().map(sensor -> toView(sensor, Optional.ofNullable(latest.get(sensor.getIdSensor())), now))
-                        .toList(),
-                readings);
+                sensors, readings);
     }
 
     public List<SensorView> findSensors(String email) {

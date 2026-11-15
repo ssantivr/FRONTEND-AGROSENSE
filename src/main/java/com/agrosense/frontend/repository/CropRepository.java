@@ -16,10 +16,8 @@ public interface CropRepository extends JpaRepository<Crop, Integer> {
 
     Optional<Crop> findByIdCropAndEstateUserEmail(Integer idCrop, String email);
 
-    @EntityGraph(attributePaths = "estate")
-    Optional<Crop> findWithEstateByIdCropAndEstateUserEmail(Integer idCrop, String email);
-
-    /** The crop of a field device; the frontend maps no Device entity, it only needs where the device measures. */
-    @Query(value = "select d.id_crop from devices d where upper(d.device_code) = upper(:code)", nativeQuery = true)
-    Optional<Integer> findCropIdOfDevice(@Param("code") String deviceCode);
+    /** The crop a field device measures, with its estate, only when it belongs to this user: one statement. */
+    @Query("select c from Crop c join fetch c.estate e where e.user.email = :email and c.idCrop in "
+            + "(select d.idCrop from Device d where upper(d.deviceCode) = upper(:code))")
+    List<Crop> findMeasuredByDevice(@Param("code") String deviceCode, @Param("email") String email);
 }

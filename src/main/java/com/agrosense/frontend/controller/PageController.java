@@ -19,6 +19,7 @@ import com.agrosense.frontend.service.EstateService;
 import com.agrosense.frontend.service.IrrigationService;
 import com.agrosense.frontend.service.SensorService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -38,6 +39,10 @@ public class PageController {
     private final ObjectMapper objectMapper;
     private final AlertService alertService;
     private final ReportService reportService;
+
+    /** The same device the backend reads over TCP (ESP32_DEVICE_ID). */
+    @Value("${agrosense.esp32.device-id:RPI-DEMO-01}")
+    private String esp32DeviceId;
 
     private static final int ESTATE_ALERTS = 10;
     private static final int ESTATE_IRRIGATIONS = 10;
@@ -92,7 +97,12 @@ public class PageController {
 
     @GetMapping("/sensores")
     public String sensors(Principal principal, Model model) {
-        model.addAttribute("sensors", sensorService.findSensors(principal.getName()));
+        List<SensorView> sensors = sensorService.findSensors(principal.getName());
+        model.addAttribute("sensors", sensors);
+        // The connected ESP32: its plant and only its humidity, shown in the same page.
+        model.addAttribute("deviceCode", esp32DeviceId);
+        model.addAttribute("connected",
+                sensorService.findConnected(principal.getName(), esp32DeviceId, sensors).orElse(null));
         return "sensors";
     }
 

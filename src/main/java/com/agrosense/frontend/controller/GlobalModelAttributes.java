@@ -26,7 +26,6 @@ public class GlobalModelAttributes {
             new NavItem("/parcelas", "Parcelas", "bi-map", false),
             new NavItem("/cultivos", "Cultivos", "bi-flower1", false),
             new NavItem("/sensores", "Sensores", "bi-broadcast", false),
-            new NavItem("/sensor-conectado", "Sensor ESP32", "bi-cpu", false),
             new NavItem("/riego", "Riego", "bi-droplet", false),
             new NavItem("/alertas", "Alertas", "bi-bell", false),
             new NavItem("/reportes", "Reportes", "bi-bar-chart", false),

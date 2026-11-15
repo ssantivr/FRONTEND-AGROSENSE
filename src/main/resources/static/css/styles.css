@@ -5404,6 +5404,14 @@ kbd {
   gap: var(--space-5);
 }
 
+/* The connected ESP32 at the end of the Sensors page. */
+.esp32-section {
+  display: grid;
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+  scroll-margin-top: var(--space-6);
+}
+
 .range-list {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

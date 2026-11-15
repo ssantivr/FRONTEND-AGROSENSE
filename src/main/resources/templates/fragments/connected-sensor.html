@@ -1,26 +1,25 @@
 <!DOCTYPE html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{fragments/layout :: layout('Sensor ESP32', ~{::main}, null)}">
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
 <body>
-<main id="main" class="app-content" tabindex="-1" data-motion-stagger>
-    <div class="page-toolbar">
-        <header class="detail-header">
-            <span class="stat-icon" aria-hidden="true"><i class="bi bi-cpu"></i></span>
-            <div>
-                <h1>Sensor ESP32</h1>
-                <p class="text-muted" th:text="|Dispositivo ${deviceCode} · solo niveles de humedad|">Dispositivo RPI-DEMO-01 · solo niveles de humedad</p>
-            </div>
-        </header>
-    </div>
+<!-- The connected ESP32 inside the Sensors page: the plant it measures and only its humidity. -->
+<section id="sensor-esp32" class="esp32-section" aria-labelledby="esp32Title"
+         th:fragment="connected-sensor(connected, deviceCode)">
+    <header class="detail-header">
+        <span class="stat-icon" aria-hidden="true"><i class="bi bi-cpu"></i></span>
+        <div>
+            <h2 id="esp32Title">Sensor ESP32 conectado</h2>
+            <p class="text-muted" th:text="|Dispositivo ${deviceCode} · solo niveles de humedad|">Dispositivo RPI-DEMO-01 · solo niveles de humedad</p>
+        </div>
+    </header>
 
-    <th:block th:if="${connected == null}">
+    <section class="card" th:if="${connected == null}">
         <div th:replace="~{fragments/empty-state :: empty-state('bi-cpu', 'Sin sensor conectado',
             |No hay ningún cultivo tuyo con el dispositivo ${deviceCode}. Revisa ESP32_DEVICE_ID.|)}"></div>
-    </th:block>
+    </section>
 
     <div class="detail-grid" th:if="${connected != null}">
         <section class="card" aria-labelledby="plantTitle">
-            <h2 id="plantTitle">La planta</h2>
+            <h3 id="plantTitle">La planta</h3>
             <dl class="definition-list">
                 <dt>Cultivo</dt>
                 <dd><a class="link" th:href="@{/cultivos/{id}(id=${connected.cropId})}" th:text="${connected.cropName}">Café</a></dd>
@@ -40,7 +39,7 @@
         </section>
 
         <section class="card" aria-labelledby="rangesTitle">
-            <h2 id="rangesTitle">Rangos del cultivo</h2>
+            <h3 id="rangesTitle">Rangos del cultivo</h3>
             <dl class="definition-list">
                 <dt>Humedad del suelo</dt>
                 <dd data-humidity-range th:text="|${#numbers.formatDecimal(connected.humidityMin, 1, 1, 'COMMA')} – ${#numbers.formatDecimal(connected.humidityMax, 1, 1, 'COMMA')} %|">40,0 – 80,0 %</dd>
@@ -52,8 +51,8 @@
             <p class="text-muted">La humedad relativa del aire no tiene rango en el cultivo: se muestra sin calificar.</p>
         </section>
 
-        <section class="card detail-wide" aria-labelledby="sensorsTitle">
-            <h2 id="sensorsTitle">Sensores de humedad</h2>
+        <section class="card detail-wide" aria-labelledby="humiditySensorsTitle">
+            <h3 id="humiditySensorsTitle">Sensores de humedad</h3>
             <th:block th:if="${connected.humiditySensors.isEmpty()}">
                 <div th:replace="~{fragments/empty-state :: empty-state('bi-moisture', 'Sin sensores de humedad',
                     'Este cultivo no tiene sensores de humedad del suelo ni de humedad relativa.')}"></div>
@@ -62,7 +61,7 @@
                 <table class="table">
                     <thead><tr><th>Sensor</th><th>Tipo</th><th class="numeric">Última lectura</th><th>Conexión</th></tr></thead>
                     <tbody>
-                    <tr th:each="sensor : ${connected.humiditySensors}" th:attr="data-sensor-code=${sensor.code}">
+                    <tr th:each="sensor : ${connected.humiditySensors}">
                         <td><a class="link" th:href="@{/sensores/{id}(id=${sensor.id})}" th:text="${sensor.code}">AS-001</a></td>
                         <td th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</td>
                         <td class="numeric" th:text="${sensor.lastValue != null} ? |${#numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA')} ${sensor.unit}| : 'Sin datos'">46,8 %</td>
@@ -74,7 +73,7 @@
         </section>
 
         <section class="card detail-wide" aria-labelledby="humidityTitle">
-            <h2 id="humidityTitle">Niveles de humedad</h2>
+            <h3 id="humidityTitle">Niveles de humedad</h3>
             <p class="text-muted">Las 50 lecturas más recientes, de la más nueva a la más antigua.</p>
             <th:block th:if="${connected.readings.isEmpty()}">
                 <div th:replace="~{fragments/empty-state :: empty-state('bi-hourglass', 'Sin lecturas',
@@ -96,6 +95,6 @@
             </div>
         </section>
     </div>
-</main>
+</section>
 </body>
 </html>
