@@ -3,6 +3,7 @@ package com.agrosense.frontend.service;
 import com.agrosense.frontend.backend.BackendClient;
 import com.agrosense.frontend.backend.BackendClient.ReadingResponse;
 import com.agrosense.frontend.dto.Views.ConnectedSensor;
+import com.agrosense.frontend.dto.Views.HumidityCard;
 import com.agrosense.frontend.dto.Views.HumidityPoint;
 import com.agrosense.frontend.dto.Views.HumiditySeries;
 import com.agrosense.frontend.dto.Views.HumidityLevel;
@@ -76,7 +77,7 @@ public class SensorService {
                 .filter(sensor -> crop.getIdCrop().equals(sensor.cropId()) && HUMIDITY_TYPES.contains(sensor.type()))
                 .toList();
         List<HumidityReading> readings = sensors.isEmpty() ? List.of() : readingRepository
-                .findTop50BySensorIdSensorInOrderByRecordedAtDesc(sensors.stream().map(SensorView::id).toList())
+                .findTop20BySensorIdSensorInOrderByRecordedAtDesc(sensors.stream().map(SensorView::id).toList())
                 .stream()
                 .map(reading -> {
                     SensorType type = reading.getSensor().getSensorType();
@@ -89,7 +90,11 @@ public class SensorService {
                 crop.getSowingDate(), crop.getEstate().getIdEstate(), crop.getEstate().getName(),
                 crop.getEstate().getLocation(), crop.getEstate().getAreaHa(), crop.getHumidityMin(),
                 crop.getHumidityMax(), crop.getAirHumidityMin(), crop.getAirHumidityMax(), crop.getTempMin(),
-                crop.getTempMax(), sensors, readings);
+                crop.getTempMax(), sensors, sensors.stream().map(sensor -> {
+                    BigDecimal[] range = thresholds(sensor.type(), crop);
+                    return new HumidityCard(sensor, HumidityLevel.of(sensor.lastValue(), range[0], range[1]), range[0],
+                            range[1]);
+                }).toList(), readings);
     }
 
     /** The user's sensors of the types the ESP32 measures; old sensors of other types stay stored but are not shown. */

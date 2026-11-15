@@ -316,6 +316,20 @@ public final class Views {
             return label;
         }
 
+        /** What the level means for the plant, in the farmer's words: the soil's water or the air around it. */
+        public String advice(SensorType type) {
+            boolean air = type == SensorType.RELATIVE_HUMIDITY;
+            return switch (this) {
+                case LOW -> air ? "El aire está seco: la planta pierde agua más rápido. Revisa la tierra y considera regar."
+                        : "La tierra está seca: conviene regar.";
+                case HIGH -> air ? "El aire está muy húmedo: vigila que no aparezcan hongos en hojas y frutos."
+                        : "La tierra tiene demasiada agua: no riegues y revisa el drenaje.";
+                case NORMAL -> air ? "El aire tiene la humedad que el cultivo necesita."
+                        : "La tierra tiene la humedad que el cultivo necesita.";
+                case NO_RANGE -> "Define la humedad ideal del cultivo para saber si está bien.";
+            };
+        }
+
         public static HumidityLevel of(BigDecimal value, BigDecimal min, BigDecimal max) {
             if (value == null || min == null || max == null) {
                 return NO_RANGE;
@@ -346,7 +360,8 @@ public final class Views {
             String level,
             String tone,
             String icon,
-            String label) {
+            String label,
+            String advice) {
 
         private static final java.time.format.DateTimeFormatter DAY_AND_TIME =
                 java.time.format.DateTimeFormatter.ofPattern("d MMM, HH:mm", java.util.Locale.forLanguageTag("es-CO"));
@@ -357,7 +372,7 @@ public final class Views {
                             + (reading.unit() != null ? " " + reading.unit() : "");
             return new HumidityRow(reading.recordedAt().toString(), DAY_AND_TIME.format(reading.recordedAt()),
                     reading.sensorCode(), measure, value, reading.level().name(), reading.level().tone(),
-                    reading.level().icon(), reading.level().label());
+                    reading.level().icon(), reading.level().label(), reading.level().advice(reading.type()));
         }
     }
 
@@ -403,7 +418,31 @@ public final class Views {
             BigDecimal tempMin,
             BigDecimal tempMax,
             List<SensorView> humiditySensors,
+            List<HumidityCard> cards,
             List<HumidityReading> readings) {
+    }
+
+    /**
+     * One humidity result of the ESP32, shown like a sensor card: its latest value, how it compares with the crop's ideal
+     * range and what that means. The sensor's code stays in the markup for the page's script, never in the text.
+     */
+    public record HumidityCard(SensorView sensor, HumidityLevel level, BigDecimal min, BigDecimal max) {
+
+        public boolean air() {
+            return sensor.type() == SensorType.RELATIVE_HUMIDITY;
+        }
+
+        public String where() {
+            return air() ? "En el aire alrededor de la planta" : "En la tierra del cultivo";
+        }
+
+        public String advice() {
+            return level.advice(sensor.type());
+        }
+
+        public boolean hasRange() {
+            return min != null && max != null;
+        }
     }
 
     public record SensorDetail(
