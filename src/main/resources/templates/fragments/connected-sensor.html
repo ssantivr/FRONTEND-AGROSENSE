@@ -48,8 +48,6 @@
                 <dd data-air-humidity-range th:text="${connected.airHumidityMin != null and connected.airHumidityMax != null} ? |${#numbers.formatDecimal(connected.airHumidityMin, 1, 1, 'COMMA')} – ${#numbers.formatDecimal(connected.airHumidityMax, 1, 1, 'COMMA')} %| : 'Sin definir'">60,0 – 85,0 %</dd>
                 <dt>Temperatura</dt>
                 <dd th:text="|${#numbers.formatDecimal(connected.tempMin, 1, 1, 'COMMA')} – ${#numbers.formatDecimal(connected.tempMax, 1, 1, 'COMMA')} °C|">15,0 – 35,0 °C</dd>
-                <dt>pH</dt>
-                <dd th:text="|${#numbers.formatDecimal(connected.phMin, 1, 1, 'COMMA')} – ${#numbers.formatDecimal(connected.phMax, 1, 1, 'COMMA')}|">5,5 – 7,0</dd>
             </dl>
             <p class="text-muted" th:if="${connected.airHumidityMin == null or connected.airHumidityMax == null}">
                 Sin rango de humedad del aire: esas lecturas se muestran sin calificar.

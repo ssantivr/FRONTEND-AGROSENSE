@@ -90,7 +90,6 @@
                             <dl class="crop-ranges">
                                 <div><dt>Humedad</dt><dd th:text="|${crop.humidityMin.stripTrailingZeros().toPlainString()} – ${crop.humidityMax.stripTrailingZeros().toPlainString()} %|">40 – 80 %</dd></div>
                                 <div><dt>Temperatura</dt><dd th:text="|${crop.tempMin.stripTrailingZeros().toPlainString()} – ${crop.tempMax.stripTrailingZeros().toPlainString()} °C|">15 – 35 °C</dd></div>
-                                <div><dt>pH</dt><dd th:text="|${crop.phMin.stripTrailingZeros().toPlainString()} – ${crop.phMax.stripTrailingZeros().toPlainString()}|">5,5 – 7</dd></div>
                                 <div th:if="${crop.sowingDate != null}"><dt>Siembra</dt><dd th:text="${#temporals.format(crop.sowingDate, 'd MMM yyyy')}">14 mar 2025</dd></div>
                             </dl>
                         </div>

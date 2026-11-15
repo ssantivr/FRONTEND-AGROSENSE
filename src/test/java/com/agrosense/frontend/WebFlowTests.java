@@ -228,6 +228,64 @@ class WebFlowTests {
     }
 
     @Test
+    void theApplicationOnlyOffersAndShowsWhatTheEsp32Measures() throws Exception {
+        mvc.perform(get("/sensores/nuevo").with(user(demoUser)))
+                .andExpect(content().string(containsString("value=\"SOIL_MOISTURE\"")))
+                .andExpect(content().string(containsString("value=\"AIR_TEMPERATURE\"")))
+                .andExpect(content().string(containsString("value=\"RELATIVE_HUMIDITY\"")))
+                .andExpect(content().string(not(containsString("value=\"PH\""))))
+                .andExpect(content().string(not(containsString("value=\"CONDUCTIVITY\""))))
+                .andExpect(content().string(not(containsString("value=\"LIGHT\""))));
+
+        Integer cropId = cropRepository.findByEstateUserEmailAndActiveTrueOrderByName(DEMO_EMAIL).get(0).getIdCrop();
+        mvc.perform(post("/sensores").with(user(demoUser)).with(csrf())
+                        .param("cropId", cropId.toString()).param("sensorCode", "as-778").param("sensorType", "PH"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("es lo que mide el ESP32")));
+        assertThat(sensorRepository.findBySensorCodeIgnoreCase("AS-778")).isEmpty();
+
+        // The demo's old pH (AS-003) and conductivity (AS-005) sensors stay stored but are shown nowhere.
+        assertThat(sensorRepository.findBySensorCodeIgnoreCase("AS-003")).isPresent();
+        mvc.perform(get("/sensores").with(user(demoUser)))
+                .andExpect(content().string(containsString("AS-001")))
+                .andExpect(content().string(containsString("AS-002")))
+                .andExpect(content().string(containsString("AS-007")))
+                .andExpect(content().string(not(containsString("AS-003"))))
+                .andExpect(content().string(not(containsString("AS-005"))));
+        mvc.perform(get("/").with(user(demoUser)))
+                .andExpect(content().string(containsString("Humedad relativa")))
+                .andExpect(content().string(not(containsString("Conductividad"))))
+                .andExpect(content().string(not(containsString("Luminosidad"))))
+                .andExpect(content().string(not(containsString("AS-003"))));
+        mvc.perform(get("/reportes").with(user(demoUser)))
+                .andExpect(content().string(not(containsString("AS-003"))))
+                .andExpect(content().string(not(containsString("AS-005"))));
+    }
+
+    @Test
+    void editingACropWithoutAPhFieldKeepsTheStoredPh() throws Exception {
+        // A pH stored before the form lost its pH fields, different from the form's old defaults (5.5–7.0).
+        Crop crop = cropRepository.findByEstateUserEmailAndActiveTrueOrderByName(DEMO_EMAIL).get(0);
+        crop.setPhMin(new java.math.BigDecimal("6.1"));
+        crop.setPhMax(new java.math.BigDecimal("6.9"));
+        crop = cropRepository.save(crop);
+
+        mvc.perform(get("/cultivos/{id}/editar", crop.getIdCrop()).with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("phMin"))));
+        mvc.perform(post("/cultivos/{id}", crop.getIdCrop()).with(user(demoUser)).with(csrf())
+                        .param("name", crop.getName()).param("stage", crop.getStage().name()).param("active", "true")
+                        .param("humidityMin", "41").param("humidityMax", "79")
+                        .param("tempMin", "12").param("tempMax", "31"))
+                .andExpect(status().is3xxRedirection());
+
+        Crop saved = cropRepository.findById(crop.getIdCrop()).orElseThrow();
+        assertThat(saved.getHumidityMin()).isEqualByComparingTo("41");
+        assertThat(saved.getPhMin()).isEqualByComparingTo("6.1");
+        assertThat(saved.getPhMax()).isEqualByComparingTo("6.9");
+    }
+
+    @Test
     void theSensorsPageShowsTheConnectedEsp32WithOnlyHumidityAndTheWholePlant() throws Exception {
         String page = mvc.perform(get("/sensores").with(user(demoUser)))
                 .andExpect(status().isOk())
@@ -718,7 +776,8 @@ class WebFlowTests {
 
         Integer cropId = cropRepository.findByEstateUserEmailAndActiveTrueOrderByName(DEMO_EMAIL).get(0).getIdCrop();
         mvc.perform(post("/sensores").with(user(demoUser)).with(csrf())
-                        .param("cropId", cropId.toString()).param("sensorCode", "as-777").param("sensorType", "PH")
+                        .param("cropId", cropId.toString()).param("sensorCode", "as-777")
+                        .param("sensorType", "RELATIVE_HUMIDITY")
                         .param("position.latitude", "1.2140").param("position.longitude", "-77.2810")
                         .param("position.coverageM", "25"))
                 .andExpect(redirectedUrl("/sensores"));
@@ -990,7 +1049,8 @@ class WebFlowTests {
                         .param("tempMin", "10").param("tempMax", "30").param("phMin", "5").param("phMax", "15"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("La humedad mínima debe ser menor que la máxima.")))
-                .andExpect(content().string(containsString("El pH debe estar entre 0 y 14.")));
+                // The ESP32 measures no pH: a pH sent anyway is not a field of the form and is never validated.
+                .andExpect(content().string(not(containsString("pH"))));
         mvc.perform(post("/parcelas/{id}/cultivos", estateId).with(user(demoUser)).with(csrf())
                         .param("name", "Maíz").param("stage", "GROWTH").param("active", "true")
                         .param("humidityMin", "40").param("humidityMax", "80")
@@ -1001,17 +1061,17 @@ class WebFlowTests {
 
         mvc.perform(post("/sensores").with(user(demoUser)).with(csrf())
                         .param("cropId", corn.getIdCrop().toString()).param("sensorCode", "as-001")
-                        .param("sensorType", "PH"))
+                        .param("sensorType", "SOIL_MOISTURE"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Ese código de sensor ya está en uso.")));
         mvc.perform(post("/sensores").with(user(demoUser)).with(csrf())
                         .param("cropId", corn.getIdCrop().toString()).param("sensorCode", "bad code!")
-                        .param("sensorType", "PH"))
+                        .param("sensorType", "SOIL_MOISTURE"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("El código solo admite letras")));
         mvc.perform(post("/sensores").with(user(demoUser)).with(csrf())
                         .param("cropId", corn.getIdCrop().toString()).param("sensorCode", "as-900")
-                        .param("sensorType", "PH").param("location", "Lote 3"))
+                        .param("sensorType", "AIR_TEMPERATURE").param("location", "Lote 3"))
                 .andExpect(redirectedUrl("/sensores"));
         mvc.perform(get("/sensores").with(user(demoUser)))
                 .andExpect(content().string(containsString("AS-900")));
@@ -1034,7 +1094,8 @@ class WebFlowTests {
         mvc.perform(post("/sensores/{id}/eliminar", foreign.getIdSensor()).with(user(demoUser)).with(csrf()))
                 .andExpect(status().isNotFound());
         mvc.perform(post("/sensores").with(user(demoUser)).with(csrf())
-                        .param("cropId", foreignCrop.toString()).param("sensorCode", "X-1").param("sensorType", "PH"))
+                        .param("cropId", foreignCrop.toString()).param("sensorCode", "X-1")
+                        .param("sensorType", "SOIL_MOISTURE"))
                 .andExpect(status().isNotFound());
 
         assertThat(estateRepository.findById(foreignEstate).orElseThrow().getName()).isEqualTo("Private estate");
@@ -1117,7 +1178,7 @@ class WebFlowTests {
         return sensorRepository.save(Sensor.builder()
                 .crop(crop)
                 .sensorCode("OTHER-001")
-                .sensorType(SensorType.PH)
+                .sensorType(SensorType.SOIL_MOISTURE)
                 .build());
     }
 }
