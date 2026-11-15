@@ -20,7 +20,7 @@ jobs:
   test:
     name: Test against a database branch
     if: github.event.action != 'closed'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check the Neon integration
         env:
@@ -79,7 +79,7 @@ jobs:
   delete:
     name: Delete the database branch
     if: github.event.action == 'closed'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Delete the database branch
         uses: neondatabase/delete-branch-action@v3
