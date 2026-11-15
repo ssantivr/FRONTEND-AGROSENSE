@@ -51,8 +51,8 @@
                 <div class="sensor-card-head">
                     <span class="stat-icon" aria-hidden="true"><i class="bi" th:classappend="${sensor.icon()}"></i></span>
                     <div>
-                        <h2><a class="link" th:href="@{/sensores/{id}(id=${sensor.id})}" th:text="${sensor.code}">AS-001</a></h2>
-                        <span class="text-muted" th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</span>
+                        <h2><a class="link" th:href="@{/sensores/{id}(id=${sensor.id})}" th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</a></h2>
+                        <span class="text-muted" th:text="${sensor.location != null} ? |${sensor.cropName} · ${sensor.location}| : ${sensor.cropName}">Café · Lote norte</span>
                     </div>
                     <span th:replace="~{fragments/status-pill :: sensor-status(${sensor})}"></span>
                 </div>
@@ -83,7 +83,7 @@
                         <span th:text="${sensor.placed()} ? 'Mover en el mapa' : 'Ubicar en el mapa'">Ubicar en el mapa</span>
                     </a>
                     <form th:action="@{/sensores/{id}/eliminar(id=${sensor.id})}" method="post"
-                          th:attr="data-confirm=|¿Eliminar el sensor ${sensor.code} y todas sus lecturas? No se puede deshacer.|">
+                          th:attr="data-confirm=|¿Eliminar el sensor de ${#strings.toLowerCase(#messages.msg('sensorType.' + sensor.type))} de ${sensor.cropName} y todas sus lecturas? No se puede deshacer.|">
                         <button type="submit" class="button button--ghost button--small button--danger-ghost">Eliminar</button>
                     </form>
                 </div>
@@ -95,8 +95,7 @@
                 <table class="table" id="sensorsTable" data-sortable>
                     <thead>
                     <tr>
-                        <th>Código</th>
-                        <th>Tipo</th>
+                        <th>Sensor</th>
                         <th>Cultivo</th>
                         <th>Finca</th>
                         <th>Ubicación</th>
@@ -109,8 +108,7 @@
                     <tbody>
                     <tr th:each="sensor : ${sensors}" data-search-row th:data-sensor-code="${sensor.code}"
                         th:attr="data-row-status=${sensor.status()}">
-                        <td th:text="${sensor.code}">AS-001</td>
-                        <td th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</td>
+                        <td><a class="link" th:href="@{/sensores/{id}(id=${sensor.id})}" th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</a></td>
                         <td th:text="${sensor.cropName}">Café</td>
                         <td th:text="${sensor.estateName}">Finca</td>
                         <td th:text="${sensor.location ?: '—'}">Lote norte</td>
@@ -122,7 +120,7 @@
                         </td>
                         <td>
                             <form th:action="@{/sensores/{id}/eliminar(id=${sensor.id})}" method="post"
-                                  th:attr="data-confirm=|¿Eliminar el sensor ${sensor.code} y todas sus lecturas? No se puede deshacer.|">
+                                  th:attr="data-confirm=|¿Eliminar el sensor de ${#strings.toLowerCase(#messages.msg('sensorType.' + sensor.type))} de ${sensor.cropName} y todas sus lecturas? No se puede deshacer.|">
                                 <button type="submit" class="button button--ghost button--small button--danger-ghost">Eliminar</button>
                             </form>
                         </td>
