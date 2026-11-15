@@ -5471,6 +5471,84 @@ kbd {
   text-align: right;
 }
 
+/* The irrigation page's day of humidity: one block per measure with now, the day's figures and time out of range. */
+.humidity-day {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.humidity-day-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.humidity-day-item {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.humidity-day-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.humidity-day-head h3 {
+  font-size: var(--text-h3);
+  line-height: var(--leading-h3);
+}
+
+.humidity-day-now {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.humidity-day-now strong {
+  font-size: 2.25rem;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.humidity-day-figures {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.humidity-day-figures dt {
+  color: var(--text-muted);
+  font-size: var(--text-small);
+}
+
+.humidity-day-figures dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.humidity-day-time {
+  font-weight: 600;
+}
+
+.humidity-day-advice,
+.humidity-day-ideal {
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
 /* Said only while the ESP32 stopped sending: warning tones from the tokens, the icon before the sentence. */
 .esp32-silence {
   display: flex;

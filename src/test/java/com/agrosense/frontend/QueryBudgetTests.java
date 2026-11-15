@@ -101,7 +101,8 @@ class QueryBudgetTests {
         budgets.put("/parcelas/1", 6);
         // 3 for the list, plus 2 for the connected ESP32: its crop with the estate, and its humidity readings.
         budgets.put("/sensores", 5);
-        budgets.put("/riego", 3);
+        // The day's humidity of the ESP32's crop adds three: the crop, its humidity sensors and their last 24 hours.
+        budgets.put("/riego", 6);
         budgets.put("/alertas", 2);
         budgets.put("/reportes", 7);
         budgets.put("/configuracion", 2);

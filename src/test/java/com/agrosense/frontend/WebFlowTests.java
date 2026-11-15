@@ -395,6 +395,27 @@ class WebFlowTests {
     }
 
     @Test
+    void theIrrigationPageShowsTheDaysHumidityOfTheEsp32sCropOnlyToItsOwner() throws Exception {
+        String page = mvc.perform(get("/riego").with(user(demoUser)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        String section = page.substring(page.indexOf("id=\"humidityDayTitle\""));
+        assertThat(section).contains("Humedad del día", "Las últimas 24 horas de Café · Finca La Esperanza",
+                ">Humedad del suelo</h3>", ">Humedad relativa</h3>", "Mínima", "Máxima", "Promedio", "ahora",
+                "Lo ideal: 40 – 80 %", "Lo ideal: 60 – 85 %", "medidas.", "data-humidity-chart")
+                .doesNotContain("AS-001", "AS-007", "ESP32-PLANTICAS");
+        // The chart's data and its library come with the page.
+        assertThat(page).contains("data-humidity-day-url=\"/api/ui/esp32/humidity/day\"", "/webjars/chart.js/",
+                "/js/esp32-humidity.js");
+
+        createOtherUsersSensor();
+        mvc.perform(get("/riego").with(user(userDetailsService.loadUserByUsername(OTHER_EMAIL))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("Humedad del día"))))
+                .andExpect(content().string(not(containsString("Finca La Esperanza"))));
+    }
+
+    @Test
     void theEsp32DayChartHasTheOwnersSoilAndAirHumidityWithTheirRanges() throws Exception {
         String page = mvc.perform(get("/sensores").with(user(demoUser)))
                 .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);

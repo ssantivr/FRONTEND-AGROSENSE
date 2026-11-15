@@ -395,6 +395,68 @@ public final class Views {
             List<HumidityPoint> points) {
     }
 
+    /** The ESP32's humidity of the last 24 hours and the crop it measures; what the irrigation page summarizes. */
+    public record HumidityDayReport(Integer cropId, String cropName, String estateName, List<HumiditySeries> series,
+            List<SensorType> types) {
+    }
+
+    /**
+     * One humidity measure over the last 24 hours, worded for deciding whether to irrigate: the value now, the day's
+     * lowest, highest and average, and how long it spent below and above the crop's ideal range.
+     */
+    public record HumidityDaySummary(SensorType type, String measure, BigDecimal now, BigDecimal lowest,
+            BigDecimal highest, BigDecimal average, BigDecimal idealMin, BigDecimal idealMax, int minutesMeasured,
+            int minutesLow, int minutesHigh) {
+
+        public HumidityLevel level() {
+            return HumidityLevel.of(now, idealMin, idealMax);
+        }
+
+        public String advice() {
+            return level().advice(type);
+        }
+
+        public boolean hasRange() {
+            return idealMin != null && idealMax != null;
+        }
+
+        /** "La tierra estuvo seca 18 h de 24 h medidas", or that it stayed inside the ideal range. */
+        public String timeOutside() {
+            if (minutesMeasured == 0) {
+                return "Sin lecturas en las últimas 24 horas.";
+            }
+            if (!hasRange()) {
+                return "Se midió durante " + duration(minutesMeasured) + ".";
+            }
+            boolean air = type == SensorType.RELATIVE_HUMIDITY;
+            String measured = " de " + duration(minutesMeasured) + " medidas.";
+            String allTheTime = " todo el tiempo medido (" + duration(minutesMeasured) + ").";
+            if (minutesLow == 0 && minutesHigh == 0) {
+                return "Estuvo dentro de lo ideal todo el tiempo medido (" + duration(minutesMeasured) + ").";
+            }
+            if (minutesHigh == 0) {
+                return (air ? "El aire estuvo seco" : "La tierra estuvo seca")
+                        + (minutesLow == minutesMeasured ? allTheTime : " " + duration(minutesLow) + measured);
+            }
+            if (minutesLow == 0) {
+                return (air ? "El aire estuvo muy húmedo" : "La tierra estuvo encharcada")
+                        + (minutesHigh == minutesMeasured ? allTheTime : " " + duration(minutesHigh) + measured);
+            }
+            return "Estuvo por debajo de lo ideal " + duration(minutesLow) + " y por encima " + duration(minutesHigh)
+                    + measured;
+        }
+
+        /** 45 min, 3 h, 3 h 15 min. */
+        public static String duration(int minutes) {
+            int hours = minutes / 60;
+            int rest = minutes % 60;
+            if (hours == 0) {
+                return rest + " min";
+            }
+            return rest == 0 ? hours + " h" : hours + " h " + rest + " min";
+        }
+    }
+
     /** The ESP32's humidity of the last 24 hours, averaged every {@code bucketMinutes}; empty when there is none. */
     public record HumidityDay(List<HumiditySeries> series, int bucketMinutes) {
     }

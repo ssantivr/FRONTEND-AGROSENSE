@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{fragments/layout :: layout('Riego', ~{::main}, null)}">
+      th:replace="~{fragments/layout :: layout('Riego', ~{::main}, 'esp32-humidity')}">
 <body>
 <main id="main" class="app-content" tabindex="-1" data-motion-stagger>
     <header class="hero hero--compact">
@@ -36,6 +36,49 @@
             </li>
         </ul>
     </section>
+    <section class="card humidity-day" aria-labelledby="humidityDayTitle" th:if="${humidityDay != null}"
+             th:attr="data-humidity-day-url=@{/api/ui/esp32/humidity/day}">
+        <div>
+            <h2 id="humidityDayTitle">Humedad del día</h2>
+            <p class="text-muted" th:text="|Las últimas 24 horas de ${humidityDay.cropName()} · ${humidityDay.estateName()}, medidas por tu ESP32. Te ayudan a decidir si regar.|">Las últimas 24 horas de Café · Finca La Esperanza, medidas por tu ESP32.</p>
+        </div>
+
+        <p class="text-muted" th:if="${humidityDaySummaries.isEmpty()}">Este cultivo aún no mide la humedad.</p>
+
+        <ul class="humidity-day-list" th:unless="${humidityDaySummaries.isEmpty()}">
+            <li class="humidity-day-item" th:each="day : ${humidityDaySummaries}" th:attr="data-level=${day.level()}">
+                <div class="humidity-day-head">
+                    <h3 th:text="${day.measure()}">Humedad del suelo</h3>
+                    <span th:replace="~{fragments/status-pill :: status-pill(${day.level().tone()}, ${day.level().icon()}, ${day.level().label()})}"></span>
+                </div>
+                <p class="humidity-day-now" th:if="${day.now() != null}">
+                    <strong th:text="|${#numbers.formatDecimal(day.now(), 1, 1, 'COMMA')} %|">32,5 %</strong>
+                    <span class="text-muted">ahora</span>
+                </p>
+                <dl class="humidity-day-figures" th:if="${day.now() != null}">
+                    <div><dt>Mínima</dt><dd th:text="|${#numbers.formatDecimal(day.lowest(), 1, 1, 'COMMA')} %|">31,9 %</dd></div>
+                    <div><dt>Máxima</dt><dd th:text="|${#numbers.formatDecimal(day.highest(), 1, 1, 'COMMA')} %|">33,0 %</dd></div>
+                    <div><dt>Promedio</dt><dd th:text="|${#numbers.formatDecimal(day.average(), 1, 1, 'COMMA')} %|">32,4 %</dd></div>
+                </dl>
+                <p class="humidity-day-time" th:text="${day.timeOutside()}">La tierra estuvo seca 18 h de las 24 h medidas.</p>
+                <p class="humidity-day-advice" th:if="${day.now() != null}" th:text="${day.advice()}">La tierra está seca: conviene regar.</p>
+                <p class="text-muted humidity-day-ideal" th:if="${day.hasRange()}"
+                   th:text="|Lo ideal: ${#numbers.formatDecimal(day.idealMin(), 1, 0, 'COMMA')} – ${#numbers.formatDecimal(day.idealMax(), 1, 0, 'COMMA')} %|">Lo ideal: 40 – 80 %</p>
+                <p class="text-muted humidity-day-ideal" th:unless="${day.hasRange()}">
+                    Sin humedad ideal definida.
+                    <a class="link" th:href="@{/cultivos/{id}/editar(id=${humidityDay.cropId()})}">Definirla en el cultivo</a>
+                </p>
+            </li>
+        </ul>
+
+        <th:block th:unless="${humidityDaySummaries.isEmpty()}">
+            <div class="chart skeleton" data-humidity-chart-box>
+                <canvas data-humidity-chart role="img" aria-label="Gráfica de la humedad de la tierra y del aire en las últimas 24 horas"></canvas>
+            </div>
+            <p class="chart-message" data-humidity-chart-message role="status" hidden></p>
+        </th:block>
+    </section>
+
     <section class="card" aria-labelledby="startTitle">
         <h2 id="startTitle">Registrar un riego manual</h2>
         <p class="text-muted">Anota el riego que vas a aplicar: AgroSense lo guarda en el historial y calcula el consumo de agua.</p>
