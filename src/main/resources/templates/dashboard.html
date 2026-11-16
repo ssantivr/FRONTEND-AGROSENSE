@@ -115,8 +115,8 @@
                             <span class="field-label">Sensor</span>
                             <select id="chartSensor">
                                 <option th:each="sensor : ${dashboard.chartSensors}" th:value="${sensor.id}"
-                                        th:text="|${sensor.code} · ${#messages.msg('sensorType.' + sensor.type)} · ${sensor.cropName}|">
-                                    AS-001
+                                        th:text="|${#messages.msg('sensorType.' + sensor.type)} · ${sensor.cropName}${sensor.location != null ? ' · ' + sensor.location : ''}|">
+                                    Humedad del suelo · Café
                                 </option>
                             </select>
                         </label>
@@ -281,7 +281,7 @@
                         <span class="stat-icon" aria-hidden="true"><i class="bi" th:classappend="${sensor.icon()}"></i></span>
                         <div class="reading-list-body">
                             <strong th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</strong>
-                            <span class="text-muted" th:text="|${sensor.code} · ${sensor.cropName}|">AS-001 · Café</span>
+                            <span class="text-muted" th:text="${sensor.location != null} ? |${sensor.cropName} · ${sensor.location}| : ${sensor.cropName}">Café · Lote norte</span>
                         </div>
                         <div class="reading-list-value">
                             <strong data-live-value th:attr="data-unit=${sensor.unit}" th:classappend="${sensor.lastValue == null} ? 'text-muted'"

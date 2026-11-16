@@ -178,6 +178,23 @@ class WebFlowTests {
     }
 
     @Test
+    void theHomeAndReportsNameEachSensorByWhatItMeasuresAndItsCropNeverByItsCode() throws Exception {
+        String home = page("/");
+        String chart = home.substring(home.indexOf("id=\"chartSensor\""), home.indexOf("</select>"));
+        assertThat(chart).contains(">Humedad del suelo · Café · Lote norte</option>",
+                ">Temperatura del aire · Café · Lote norte</option>").doesNotContain("AS-0");
+        String live = home.substring(home.indexOf("id=\"liveTitle\""));
+        assertThat(live).contains(">Café · Lote norte</span>").doesNotContain(">AS-0", "AS-001 · ");
+
+        String reports = page("/reportes");
+        String table = reports.substring(reports.indexOf("id=\"sensorReportTable\""));
+        assertThat(table).contains("<th>Sensor</th>", "<strong>Humedad del suelo</strong>")
+                .doesNotContain("<th>Mide</th>", ">AS-0");
+        assertThat(java.nio.file.Files.readString(java.nio.file.Path.of("src/main/ts/dashboard.ts")))
+                .as("the chart's legend").doesNotContain("series.sensorCode");
+    }
+
+    @Test
     void liveEventsAreWiredIntoEveryPageAndOffWithoutTheEventService() throws Exception {
         mvc.perform(get("/sensores").with(user(demoUser)))
                 .andExpect(status().isOk())
