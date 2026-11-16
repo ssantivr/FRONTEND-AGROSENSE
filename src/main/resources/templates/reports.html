@@ -145,7 +145,6 @@
                     <thead>
                     <tr>
                         <th>Sensor</th>
-                        <th>Mide</th>
                         <th>Cultivo</th>
                         <th class="numeric">Mínimo</th>
                         <th class="numeric">Promedio</th>
@@ -156,9 +155,8 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:each="sensor : ${report.sensors}" data-search-row>
-                        <td><strong th:text="${sensor.code}">AS-001</strong></td>
-                        <td class="cell-soft" th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</td>
+                    <tr th:each="sensor : ${report.sensors}" data-search-row th:attr="data-sensor-code=${sensor.code}">
+                        <td><strong th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</strong></td>
                         <td class="cell-soft" th:text="|${sensor.cropName} · ${sensor.estateName}|">Café · Finca</td>
                         <td class="numeric" th:text="|${#numbers.formatDecimal(sensor.min, 1, 1, 'COMMA')} ${sensor.unit ?: ''}|">39,0 %</td>
                         <td class="numeric"><strong th:text="|${#numbers.formatDecimal(sensor.average, 1, 1, 'COMMA')} ${sensor.unit ?: ''}|">52,0 %</strong></td>

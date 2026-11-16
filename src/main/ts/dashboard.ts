@@ -88,6 +88,8 @@ function renderReadings(series: ReadingSeries): void {
   const canvas = find('readingsChart', HTMLCanvasElement);
   if (!canvas) return;
   const unit = series.unit ?? '';
+  // The legend names the sensor as the selector does, by what it measures and its crop, never by its code.
+  const name = find('chartSensor', HTMLSelectElement)?.selectedOptions[0]?.textContent?.trim() || 'Lecturas';
   const values = series.points.map((point) => point.value);
   const lines: ThresholdLine[] = [];
   if (series.thresholdMin !== null) {
@@ -113,7 +115,7 @@ function renderReadings(series: ReadingSeries): void {
       labels: series.points.map((point) => labelFormat.format(new Date(point.recordedAt))),
       datasets: [
         {
-          label: unit === '' ? series.sensorCode : `${series.sensorCode} (${unit})`,
+          label: unit === '' ? name : `${name} (${unit})`,
           data: values,
           borderColor: token('--chart-1'),
           backgroundColor: token('--chart-fill'),
