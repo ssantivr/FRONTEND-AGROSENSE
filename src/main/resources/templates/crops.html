@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout('Cultivos', ~{::main}, null)}">
+<body>
+<main id="main" class="app-content" tabindex="-1" data-motion-stagger>
+    <div class="page-toolbar">
+        <header th:replace="~{fragments/page-header :: page-header('Cultivos', 'Lo que siembras en cada parcela, su etapa y lo que dicen sus sensores.')}"></header>
+        <a class="button" th:href="@{/parcelas}" th:if="${cropTotal > 0}">
+            <i class="bi bi-plus-lg" aria-hidden="true"></i> Agregar cultivo
+        </a>
+    </div>
+
+    <section class="card" th:if="${cropTotal == 0}">
+        <div th:replace="~{fragments/empty-state :: empty-state-action('bi-flower1', 'Aún no tienes cultivos',
+            'Los cultivos se registran dentro de una parcela. Crea o abre una parcela y agrega su primer cultivo.',
+            '/parcelas', 'Ir a mis parcelas')}"></div>
+    </section>
+
+    <form class="card filter-bar" th:if="${cropTotal > 0}" th:action="@{/cultivos}" method="get" role="search"
+          aria-label="Buscar y filtrar cultivos">
+        <label class="field filter-bar-search">
+            <span class="field-label">Buscar</span>
+            <span class="field-with-icon">
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <input type="search" name="q" th:value="${filter.query}" autocomplete="off" enterkeyhint="search"
+                       aria-describedby="cropCount">
+            </span>
+        </label>
+        <label class="field">
+            <span class="field-label">Etapa</span>
+            <select name="etapa">
+                <option value="">Todas</option>
+                <option th:each="stage : ${stages}" th:value="${stage}" th:text="#{${'cropStage.' + stage}}"
+                        th:selected="${filter.stage == stage}">Floración</option>
+            </select>
+        </label>
+        <label class="field">
+            <span class="field-label">Parcela</span>
+            <select name="parcela">
+                <option value="">Todas</option>
+                <option th:each="estate : ${estates}" th:value="${estate.id}" th:text="${estate.name}"
+                        th:selected="${filter.estateId == estate.id}">Finca</option>
+            </select>
+        </label>
+        <label class="field">
+            <span class="field-label">Ordenar por</span>
+            <select name="orden">
+                <option value="nombre" th:selected="${filter.order == 'nombre'}">Nombre</option>
+                <option value="siembra" th:selected="${filter.order == 'siembra'}">Siembra más reciente</option>
+                <option value="alertas" th:selected="${filter.order == 'alertas'}">Más alertas</option>
+            </select>
+        </label>
+        <div class="filter-bar-actions">
+            <button type="submit" class="button">Aplicar</button>
+            <a class="button button--ghost" th:href="@{/cultivos}" th:if="${filter.active()}">Quitar filtros</a>
+        </div>
+    </form>
+
+    <p class="result-count" id="cropCount" role="status" th:if="${cropTotal > 0}"
+       th:text="${crops.size() == cropTotal} ? (${cropTotal == 1} ? '1 cultivo' : |${cropTotal} cultivos|) : |${crops.size()} de ${cropTotal} cultivos|">3 cultivos</p>
+
+    <section class="card" th:if="${cropTotal > 0 and crops.isEmpty()}">
+        <div th:replace="~{fragments/empty-state :: empty-state('bi-search', 'Ningún cultivo coincide',
+            'Prueba con otra palabra o quita alguno de los filtros.')}"></div>
+    </section>
+
+    <ul class="crop-grid" th:if="${!crops.isEmpty()}">
+        <li th:each="card : ${crops}" th:with="crop=${card.crop}">
+            <article class="card crop-card" th:classappend="|crop-card--${card.health()}|">
+                <header class="crop-card-head">
+                    <span class="crop-avatar" th:classappend="|crop-tone-${crop.tone()}|" aria-hidden="true" th:text="${crop.initial()}">C</span>
+                    <div class="crop-card-title">
+                        <h2><a class="stretched-link" th:href="@{/cultivos/{id}(id=${crop.id})}" th:text="${crop.name}">Café</a></h2>
+                        <p class="text-muted" th:text="${crop.variety ?: 'Variedad sin registrar'}">Castillo</p>
+                    </div>
+                    <th:block th:switch="${card.health()}">
+                        <th:block th:case="'attention'"><span th:replace="~{fragments/status-pill :: status-pill('warning', 'bi-exclamation-circle',
+                            ${card.openAlerts == 1 ? '1 alerta' : card.openAlerts + ' alertas'})}"></span></th:block>
+                        <th:block th:case="'inactive'"><span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-pause-circle', 'Inactivo')}"></span></th:block>
+                        <th:block th:case="'unmonitored'"><span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-broadcast', 'Sin sensores')}"></span></th:block>
+                        <th:block th:case="*"><span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-check-circle', 'Sin alertas')}"></span></th:block>
+                    </th:block>
+                </header>
+
+                <dl class="crop-card-meta">
+                    <div>
+                        <dt>Etapa</dt>
+                        <dd th:text="${crop.stage != null} ? #{${'cropStage.' + crop.stage}} : 'Sin registrar'">Floración</dd>
+                    </div>
+                    <div>
+                        <dt>Siembra</dt>
+                        <dd th:text="${crop.sowingDate != null} ? ${#temporals.format(crop.sowingDate, 'd MMM yyyy')} : 'Sin registrar'">8 abr 2025</dd>
+                    </div>
+                    <div class="crop-card-meta-wide">
+                        <dt>Parcela</dt>
+                        <dd th:text="${card.location != null} ? |${card.estateName} · ${card.location}| : ${card.estateName}">Finca La Esperanza · Pasto</dd>
+                    </div>
+                </dl>
+
+                <ul class="crop-card-readings" th:if="${!card.readings().isEmpty()}"
+                    aria-label="Lo que miden sus sensores">
+                    <li th:each="sensor : ${card.readings()}">
+                        <i class="bi" th:classappend="${sensor.icon()}" aria-hidden="true"></i>
+                        <span class="crop-card-reading-label" th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</span>
+                        <strong th:if="${sensor.showsValue()}" th:attr="data-sensor-code=${sensor.code}">
+                            <span data-live-value th:attr="data-unit=${sensor.unit}"
+                                  th:text="|${#numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA')} ${sensor.unit}|">55,8 %</span>
+                        </strong>
+                        <span class="text-muted" th:unless="${sensor.showsValue()}">Sin lecturas</span>
+                    </li>
+                </ul>
+                <p class="crop-card-readings text-muted" th:if="${card.readings().isEmpty()}">Sin sensores activados</p>
+
+                <p class="crop-card-foot">
+                    <span>Ver detalle</span>
+                    <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                </p>
+            </article>
+        </li>
+    </ul>
+</main>
+</body>
+</html>

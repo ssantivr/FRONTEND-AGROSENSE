@@ -1,15 +1,19 @@
-// Settings page: browser-level preferences and the account deletion dialog.
 import { isSidebarCollapsed, setSidebarCollapsed } from './app.js';
-import { find } from './core/dom.js';
+import { find, setReducedMotion } from './core/dom.js';
 
 const sidebarPreference = find('prefSidebarCollapsed', HTMLInputElement);
 if (sidebarPreference) {
   sidebarPreference.checked = isSidebarCollapsed();
   sidebarPreference.addEventListener('change', () => setSidebarCollapsed(sidebarPreference.checked));
-  // Keep the checkbox in step with the top bar button.
   find('sidebarToggle', HTMLButtonElement)?.addEventListener('click', () => {
     sidebarPreference.checked = isSidebarCollapsed();
   });
+}
+
+const motionPreference = find('prefReduceMotion', HTMLInputElement);
+if (motionPreference) {
+  motionPreference.checked = document.documentElement.classList.contains('reduce-motion');
+  motionPreference.addEventListener('change', () => setReducedMotion(motionPreference.checked));
 }
 
 const modal = find('deleteAccountModal', HTMLDialogElement);

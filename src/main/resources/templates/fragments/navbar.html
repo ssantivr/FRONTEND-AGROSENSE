@@ -24,9 +24,30 @@
 
     <time class="topbar-clock" id="clock" aria-label="Fecha y hora actuales"></time>
 
+    <span class="live-status" id="liveStatus" th:data-token-url="@{/api/ui/events/token}" role="status"
+          data-state="live" title="En vivo" hidden>
+        <span class="live-status-dot" aria-hidden="true"></span>
+        <span data-live-label>En vivo</span>
+    </span>
+
+    <span class="connection-status" id="backendStatus" role="status" aria-live="polite"
+          th:with="state=${backendStatus == null ? 'off' : backendStatus.state.name().toLowerCase()}"
+          th:attr="data-state=${state},data-status-url=@{/api/ui/backend-status}"
+          th:title="${state == 'up'} ? 'Las operaciones pasan por el servidor de AgroSense.'
+                  : (${state == 'waking'} ? 'El servidor estaba dormido. Mientras despierta, los datos se leen directamente de la base de datos compartida.'
+                  : (${state == 'down'} ? 'El servidor no responde: los datos se leen directamente de la base de datos compartida (respaldo).'
+                  : (${state == 'off'} ? 'Sin servidor configurado: los datos se leen directamente de la base de datos.' : 'Comprobando el servidor…')))">
+        <span class="connection-status-dot" aria-hidden="true"></span>
+        <span class="connection-status-label" data-connection-label
+              th:text="${state == 'up'} ? 'Servidor conectado'
+                     : (${state == 'waking'} ? 'Despertando el servidor, puede tardar hasta un minuto…'
+                     : (${state == 'down'} ? 'Respaldo: base de datos directa'
+                     : (${state == 'off'} ? 'Modo local: base de datos' : 'Comprobando el servidor…')))">Comprobando el servidor…</span>
+    </span>
+
     <div th:replace="~{fragments/brand :: theme-toggle}"></div>
 
-    <a class="icon-button topbar-alerts" th:href="@{/alertas}"
+    <a class="icon-button topbar-alerts" id="topbarAlerts" th:href="@{/alertas}"
        th:attr="aria-label=${openAlertCount != null and openAlertCount > 0} ? |${openAlertCount} alertas sin atender| : 'Sin alertas pendientes'">
         <i class="bi bi-bell" aria-hidden="true"></i>
         <span class="topbar-dot" th:if="${openAlertCount != null and openAlertCount > 0}" aria-hidden="true"></span>

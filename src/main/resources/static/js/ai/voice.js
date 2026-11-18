@@ -1,6 +1,3 @@
-// Voice for the assistant: recording a question with the microphone and reading an answer aloud.
-// Both features are optional in browsers; each one says whether it is available and never throws for lack of it.
-/** Containers browsers can record, in order of preference; the server accepts all of them. */
 const RECORDING_TYPES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
 export class RecordingError extends Error {
     reason;
@@ -11,22 +8,15 @@ export class RecordingError extends Error {
     }
 }
 export const canRecord = () => typeof MediaRecorder !== 'undefined' && typeof navigator.mediaDevices?.getUserMedia === 'function';
-/** One recording at a time: start it, then stop it to get the audio, or cancel it to throw the audio away. */
 export class VoiceRecorder {
     recorder = null;
     stream = null;
     chunks = [];
     limit;
-    /** Changes on every cancel, so a start that was still asking for the microphone knows it is not wanted. */
     generation = 0;
     get recording() {
         return this.recorder?.state === 'recording';
     }
-    /**
-     * Asks for the microphone and starts recording. `onLimit` runs when the recording reaches `maxMs`,
-     * so the caller can stop and send it instead of letting it grow. Resolves with false, and with the
-     * microphone released, when the recording was cancelled while the browser was asking for permission.
-     */
     async start(maxMs, onLimit) {
         if (!canRecord())
             throw new RecordingError('unsupported');
@@ -67,7 +57,6 @@ export class VoiceRecorder {
             throw new RecordingError('failed');
         }
     }
-    /** Ends the recording and resolves with the audio. The microphone is released either way. */
     stop() {
         const recorder = this.recorder;
         if (!recorder || recorder.state === 'inactive') {
@@ -90,7 +79,6 @@ export class VoiceRecorder {
             recorder.stop();
         });
     }
-    /** Stops without keeping anything. Safe to call when nothing is being recorded. */
     cancel() {
         this.generation++;
         const recorder = this.recorder;
@@ -99,7 +87,6 @@ export class VoiceRecorder {
                 recorder.stop();
             }
             catch {
-                // Already stopping: the tracks are released below.
             }
         }
         this.release();
@@ -114,12 +101,10 @@ export class VoiceRecorder {
     }
 }
 export const canSpeak = () => typeof window.speechSynthesis !== 'undefined' && typeof SpeechSynthesisUtterance !== 'undefined';
-/** Stops whatever is being read aloud. */
 export function stopSpeaking() {
     if (canSpeak())
         window.speechSynthesis.cancel();
 }
-/** Reads the text aloud in Spanish, replacing anything still being read. Does nothing where unsupported. */
 export function speak(text) {
     if (!canSpeak() || text.trim() === '')
         return;
@@ -127,7 +112,6 @@ export function speak(text) {
     synthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'es-ES';
-    // Without a Spanish voice installed the browser's default reads it; the language tag still guides it.
     const voice = synthesis.getVoices().find((candidate) => candidate.lang.toLowerCase().startsWith('es'));
     if (voice) {
         utterance.voice = voice;

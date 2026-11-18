@@ -24,14 +24,14 @@
 <main id="main">
     <section class="landing-hero on-panel">
         <img class="hero-photo" alt="" width="1600" height="1062" fetchpriority="high" decoding="async"
-             th:src="@{/img/photos/narino-fields-960.jpg}"
-             th:srcset="@{/img/photos/narino-fields-960.jpg} + ' 960w, ' + @{/img/photos/narino-fields-1600.jpg} + ' 1600w'"
+             th:src="@{/img/photos/narino-fields-960.webp}"
+             th:srcset="@{/img/photos/narino-fields-960.webp} + ' 960w, ' + @{/img/photos/narino-fields-1600.webp} + ' 1600w'"
              sizes="100vw">
         <div class="landing-hero-body" data-motion="fade-up">
             <p class="eyebrow">Agricultura de precisión</p>
             <h1>Tecnología que cultiva un mejor futuro.</h1>
             <p class="landing-lead">
-                Sigue la humedad, la temperatura y el pH de tus cultivos, registra cada riego y recibe una alerta
+                Sigue la humedad del suelo, la del aire y la temperatura de tus cultivos, registra cada riego y recibe una alerta
                 cuando algo se sale de rango. Todo sobre el mapa de tu parcela.
             </p>
             <div class="row-actions">
@@ -48,7 +48,7 @@
             <li class="card">
                 <span class="stat-icon mini-icon" aria-hidden="true"><i class="bi bi-broadcast"></i></span>
                 <h3>Lecturas de tus sensores</h3>
-                <p>Humedad del suelo, temperatura, pH, conductividad y luz de cada cultivo, con su tendencia de las últimas 24 horas.</p>
+                <p>Humedad del suelo, temperatura del aire y humedad relativa de cada cultivo, medidas por un ESP32, con su tendencia de las últimas 24 horas.</p>
             </li>
             <li class="card">
                 <span class="stat-icon mini-icon" aria-hidden="true"><i class="bi bi-droplet"></i></span>
@@ -89,7 +89,7 @@
         <h2 id="stepsTitle">Empieza en tres pasos</h2>
         <ol class="landing-steps">
             <li><span class="stepper-number" aria-hidden="true">1</span><h3>Dibuja tu parcela</h3><p>Marca sus esquinas en el mapa; el área se calcula sola.</p></li>
-            <li><span class="stepper-number" aria-hidden="true">2</span><h3>Registra tus cultivos</h3><p>Con los rangos de humedad, temperatura y pH que les convienen.</p></li>
+            <li><span class="stepper-number" aria-hidden="true">2</span><h3>Registra tus cultivos</h3><p>Con los rangos de humedad del suelo, humedad del aire y temperatura que les convienen.</p></li>
             <li><span class="stepper-number" aria-hidden="true">3</span><h3>Ubica tus sensores</h3><p>Colócalos en el mapa e indica cuánto terreno cubre cada uno.</p></li>
         </ol>
         <a class="button button--large" th:href="@{/registro}">Crear cuenta</a>

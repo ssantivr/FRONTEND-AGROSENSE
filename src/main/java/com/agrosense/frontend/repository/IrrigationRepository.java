@@ -24,6 +24,10 @@ public interface IrrigationRepository extends JpaRepository<Irrigation, Integer>
     List<Irrigation> findByCropEstateIdEstateAndCropEstateUserEmailOrderByStartedAtDesc(Integer idEstate, String email,
             Limit limit);
 
+    @EntityGraph(attributePaths = {"crop", "crop.estate"})
+    List<Irrigation> findByCropIdCropAndCropEstateUserEmailOrderByStartedAtDesc(Integer idCrop, String email,
+            Limit limit);
+
     List<Irrigation> findByCropIdCropOrderByStartedAtDesc(Integer idCrop);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
@@ -40,7 +44,6 @@ public interface IrrigationRepository extends JpaRepository<Irrigation, Integer>
     @Query("delete from Irrigation i where i.crop.idCrop = :idCrop")
     void deleteByCrop(@Param("idCrop") Integer idCrop);
 
-    /** Keeps irrigations a user started on someone else's crop, without the reference to that user. */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update Irrigation i set i.activatedBy = null where i.activatedBy.idUser = :idUser")
     void clearActivatedBy(@Param("idUser") Integer idUser);

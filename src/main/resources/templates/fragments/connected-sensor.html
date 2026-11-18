@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- The ESP32's humidity inside the Sensors page, shown like the sensor list: results in plain words, no device codes. -->
+<section id="sensor-esp32" class="esp32-section" aria-labelledby="esp32Title"
+         th:fragment="connected-sensor(connected, deviceCode)"
+         th:attr="data-humidity-url=@{/api/ui/esp32/humidity},data-humidity-day-url=@{/api/ui/esp32/humidity/day},data-newest-at=${connected != null and !connected.readings.isEmpty()} ? ${connected.readings[0].recordedAt} : ''">
+    <header class="esp32-head">
+        <span class="stat-icon" aria-hidden="true"><i class="bi bi-moisture"></i></span>
+        <div>
+            <h2 id="esp32Title">Humedad de tu cultivo en vivo</h2>
+            <p class="text-muted" th:if="${connected != null}"
+               th:text="|${connected.cropName} · ${connected.estateName} · medida por tu ESP32 cada minuto|">Café · Finca La Esperanza · medida por tu ESP32 cada minuto</p>
+        </div>
+    </header>
+
+    <section class="card" th:if="${connected == null}">
+        <div th:replace="~{fragments/empty-state :: empty-state('bi-cpu', 'Aún no hay un ESP32 en tus cultivos',
+            'Cuando tu placa envíe la humedad de uno de tus cultivos, aquí verás sus resultados.')}"></div>
+    </section>
+
+    <th:block th:if="${connected != null}">
+        <p class="esp32-silence" data-esp32-silence role="status" aria-live="polite" th:hidden="${!esp32Silence.silent()}">
+            <i class="bi bi-wifi-off" aria-hidden="true"></i>
+            <span data-esp32-silence-text th:text="${esp32Silence.text()}">Sin datos del ESP32 desde las 14:32 (hace 12 minutos).</span>
+        </p>
+
+        <th:block th:if="${connected.cards.isEmpty()}">
+            <div th:replace="~{fragments/empty-state :: empty-state('bi-moisture', 'Este cultivo aún no mide la humedad',
+                'Agrega un sensor de humedad del suelo o del aire al cultivo para ver aquí sus resultados.')}"></div>
+        </th:block>
+
+        <ul class="sensor-cards" th:unless="${connected.cards.isEmpty()}">
+            <li class="card sensor-card esp32-card" th:each="card : ${connected.cards}"
+                th:attr="data-humidity-card=${card.sensor().code()},data-level=${card.level()}">
+                <div class="sensor-card-head">
+                    <span class="stat-icon" aria-hidden="true"><i class="bi" th:classappend="${card.sensor().icon()}"></i></span>
+                    <div>
+                        <h3 th:text="#{${'sensorType.' + card.sensor().type()}}">Humedad del suelo</h3>
+                        <span class="text-muted" th:text="${card.where()}">En la tierra del cultivo</span>
+                    </div>
+                    <span data-humidity-pill>
+                        <span th:replace="~{fragments/status-pill :: status-pill(${card.level().tone()}, ${card.level().icon()}, ${card.level().label()})}"></span>
+                    </span>
+                </div>
+                <p class="sensor-card-value" th:if="${card.sensor().lastValue() != null}">
+                    <span data-humidity-last th:text="${#numbers.formatDecimal(card.sensor().lastValue(), 1, 1, 'COMMA')}">32,1</span>
+                    <span class="stat-unit">%</span>
+                </p>
+                <p class="sensor-card-value sensor-card-value--empty" th:if="${card.sensor().lastValue() == null}">Sin lecturas</p>
+                <p class="esp32-card-advice" data-humidity-advice th:text="${card.advice()}">La tierra está seca: conviene regar.</p>
+                <p class="sensor-card-age" th:if="${card.sensor().lastReadingAt() != null}">
+                    <i class="bi bi-clock" aria-hidden="true"></i>
+                    <span data-humidity-time th:text="|Última lectura ${card.sensor().lastReadingAgo()}|">Última lectura hace un momento</span>
+                </p>
+                <dl class="sensor-card-meta">
+                    <dt><i class="bi bi-bullseye" aria-hidden="true"></i><span class="visually-hidden">Lo ideal</span></dt>
+                    <dd th:if="${card.hasRange()}"
+                        th:text="|Lo ideal: ${#numbers.formatDecimal(card.min(), 1, 0, 'COMMA')} – ${#numbers.formatDecimal(card.max(), 1, 0, 'COMMA')} %|">Lo ideal: 40 – 80 %</dd>
+                    <dd th:unless="${card.hasRange()}">
+                        Sin humedad ideal definida.
+                        <a class="link" th:href="@{/cultivos/{id}/editar(id=${connected.cropId})}">Definirla en el cultivo</a>
+                    </dd>
+                </dl>
+            </li>
+        </ul>
+
+        <div class="detail-grid">
+            <section class="card detail-wide" aria-labelledby="humidityDayTitle" th:unless="${connected.cards.isEmpty()}">
+                <h3 id="humidityDayTitle">Las últimas 24 horas</h3>
+                <p class="text-muted">Las líneas punteadas marcan la humedad ideal de cada medida. Si la línea se corta, en ese rato no llegaron datos.</p>
+                <div class="chart skeleton" data-humidity-chart-box>
+                    <canvas data-humidity-chart role="img" aria-label="Gráfica de la humedad de la tierra y del aire en las últimas 24 horas"></canvas>
+                </div>
+                <p class="chart-message" data-humidity-chart-message role="status" hidden></p>
+            </section>
+
+            <section class="card" aria-labelledby="plantTitle">
+                <h3 id="plantTitle">Tu cultivo</h3>
+                <dl class="sensor-card-meta esp32-plant">
+                    <dt><i class="bi bi-flower1" aria-hidden="true"></i><span class="visually-hidden">Cultivo</span></dt>
+                    <dd>
+                        <a class="link" th:href="@{/cultivos/{id}(id=${connected.cropId})}" th:text="${connected.cropName}">Café</a>
+                        <span th:if="${connected.variety != null}" th:text="| ${connected.variety}|"> Castillo</span>
+                        <span class="text-muted" th:text="|· #{${'cropStage.' + connected.stage}}|">· Floración</span>
+                    </dd>
+                    <th:block th:if="${connected.sowingDate != null}">
+                        <dt><i class="bi bi-calendar3" aria-hidden="true"></i><span class="visually-hidden">Siembra</span></dt>
+                        <dd th:text="|Sembrado el ${#temporals.format(connected.sowingDate, 'd MMM yyyy')}|">Sembrado el 8 abr 2025</dd>
+                    </th:block>
+                    <dt><i class="bi bi-geo-alt" aria-hidden="true"></i><span class="visually-hidden">Parcela</span></dt>
+                    <dd>
+                        <a class="link" th:href="@{/parcelas/{id}(id=${connected.estateId})}" th:text="${connected.estateName}">Finca La Esperanza</a>
+                        <span class="text-muted" th:if="${connected.estateLocation != null}" th:text="|· ${connected.estateLocation}|">· Pasto, Nariño</span>
+                    </dd>
+                    <th:block th:if="${connected.areaHa != null}">
+                        <dt><i class="bi bi-bounding-box" aria-hidden="true"></i><span class="visually-hidden">Área</span></dt>
+                        <dd th:text="|${#numbers.formatDecimal(connected.areaHa, 1, 1, 'COMMA')} ha|">12,5 ha</dd>
+                    </th:block>
+                    <dt><i class="bi bi-thermometer-half" aria-hidden="true"></i><span class="visually-hidden">Temperatura ideal</span></dt>
+                    <dd th:text="|Temperatura ideal: ${#numbers.formatDecimal(connected.tempMin, 1, 0, 'COMMA')} – ${#numbers.formatDecimal(connected.tempMax, 1, 0, 'COMMA')} °C|">Temperatura ideal: 15 – 35 °C</dd>
+                </dl>
+            </section>
+
+            <section class="card" aria-labelledby="humidityTitle">
+                <h3 id="humidityTitle">Últimas lecturas</h3>
+                <p class="text-muted" data-humidity-updated role="status" aria-live="polite">Se actualiza solo cada 30 segundos.</p>
+                <p class="text-muted" th:if="${connected.readings.isEmpty()}">Aún no llegan lecturas de humedad.</p>
+                <ol class="humidity-log" data-humidity-list th:unless="${connected.readings.isEmpty()}">
+                    <li th:each="reading : ${connected.readings}" th:attr="data-level=${reading.level}">
+                        <time th:datetime="${reading.recordedAt}" th:text="${#temporals.format(reading.recordedAt, 'HH:mm')}">16:43</time>
+                        <span class="humidity-log-what" th:text="#{${'sensorType.' + reading.type}}">Humedad del suelo</span>
+                        <strong class="humidity-log-value" th:text="${reading.value != null} ? |${#numbers.formatDecimal(reading.value, 1, 1, 'COMMA')} %| : '—'">32,1 %</strong>
+                        <span th:replace="~{fragments/status-pill :: status-pill(${reading.level.tone()}, ${reading.level.icon()}, ${reading.level.label()})}"></span>
+                    </li>
+                </ol>
+            </section>
+        </div>
+    </th:block>
+</section>
+</body>
+</html>

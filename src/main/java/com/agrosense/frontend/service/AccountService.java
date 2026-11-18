@@ -26,7 +26,6 @@ public class AccountService {
 
     public static final String DEFAULT_ROLE = "farmer";
 
-    /** Deliberately vague, so the form does not confirm which e-mail addresses are registered. */
     private static final String REGISTRATION_REJECTED =
             "No pudimos crear la cuenta con esos datos. Si ya tienes una, inicia sesión.";
 
@@ -44,7 +43,6 @@ public class AccountService {
     @Transactional
     public void register(RegistrationForm form) {
         String email = form.getEmail().trim().toLowerCase(Locale.ROOT);
-        // The backend creates the account when it is answering; its refusals (409, 400) reach the form as they are.
         if (backendClient.attempt(() -> backendClient.register(form.getName(), form.getLastName(), email,
                 form.getPassword())).isPresent()) {
             return;
@@ -61,12 +59,10 @@ public class AccountService {
                     .role(DEFAULT_ROLE)
                     .build());
         } catch (DataIntegrityViolationException exception) {
-            // Two simultaneous sign-ups with the same e-mail: the unique constraint rejects the second.
             throw new BusinessRuleException(REGISTRATION_REJECTED);
         }
     }
 
-    /** Asks the backend, and the database while the backend is not answering. */
     @Transactional(readOnly = true)
     public boolean isEmailAvailable(String email) {
         String normalized = email.trim().toLowerCase(Locale.ROOT);
@@ -80,7 +76,6 @@ public class AccountService {
         return new ProfileView(user.getName(), user.getLastName(), user.getEmail(), user.getCreatedAt());
     }
 
-    /** Permanently removes the account and everything it owns, after re-checking the password. */
     @Transactional
     public void deleteAccount(String email, String rawPassword) {
         User user = findUser(email);
@@ -90,7 +85,6 @@ public class AccountService {
         if (rawPassword == null || !passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
             throw new BusinessRuleException("La contraseña no es correcta.");
         }
-        // Rows that reference crops and sensors have no cascade, so they are removed first.
         readingRepository.deleteByOwner(email);
         alertRepository.deleteByOwner(email);
         irrigationRepository.deleteByOwner(email);

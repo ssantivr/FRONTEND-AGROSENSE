@@ -14,13 +14,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import java.util.Locale;
 import java.util.Optional;
 
-/**
- * Signs in through the backend API, so its limit on failed attempts also protects this form. While the
- * backend is not configured or not answering it returns {@code null} and the database provider decides.
- *
- * <p>A lock (429) arrives as a {@code LockedException}, which stops the sign-in at once; wrong credentials
- * (401) are checked again against the same database by the next provider and fail there too.
- */
 @RequiredArgsConstructor
 public class BackendAuthenticationProvider implements AuthenticationProvider {
 
@@ -35,7 +28,6 @@ public class BackendAuthenticationProvider implements AuthenticationProvider {
         try {
             accepted = backendClient.attempt(() -> backendClient.signIn(email, password));
         } catch (BusinessRuleException exception) {
-            // The backend refused the request itself, for example an e-mail that is not one.
             throw new BadCredentialsException("Rejected by the backend API");
         }
         if (accepted.isEmpty()) {

@@ -33,12 +33,10 @@ public class Sensor {
 
     private String location;
 
-    /** Where the sensor stands; null until it is placed on the map. */
     private BigDecimal latitude;
 
     private BigDecimal longitude;
 
-    /** Radius, in metres, of the ground the readings are taken to describe. */
     @Column(name = "coverage_m")
     private Integer coverageM;
 

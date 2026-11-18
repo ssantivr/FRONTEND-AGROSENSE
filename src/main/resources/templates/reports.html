@@ -6,7 +6,6 @@
     <div class="page-toolbar">
         <header th:replace="~{fragments/page-header :: page-header('Reportes', 'El agua aplicada, lo que midieron los sensores y las alertas del periodo.')}"></header>
         <div class="row-actions no-print">
-            <!-- The period applies to the whole page; each option is a link, so it works without scripts. -->
             <nav class="segmented" aria-label="Periodo del reporte">
                 <a class="segmented-option" th:each="period : ${periods}" th:href="@{/reportes(dias=${period})}"
                    th:attr="aria-current=${period == report.days} ? 'true' : null"
@@ -39,7 +38,6 @@
             'bi-bell', false, null, null)}"></article>
     </section>
 
-    <!-- ---------- Water ---------- -->
     <section class="report-block" aria-labelledby="waterBlockTitle">
         <h2 class="report-block-title" id="waterBlockTitle"><i class="bi bi-droplet" aria-hidden="true"></i> Agua</h2>
 
@@ -49,7 +47,6 @@
                  '/riego', 'Registrar un riego')}"></div>
         </div>
 
-        <!-- The charts draw from data-charts (reports.ts); the table below carries the same figures as text. -->
         <div class="report-grid" id="reportCharts" th:if="${!report.byCrop.isEmpty()}" th:attr="data-charts=${chartsJson}">
             <section class="card report-wide" aria-labelledby="dailyTitle">
                 <h3 id="dailyTitle" th:text="${report.days == 0} ? 'Agua por día, últimos 90 días (L)' : |Agua por día, últimos ${report.days} días (L)|">Agua por día</h3>
@@ -131,7 +128,6 @@
         </section>
     </section>
 
-    <!-- ---------- Sensors ---------- -->
     <section class="report-block" aria-labelledby="sensorBlockTitle">
         <h2 class="report-block-title" id="sensorBlockTitle"><i class="bi bi-broadcast" aria-hidden="true"></i> Sensores</h2>
         <section class="card" aria-labelledby="sensorReportTitle">
@@ -149,7 +145,6 @@
                     <thead>
                     <tr>
                         <th>Sensor</th>
-                        <th>Mide</th>
                         <th>Cultivo</th>
                         <th class="numeric">Mínimo</th>
                         <th class="numeric">Promedio</th>
@@ -160,9 +155,8 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:each="sensor : ${report.sensors}" data-search-row>
-                        <td><strong th:text="${sensor.code}">AS-001</strong></td>
-                        <td class="cell-soft" th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</td>
+                    <tr th:each="sensor : ${report.sensors}" data-search-row th:attr="data-sensor-code=${sensor.code}">
+                        <td><strong th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</strong></td>
                         <td class="cell-soft" th:text="|${sensor.cropName} · ${sensor.estateName}|">Café · Finca</td>
                         <td class="numeric" th:text="|${#numbers.formatDecimal(sensor.min, 1, 1, 'COMMA')} ${sensor.unit ?: ''}|">39,0 %</td>
                         <td class="numeric"><strong th:text="|${#numbers.formatDecimal(sensor.average, 1, 1, 'COMMA')} ${sensor.unit ?: ''}|">52,0 %</strong></td>
@@ -182,7 +176,6 @@
         </section>
     </section>
 
-    <!-- ---------- Alerts ---------- -->
     <section class="report-block" aria-labelledby="alertBlockTitle">
         <h2 class="report-block-title" id="alertBlockTitle"><i class="bi bi-bell" aria-hidden="true"></i> Alertas</h2>
         <section class="card" aria-labelledby="alertReportTitle">

@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{fragments/layout :: layout('Sensores', ~{::main}, null)}">
+      th:replace="~{fragments/layout :: layout('Sensores', ~{::main}, 'esp32-humidity')}">
 <body>
 <main id="main" class="app-content" tabindex="-1" data-motion-stagger>
     <div class="page-toolbar">
         <header th:replace="~{fragments/page-header :: page-header('Sensores', 'Sensores instalados y su última lectura recibida.')}"></header>
         <div class="row-actions">
-            <!-- Cards or table; tables.ts remembers the choice in this browser. -->
             <div class="segmented" role="group" aria-label="Vista" th:if="${!sensors.isEmpty()}" data-view-toggle="sensorsView">
                 <button type="button" class="segmented-option" data-view="cards" aria-pressed="true">
                     <i class="bi bi-grid" aria-hidden="true"></i> Tarjetas
@@ -18,6 +17,7 @@
             <button type="button" class="button button--ghost" data-export-csv="sensorsTable" data-filename="sensores">
                 <i class="bi bi-download" aria-hidden="true"></i> Exportar CSV
             </button>
+            <a class="button button--ghost" href="#sensor-esp32"><i class="bi bi-moisture" aria-hidden="true"></i> Humedad del ESP32</a>
             <a class="button" th:href="@{/sensores/nuevo}"><i class="bi bi-plus-lg" aria-hidden="true"></i> Nuevo sensor</a>
         </div>
     </div>
@@ -28,33 +28,48 @@
             '/sensores/nuevo', 'Registrar tu primer sensor')}"></div>
     </section>
 
-    <!-- Both views hold the same sensors; data-view on this element decides which one shows. -->
+    <div class="chip-row" role="group" aria-label="Filtrar por estado" data-row-filters th:if="${!sensors.isEmpty()}">
+        <button type="button" class="chip-link" data-row-filter="" aria-pressed="true">Todos</button>
+        <button type="button" class="chip-link" data-row-filter="ONLINE" aria-pressed="false">En línea</button>
+        <button type="button" class="chip-link" data-row-filter="STALE" aria-pressed="false">Desactualizados</button>
+        <button type="button" class="chip-link" data-row-filter="OFFLINE" aria-pressed="false">Sin conexión</button>
+        <button type="button" class="chip-link" data-row-filter="ERROR" aria-pressed="false">Con error</button>
+        <button type="button" class="chip-link" data-row-filter="NO_DATA" aria-pressed="false">Sin datos</button>
+        <span class="text-muted chip-row-count" data-row-filter-count role="status" aria-live="polite"></span>
+    </div>
+    <p class="note" th:if="${!sensors.isEmpty()}">
+        <i class="bi bi-info-circle" aria-hidden="true"></i>
+        Los valores son la <strong>última lectura conocida</strong> de cada sensor. Se marcan «en vivo» solo cuando llega
+        una lectura nueva mientras ves esta página.
+    </p>
+
     <div id="sensorsView" data-view="cards" th:if="${!sensors.isEmpty()}">
         <ul class="sensor-cards" data-view-panel="cards">
-            <li class="card sensor-card" th:each="sensor : ${sensors}" data-search-row
-                th:classappend="${!sensor.active} ? 'sensor-card--inactive' : (${sensor.lastValue == null} ? 'sensor-card--empty' : '')">
+            <li class="card sensor-card" th:each="sensor : ${sensors}" data-search-row th:data-sensor-code="${sensor.code}"
+                th:attr="data-row-status=${sensor.status()}"
+                th:classappend="|sensor-card--${#strings.toLowerCase(sensor.status())}|">
                 <div class="sensor-card-head">
                     <span class="stat-icon" aria-hidden="true"><i class="bi" th:classappend="${sensor.icon()}"></i></span>
                     <div>
-                        <h2 th:text="${sensor.code}">AS-001</h2>
-                        <span class="text-muted" th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</span>
+                        <h2><a class="link" th:href="@{/sensores/{id}(id=${sensor.id})}" th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</a></h2>
+                        <span class="text-muted" th:text="${sensor.location != null} ? |${sensor.cropName} · ${sensor.location}| : ${sensor.cropName}">Café · Lote norte</span>
                     </div>
-                    <th:block th:if="${sensor.active}"><span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-check-circle-fill', 'Activo')}"></span></th:block>
-                    <th:block th:unless="${sensor.active}"><span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-dash-circle', 'Inactivo')}"></span></th:block>
+                    <span th:replace="~{fragments/status-pill :: sensor-status(${sensor})}"></span>
                 </div>
                 <p class="sensor-card-value" th:if="${sensor.lastValue != null}">
-                    <span th:text="${#numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA')}">52,0</span>
+                    <span data-live-value th:text="${#numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA')}">52,0</span>
                     <span class="stat-unit" th:text="${sensor.unit}">%</span>
                 </p>
                 <p class="sensor-card-value sensor-card-value--empty" th:if="${sensor.lastValue == null}">Sin lecturas</p>
+                <p class="sensor-card-hint" data-live-hint th:unless="${sensor.status().reporting()}" th:with="status=${sensor.status()}" th:text="#{${'sensorStatusHint.' + status}(${sensorThresholds.staleAfterText()},${sensorThresholds.offlineAfterText()})}">No envía datos desde hace más de 1 hora.</p>
                 <p class="sensor-card-age" th:if="${sensor.lastValue != null and sensor.lastReadingAt != null}">
                     <i class="bi bi-clock" aria-hidden="true"></i>
-                    <time th:datetime="${sensor.lastReadingAt}" th:title="${#temporals.format(sensor.lastReadingAt, 'd MMM yyyy, HH:mm')}"
+                    <time data-live-time="ago" th:datetime="${sensor.lastReadingAt}" th:title="${#temporals.format(sensor.lastReadingAt, 'd MMM yyyy, HH:mm')}"
                           th:text="|Última lectura ${sensor.lastReadingAgo()}|">Última lectura hace 3 h</time>
                 </p>
                 <dl class="sensor-card-meta">
                     <dt><i class="bi bi-flower1" aria-hidden="true"></i><span class="visually-hidden">Cultivo</span></dt>
-                    <dd th:text="|${sensor.cropName} · ${sensor.estateName}|">Café · Finca</dd>
+                    <dd><a class="link" th:href="@{/cultivos/{id}(id=${sensor.cropId})}" th:text="|${sensor.cropName} · ${sensor.estateName}|">Café · Finca</a></dd>
                     <th:block th:if="${sensor.location != null}">
                         <dt><i class="bi bi-geo-alt" aria-hidden="true"></i><span class="visually-hidden">Ubicación</span></dt>
                         <dd th:text="${sensor.location}">Lote norte</dd>
@@ -68,7 +83,7 @@
                         <span th:text="${sensor.placed()} ? 'Mover en el mapa' : 'Ubicar en el mapa'">Ubicar en el mapa</span>
                     </a>
                     <form th:action="@{/sensores/{id}/eliminar(id=${sensor.id})}" method="post"
-                          th:attr="data-confirm=|¿Eliminar el sensor ${sensor.code} y todas sus lecturas? No se puede deshacer.|">
+                          th:attr="data-confirm=|¿Eliminar el sensor de ${#strings.toLowerCase(#messages.msg('sensorType.' + sensor.type))} de ${sensor.cropName} y todas sus lecturas? No se puede deshacer.|">
                         <button type="submit" class="button button--ghost button--small button--danger-ghost">Eliminar</button>
                     </form>
                 </div>
@@ -77,37 +92,35 @@
 
         <section class="card" data-view-panel="table">
             <div class="table-scroll">
-                <table class="table" id="sensorsTable">
+                <table class="table" id="sensorsTable" data-sortable>
                     <thead>
                     <tr>
-                        <th>Código</th>
-                        <th>Tipo</th>
+                        <th>Sensor</th>
                         <th>Cultivo</th>
                         <th>Finca</th>
                         <th>Ubicación</th>
-                        <th class="numeric">Última lectura</th>
+                        <th class="numeric">Última lectura conocida</th>
                         <th>Recibida</th>
                         <th>Estado</th>
                         <th data-no-export>Acciones</th>
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:each="sensor : ${sensors}" data-search-row>
-                        <td th:text="${sensor.code}">AS-001</td>
-                        <td th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</td>
+                    <tr th:each="sensor : ${sensors}" data-search-row th:data-sensor-code="${sensor.code}"
+                        th:attr="data-row-status=${sensor.status()}">
+                        <td><a class="link" th:href="@{/sensores/{id}(id=${sensor.id})}" th:text="#{${'sensorType.' + sensor.type}}">Humedad del suelo</a></td>
                         <td th:text="${sensor.cropName}">Café</td>
                         <td th:text="${sensor.estateName}">Finca</td>
                         <td th:text="${sensor.location ?: '—'}">Lote norte</td>
-                        <td class="numeric"
+                        <td class="numeric" data-live-value th:data-unit="${sensor.unit}"
                             th:text="${sensor.lastValue != null ? #numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA') + ' ' + sensor.unit : '—'}">52,0 %</td>
-                        <td th:text="${sensor.lastReadingAt != null ? #temporals.format(sensor.lastReadingAt, 'd MMM, HH:mm') : '—'}">8 oct, 10:00</td>
+                        <td data-live-time="date" th:attr="data-sort=${sensor.lastReadingAt}" th:text="${sensor.lastReadingAt != null ? #temporals.format(sensor.lastReadingAt, 'd MMM, HH:mm') : '—'}">8 oct, 10:00</td>
                         <td>
-                            <th:block th:if="${sensor.active}"><span th:replace="~{fragments/status-pill :: status-pill('success', 'bi-check-circle-fill', 'Activo')}"></span></th:block>
-                            <th:block th:unless="${sensor.active}"><span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-dash-circle', 'Inactivo')}"></span></th:block>
+                            <span th:replace="~{fragments/status-pill :: sensor-status(${sensor})}"></span>
                         </td>
                         <td>
                             <form th:action="@{/sensores/{id}/eliminar(id=${sensor.id})}" method="post"
-                                  th:attr="data-confirm=|¿Eliminar el sensor ${sensor.code} y todas sus lecturas? No se puede deshacer.|">
+                                  th:attr="data-confirm=|¿Eliminar el sensor de ${#strings.toLowerCase(#messages.msg('sensorType.' + sensor.type))} de ${sensor.cropName} y todas sus lecturas? No se puede deshacer.|">
                                 <button type="submit" class="button button--ghost button--small button--danger-ghost">Eliminar</button>
                             </form>
                         </td>
@@ -117,6 +130,8 @@
             </div>
         </section>
     </div>
+
+    <section th:replace="~{fragments/connected-sensor :: connected-sensor(${connected}, ${deviceCode})}"></section>
 </main>
 </body>
 </html>

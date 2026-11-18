@@ -1,23 +1,26 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{fragments/layout :: layout('Riego', ~{::main}, null)}">
+      th:replace="~{fragments/layout :: layout('Riego', ~{::main}, 'esp32-humidity')}">
 <body>
 <main id="main" class="app-content" tabindex="-1" data-motion-stagger>
     <header class="hero hero--compact">
         <img th:replace="~{fragments/page-header :: hero-photo('pivot')}">
         <div class="hero-body">
             <h1>Riego</h1>
-            <p>Registra un riego manual y consulta el historial.</p>
+            <p>Consulta el estado de los riegos, registra los que apliques y revisa el historial.</p>
         </div>
     </header>
 
-    <!-- Irrigations under way: how far along each one is and how long is left (app.ts counts it down). -->
-    <section class="card running-card" aria-labelledby="runningTitle" th:if="${!running.isEmpty()}">
-        <h2 id="runningTitle" th:text="${running.size() == 1} ? 'Riego en curso' : |${running.size()} riegos en curso|">Riego en curso</h2>
-        <ul class="running-list">
+    <section class="card running-card" aria-labelledby="runningTitle">
+        <h2 id="runningTitle" th:text="${running.isEmpty()} ? 'Estado actual' : (${running.size() == 1} ? 'Riego en curso' : |${running.size()} riegos en curso|)">Riego en curso</h2>
+        <p class="running-empty" th:if="${running.isEmpty()}">
+            <span th:replace="~{fragments/status-pill :: status-pill('neutral', 'bi-pause-circle', 'Sin riego en curso')}"></span>
+            <span class="text-muted">No hay riegos registrados en este momento.</span>
+        </p>
+        <ul class="running-list" th:unless="${running.isEmpty()}">
             <li class="running-item" th:each="irrigation : ${running}" data-countdown
                 th:attr="data-remaining=${irrigation.remainingSeconds()},data-total=${irrigation.totalSeconds()}">
-                <span class="pump-icon" aria-hidden="true"><i class="bi bi-water"></i></span>
+                <span class="pump-icon" aria-hidden="true"><i class="bi bi-water"></i><span class="pump-drops"><i></i><i></i><i></i></span></span>
                 <div class="running-body">
                     <div class="running-head">
                         <strong th:text="|${irrigation.cropName} · ${irrigation.estateName}|">Café · Finca</strong>
@@ -33,13 +36,57 @@
             </li>
         </ul>
     </section>
+    <section class="card humidity-day" aria-labelledby="humidityDayTitle" th:if="${humidityDay != null}"
+             th:attr="data-humidity-day-url=@{/api/ui/esp32/humidity/day}">
+        <div>
+            <h2 id="humidityDayTitle">Humedad del día</h2>
+            <p class="text-muted" th:text="|Las últimas 24 horas de ${humidityDay.cropName()} · ${humidityDay.estateName()}, medidas por tu ESP32. Te ayudan a decidir si regar.|">Las últimas 24 horas de Café · Finca La Esperanza, medidas por tu ESP32.</p>
+        </div>
+
+        <p class="text-muted" th:if="${humidityDaySummaries.isEmpty()}">Este cultivo aún no mide la humedad.</p>
+
+        <ul class="humidity-day-list" th:unless="${humidityDaySummaries.isEmpty()}">
+            <li class="humidity-day-item" th:each="day : ${humidityDaySummaries}" th:attr="data-level=${day.level()}">
+                <div class="humidity-day-head">
+                    <h3 th:text="${day.measure()}">Humedad del suelo</h3>
+                    <span th:replace="~{fragments/status-pill :: status-pill(${day.level().tone()}, ${day.level().icon()}, ${day.level().label()})}"></span>
+                </div>
+                <p class="humidity-day-now" th:if="${day.now() != null}">
+                    <strong th:text="|${#numbers.formatDecimal(day.now(), 1, 1, 'COMMA')} %|">32,5 %</strong>
+                    <span class="text-muted">ahora</span>
+                </p>
+                <dl class="humidity-day-figures" th:if="${day.now() != null}">
+                    <div><dt>Mínima</dt><dd th:text="|${#numbers.formatDecimal(day.lowest(), 1, 1, 'COMMA')} %|">31,9 %</dd></div>
+                    <div><dt>Máxima</dt><dd th:text="|${#numbers.formatDecimal(day.highest(), 1, 1, 'COMMA')} %|">33,0 %</dd></div>
+                    <div><dt>Promedio</dt><dd th:text="|${#numbers.formatDecimal(day.average(), 1, 1, 'COMMA')} %|">32,4 %</dd></div>
+                </dl>
+                <p class="humidity-day-time" th:text="${day.timeOutside()}">La tierra estuvo seca 18 h de las 24 h medidas.</p>
+                <p class="humidity-day-advice" th:if="${day.now() != null}" th:text="${day.advice()}">La tierra está seca: conviene regar.</p>
+                <p class="text-muted humidity-day-ideal" th:if="${day.hasRange()}"
+                   th:text="|Lo ideal: ${#numbers.formatDecimal(day.idealMin(), 1, 0, 'COMMA')} – ${#numbers.formatDecimal(day.idealMax(), 1, 0, 'COMMA')} %|">Lo ideal: 40 – 80 %</p>
+                <p class="text-muted humidity-day-ideal" th:unless="${day.hasRange()}">
+                    Sin humedad ideal definida.
+                    <a class="link" th:href="@{/cultivos/{id}/editar(id=${humidityDay.cropId()})}">Definirla en el cultivo</a>
+                </p>
+            </li>
+        </ul>
+
+        <th:block th:unless="${humidityDaySummaries.isEmpty()}">
+            <div class="chart skeleton" data-humidity-chart-box>
+                <canvas data-humidity-chart role="img" aria-label="Gráfica de la humedad de la tierra y del aire en las últimas 24 horas"></canvas>
+            </div>
+            <p class="chart-message" data-humidity-chart-message role="status" hidden></p>
+        </th:block>
+    </section>
+
     <section class="card" aria-labelledby="startTitle">
-        <h2 id="startTitle">Iniciar riego manual</h2>
+        <h2 id="startTitle">Registrar un riego manual</h2>
+        <p class="text-muted">Anota el riego que vas a aplicar: AgroSense lo guarda en el historial y calcula el consumo de agua.</p>
 
         <p class="text-muted" th:if="${cropOptions.isEmpty()}">No tienes cultivos activos para regar.</p>
 
         <form th:if="${!cropOptions.isEmpty()}" class="form-grid form-grid--wide" th:action="@{/riego}" method="post"
-              th:object="${irrigationForm}" data-confirm="¿Registrar el inicio de este riego?" novalidate>
+              th:object="${irrigationForm}" data-confirm="¿Registrar este riego? AgroSense lo anotará en el historial; no enciende la bomba ni abre válvulas." novalidate>
             <p class="form-alert form-alert--error" role="alert" th:if="${#fields.hasGlobalErrors()}"
                th:each="error : ${#fields.globalErrors()}">
                 <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
@@ -54,7 +101,7 @@
             </label>
             <label class="field">
                 <span class="field-label">Duración (minutos)</span>
-                <input type="number" th:field="*{durationMin}" min="1" max="240"
+                <input type="number" th:field="*{durationMin}" min="1" th:max="${relayActuator ? 5 : 240}"
                        th:attr="aria-invalid=${#fields.hasErrors('durationMin')}">
                 <span class="field-error" th:if="${#fields.hasErrors('durationMin')}" th:errors="*{durationMin}">Error</span>
             </label>
@@ -65,12 +112,13 @@
                 <span class="field-error" th:if="${#fields.hasErrors('waterLiters')}" th:errors="*{waterLiters}">Error</span>
             </label>
             <button type="submit" class="button">
-                <i class="bi bi-play-fill" aria-hidden="true"></i> Iniciar riego
+                <i class="bi bi-journal-plus" aria-hidden="true"></i> Registrar riego
             </button>
         </form>
         <p class="note">
             <i class="bi bi-info-circle" aria-hidden="true"></i>
-            El riego queda registrado en el sistema. El control de la bomba física aún no está disponible.
+            <span th:unless="${relayActuator}">Modo simulado: registrar un riego no cambia nada en el campo.</span>
+            <span th:if="${relayActuator}">Modo relé: la orden llega al dispositivo en su próximo envío y se admiten hasta 5 minutos. El historial se corrige con lo que la bomba funcionó de verdad; una orden rechazada o caducada queda sin agua.</span>
         </p>
     </section>
 
@@ -96,7 +144,6 @@
              'Aún no hay riegos registrados.')}"></div></th:block>
 
         <div id="irrigationView" data-view="cards" th:if="${!irrigations.isEmpty()}">
-            <!-- One block per day, newest first. The bar compares the day's litres with the busiest day. -->
             <div class="timeline" data-view-panel="cards">
                 <section class="timeline-day" th:each="day : ${irrigationDays}">
                     <div class="day-head">

@@ -36,7 +36,6 @@ public class EstateForm {
     @Digits(integer = 3, fraction = 7, message = "La longitud admite hasta 7 decimales.")
     private BigDecimal longitude;
 
-    /** Outline drawn on the map, as JSON; see {@link Boundary}. Empty when none was drawn. */
     private String boundary;
 
     @AssertTrue(message = "El contorno debe tener entre 3 y 200 puntos válidos.")

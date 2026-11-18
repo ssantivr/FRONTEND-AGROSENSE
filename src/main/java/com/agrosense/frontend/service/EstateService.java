@@ -39,7 +39,6 @@ public class EstateService {
                 .toList();
     }
 
-    /** Estates that have coordinates and can therefore be drawn on the map. */
     public List<EstateMarker> findMarkers(String email) {
         return cardsOf(findEstates(email), sensorService.findSensors(email), alertService.countOpenByEstate(email))
                 .stream()
@@ -47,10 +46,6 @@ public class EstateService {
                 .toList();
     }
 
-    /**
-     * Every estate as the dashboard shows it, with or without coordinates, from estates that were already
-     * read. {@code sensors} are all the user's sensors; {@code openAlerts} counts open alerts by estate id.
-     */
     public List<EstateMarker> cardsOf(List<EstateView> estates, List<SensorView> sensors,
             Map<Integer, Integer> openAlerts) {
         Map<Integer, List<SensorView>> byEstate = sensors.stream().collect(Collectors.groupingBy(SensorView::estateId));
@@ -73,7 +68,6 @@ public class EstateService {
                 .toList();
     }
 
-    /** The active crops of estates that were already read, labelled and ordered like findActiveCropOptions. */
     public List<CropOption> activeCropOptionsOf(List<EstateView> estates) {
         return estates.stream()
                 .flatMap(estate -> estate.crops().stream()
@@ -117,7 +111,6 @@ public class EstateService {
                 estate.getLatitude(),
                 estate.getLongitude(),
                 crops,
-                // Stored through Boundary, so it parses; null when the estate has no outline.
                 estate.getBoundary() == null ? null : Boundary.parse(estate.getBoundary()).corners());
     }
 
@@ -134,6 +127,8 @@ public class EstateService {
                 crop.getTempMax(),
                 crop.getPhMin(),
                 crop.getPhMax(),
+                crop.getAirHumidityMin(),
+                crop.getAirHumidityMax(),
                 Boolean.TRUE.equals(crop.getActive()));
     }
 }

@@ -1,6 +1,3 @@
-/* AgroSense visual layer. Bootstrap is only used for its grid; everything visible is styled here.
-   Colours, sizes and timings come from tokens.css, so both themes share every rule below. */
-
 *,
 *::before,
 *::after {
@@ -77,8 +74,8 @@ code {
 }
 
 :focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
+  outline: var(--focus-width) solid var(--focus-ring);
+  outline-offset: var(--focus-offset);
 }
 
 .text-muted {
@@ -125,15 +122,12 @@ code {
   top: var(--space-3);
 }
 
-/* While the theme is being switched, colours cross-fade; nothing else is transitioned. */
 .theme-transition *,
 .theme-transition *::before,
 .theme-transition *::after {
-  transition: background-color 200ms var(--ease-in-out), color 200ms var(--ease-in-out),
-    border-color 200ms var(--ease-in-out) !important;
+  transition: background-color var(--motion-base) var(--ease-in-out), color var(--motion-base) var(--ease-in-out),
+    border-color var(--motion-base) var(--ease-in-out) !important;
 }
-
-/* ---------- Brand ---------- */
 
 .brand-mark {
   flex: none;
@@ -193,13 +187,11 @@ code {
   line-height: 1;
 }
 
-/* The second half of the name, in the accent colour: "Agro" + "Sense". */
 .brand-logo-accent {
   color: var(--mark-accent);
   font-weight: 600;
 }
 
-/* Draw-in: the vein is traced, then the four sensor nodes appear one after another. Runs once. */
 .brand-mark--draw .brand-mark-vein {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
@@ -226,7 +218,6 @@ code {
   animation-delay: calc(var(--motion-hero) * 0.6 + var(--stagger) * 3);
 }
 
-/* One soft pulse of the nodes when the logo is hovered; the logo itself never rotates or bounces. */
 .brand-logo:hover .brand-mark-node {
   animation: node-pulse var(--motion-hero) var(--ease-in-out) 1;
 }
@@ -249,8 +240,6 @@ code {
     transform: scale(1.35);
   }
 }
-
-/* ---------- Motion utilities: data-motion="fade-up", data-motion-delay="2", data-motion-stagger ---------- */
 
 @keyframes fade-in {
   from {
@@ -340,18 +329,6 @@ code {
   animation-delay: calc(var(--stagger) * 6);
 }
 
-/* Page changes cross-fade where the browser supports it, and the sidebar marker slides to the new item. */
-@view-transition {
-  navigation: auto;
-}
-
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: 180ms;
-}
-
-/* ---------- Shell ---------- */
-
 .app-shell {
   display: grid;
   grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
@@ -383,8 +360,6 @@ code {
   outline: none;
 }
 
-/* ---------- Sidebar ---------- */
-
 .sidebar {
   position: sticky;
   top: 0;
@@ -399,7 +374,6 @@ code {
   border-right: 1px solid var(--panel-border);
   background: var(--panel);
   color: var(--panel-text);
-  view-transition-name: sidebar;
 }
 
 .sidebar :focus-visible {
@@ -482,7 +456,6 @@ code {
   width: 4px;
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   background: var(--highlight);
-  view-transition-name: nav-marker;
 }
 
 .sidebar-badge {
@@ -528,8 +501,6 @@ code {
   display: none;
 }
 
-/* ---------- Top bar ---------- */
-
 .topbar {
   position: sticky;
   top: 0;
@@ -541,7 +512,6 @@ code {
   padding: 0 var(--space-6);
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  view-transition-name: topbar;
 }
 
 .topbar form {
@@ -594,6 +564,73 @@ code {
 .topbar-alerts {
   position: relative;
   text-decoration: none;
+}
+
+.live-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--text-small);
+  white-space: nowrap;
+}
+
+.live-status[hidden] {
+  display: none;
+}
+
+.live-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--status-success);
+}
+
+.live-status[data-state='reconnecting'] .live-status-dot {
+  background: var(--status-warning);
+}
+
+.live-status[data-state='offline'] {
+  color: var(--status-danger-text);
+}
+
+.live-status[data-state='offline'] .live-status-dot {
+  background: var(--status-danger);
+}
+
+@media (max-width: 479px) {
+  .topbar .live-status {
+    padding: var(--space-2);
+  }
+
+  .topbar .live-status [data-live-label] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+.is-live-updated {
+  animation: live-updated var(--motion-slow) var(--ease-out);
+}
+
+@keyframes live-updated {
+  from {
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  to {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-status-dot,
+  .is-live-updated {
+    animation: none;
+  }
 }
 
 .topbar-dot {
@@ -667,14 +704,12 @@ code {
   transform: scale(0.94);
 }
 
-/* ---------- Theme switch ---------- */
-
 .theme-toggle {
   position: relative;
   display: inline-grid;
-  grid-template-columns: repeat(3, 40px);
+  grid-template-columns: repeat(3, var(--touch-target));
   flex: none;
-  padding: 3px;
+  padding: 2px;
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   background: var(--surface-sunken);
@@ -685,43 +720,55 @@ code {
   z-index: 1;
   display: grid;
   place-items: center;
-  height: 36px;
+  height: 38px;
   padding: 0;
   border: 0;
   border-radius: var(--radius-pill);
   background: transparent;
   color: var(--text-muted);
-  font-size: 1rem;
+  font-size: var(--icon-sm);
   cursor: pointer;
+  transition: color var(--motion-fast) var(--ease-out);
 }
 
-[data-theme='premium'] .theme-toggle-option[data-theme-value='premium'],
-[data-theme='dark'] .theme-toggle-option[data-theme-value='dark'],
-[data-theme='mono'] .theme-toggle-option[data-theme-value='mono'] {
+.theme-toggle-option:hover,
+.theme-toggle-option[aria-checked='true'] {
   color: var(--text);
 }
 
 .theme-toggle-thumb {
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 40px;
-  height: 36px;
+  top: 2px;
+  left: 2px;
+  width: var(--touch-target);
+  height: 38px;
   border-radius: var(--radius-pill);
   background: var(--surface);
   box-shadow: var(--shadow-1);
   transition: transform var(--motion-base) var(--ease-in-out);
 }
 
-[data-theme='dark'] .theme-toggle-thumb {
-  transform: translateX(40px);
+[data-theme-preference='dark'] .theme-toggle-thumb {
+  transform: translateX(var(--touch-target));
 }
 
-[data-theme='mono'] .theme-toggle-thumb {
-  transform: translateX(80px);
+[data-theme-preference='system'] .theme-toggle-thumb {
+  transform: translateX(calc(var(--touch-target) * 2));
 }
 
-/* ---------- Cards and headers ---------- */
+.on-panel .theme-toggle {
+  border-color: var(--panel-border);
+  background: var(--panel-raised);
+}
+
+.on-panel .theme-toggle-option {
+  color: var(--panel-text-muted);
+}
+
+.on-panel .theme-toggle-option:hover,
+.on-panel .theme-toggle-option[aria-checked='true'] {
+  color: var(--text);
+}
 
 .card {
   padding: var(--space-5);
@@ -735,7 +782,6 @@ code {
   height: 100%;
 }
 
-/* Section titles sit clearly above body text and below the page title. */
 .card > h2,
 .card-header h2 {
   font-size: 1.25rem;
@@ -774,7 +820,6 @@ code {
   gap: var(--space-3);
 }
 
-/* A dark band with a field photograph behind the text. --compact is the page-header version. */
 .hero {
   position: relative;
   isolation: isolate;
@@ -812,7 +857,7 @@ code {
   position: absolute;
   inset: 0;
   z-index: -1;
-  /* Only as much of the panel colour as the text needs: the photograph stays visible across the band. */
+
   background:
     linear-gradient(0deg, color-mix(in srgb, var(--panel) 55%, transparent), transparent 55%),
     linear-gradient(
@@ -898,11 +943,9 @@ code {
   line-height: var(--leading-small);
 }
 
-/* ---------- Indicators ---------- */
-
 .kpi-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-4);
 }
 
@@ -964,7 +1007,6 @@ code {
   line-height: var(--leading-small);
 }
 
-/* The one indicator the page leads with: larger figure, tinted surface. */
 .stat-card--featured {
   border-color: transparent;
   background: var(--accent-soft);
@@ -983,8 +1025,6 @@ code {
 .stat-card--featured .stat-unit {
   font-size: var(--text-h2);
 }
-
-/* ---------- Status pills ---------- */
 
 .status-pill {
   display: inline-flex;
@@ -1026,8 +1066,6 @@ code {
   background: var(--status-neutral-bg);
   color: var(--status-neutral-text);
 }
-
-/* ---------- Buttons ---------- */
 
 .button {
   display: inline-flex;
@@ -1105,7 +1143,7 @@ code {
 }
 
 .button--small {
-  min-height: 36px;
+  min-height: var(--control-height-sm);
   padding: 0 var(--space-3);
   font-size: var(--text-small);
 }
@@ -1118,7 +1156,6 @@ code {
   width: 100%;
 }
 
-/* Loading and success keep the button's width: the spinner and the check only appear inside it. */
 .button-spinner,
 .button-check {
   display: none;
@@ -1179,10 +1216,8 @@ code {
   margin: 0;
 }
 
-/* ---------- Forms ---------- */
-
 .card--form {
-  max-width: 760px;
+  max-width: var(--content-narrow);
 }
 
 .stack {
@@ -1218,10 +1253,10 @@ code {
   background: var(--surface);
   color: var(--text);
   font: inherit;
+  font-size: var(--text-input);
   transition: border-color var(--motion-fast) var(--ease-out), box-shadow var(--motion-fast) var(--ease-out);
 }
 
-/* Native select, own look: the arrow is drawn with the text colour so it follows the theme. */
 .field select,
 .field--inline select {
   appearance: none;
@@ -1288,7 +1323,6 @@ code {
   text-align: center;
 }
 
-/* A message slot that opens by animating its row from 0fr to 1fr, so nothing below it jumps. */
 .field-slot {
   display: grid;
   grid-template-rows: 0fr;
@@ -1331,7 +1365,7 @@ code {
 
 .field-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
   gap: var(--space-4);
 }
 
@@ -1439,7 +1473,6 @@ code {
   align-items: end;
 }
 
-/* Two columns leave an odd field alone on its row, so the first one takes the full width. */
 .form-grid:not(.form-grid--wide) > .field:first-child {
   grid-column: 1 / -1;
 }
@@ -1485,8 +1518,6 @@ code {
   background: transparent;
   color: inherit;
 }
-
-/* ---------- Tables ---------- */
 
 .table-scroll {
   overflow-x: auto;
@@ -1537,7 +1568,6 @@ code {
   white-space: normal;
 }
 
-/* Text that may take two lines so the columns of figures beside it fit without scrolling. */
 .table .cell-soft {
   min-width: 120px;
   white-space: normal;
@@ -1604,8 +1634,6 @@ code {
   font-weight: 550;
   overflow-wrap: anywhere;
 }
-
-/* ---------- Empty and error states ---------- */
 
 .state {
   display: flex;
@@ -1709,8 +1737,6 @@ code {
   color: var(--status-danger-text);
 }
 
-/* ---------- Dashboard pieces ---------- */
-
 .map {
   height: 100%;
   min-height: 460px;
@@ -1718,8 +1744,6 @@ code {
   z-index: var(--z-base);
 }
 
-/* The theme recolours the drawn street map. Satellite photographs keep their colours, except in the
-   black-and-white theme. */
 .map-tiles-streets {
   filter: var(--map-filter);
 }
@@ -1795,7 +1819,6 @@ code {
   font-weight: 600;
 }
 
-/* The map and, beside it, the list of the same estates. */
 .map-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
@@ -1815,7 +1838,6 @@ code {
   border-radius: 0;
 }
 
-/* Inside the stage the notice is centred and the stage's own border frames it. */
 .map-stage .map-fallback {
   align-items: center;
   justify-content: center;
@@ -1836,7 +1858,6 @@ code {
   font-size: 2rem;
 }
 
-/* Mapa / Satélite, over the top left corner of the map. */
 .map-layers {
   position: absolute;
   top: var(--space-3);
@@ -1851,7 +1872,6 @@ code {
   box-shadow: none;
 }
 
-/* Says how to zoom until the map is first clicked. */
 .map-hint {
   position: absolute;
   bottom: var(--space-3);
@@ -1916,7 +1936,6 @@ code {
   box-shadow: var(--shadow-1);
 }
 
-/* The estate whose detail is open on the map. */
 .estate-item[aria-pressed='true'] {
   border-color: var(--accent);
   background: var(--accent-soft);
@@ -2004,7 +2023,6 @@ code {
   font-size: var(--text-small);
 }
 
-/* "Ampliar": the section fills the window, above the page. */
 .map-section.is-expanded {
   position: fixed;
   inset: 0;
@@ -2072,7 +2090,6 @@ code {
   font-weight: 550;
 }
 
-/* The brand leaf as the marker. Leaflet positions the element, so only the drawing inside is scaled. */
 .map-pin svg {
   display: block;
   width: 40px;
@@ -2089,20 +2106,18 @@ code {
 
 .map-pin-leaf {
   fill: var(--accent);
-  stroke: #ffffff;
+  stroke: var(--map-stroke);
   stroke-width: 2.5;
 }
 
 .map-pin-vein {
   fill: none;
-  stroke: #ffffff;
+  stroke: var(--map-stroke);
   stroke-width: 2.2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-/* Drawn around each estate. Leaflet writes colours as attributes; these rules replace them so the shapes
-   follow the theme. */
 .map-area {
   stroke: var(--accent);
   stroke-width: 2;
@@ -2111,7 +2126,6 @@ code {
   fill-opacity: 0.06;
 }
 
-/* The outline drawn for an estate: a solid line, unlike the dashed circle that stands in for it. */
 .map-boundary {
   stroke: var(--accent);
   stroke-width: 2.5;
@@ -2121,9 +2135,9 @@ code {
 }
 
 [data-layer='satellite'] .map-boundary {
-  stroke: #ffffff;
+  stroke: var(--map-stroke);
   stroke-width: 3;
-  fill: #ffffff;
+  fill: var(--map-stroke);
 }
 
 .map-coverage {
@@ -2134,14 +2148,13 @@ code {
 }
 
 .map-sensor {
-  stroke: #ffffff;
+  stroke: var(--map-stroke);
   stroke-width: 2;
   fill: var(--chart-2);
   fill-opacity: 1;
   cursor: pointer;
 }
 
-/* An inactive sensor reaches nothing right now: outline only. */
 .map-coverage.map-sensor--inactive {
   stroke: var(--text-muted);
   stroke-dasharray: 3 4;
@@ -2152,16 +2165,15 @@ code {
   fill: var(--text-muted);
 }
 
-/* On photographs the theme's dark green disappears: white outlines instead. */
 [data-layer='satellite'] .map-area {
-  stroke: #ffffff;
+  stroke: var(--map-stroke);
   stroke-width: 3;
-  fill: #ffffff;
+  fill: var(--map-stroke);
 }
 
 [data-layer='satellite'] .map-coverage {
-  stroke: #9fd0ff;
-  fill: #9fd0ff;
+  stroke: var(--map-coverage);
+  fill: var(--map-coverage);
 }
 
 .map-tip {
@@ -2236,12 +2248,11 @@ code {
   width: 10px;
   height: 10px;
   margin: 2px;
-  border: 2px solid #ffffff;
+  border: 2px solid var(--map-stroke);
   background: var(--chart-2);
   box-shadow: 0 0 0 1px var(--border-strong);
 }
 
-/* Position picker of the sensor forms. */
 .picker-map {
   min-height: 380px;
   border: 1px solid var(--border);
@@ -2249,18 +2260,17 @@ code {
 }
 
 .map-sensor-handle {
-  border: 3px solid #ffffff;
+  border: 3px solid var(--map-stroke);
   border-radius: 50%;
   background: var(--chart-2);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
   cursor: grab;
 }
 
-/* A corner of the outline being drawn in the estate form. */
 .map-corner-handle {
   border: 3px solid var(--accent);
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--map-stroke);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
   cursor: grab;
 }
@@ -2281,7 +2291,6 @@ code {
   gap: var(--space-2);
 }
 
-/* An estate with open alerts: the pin takes the alert colour and carries the count. */
 .map-pin--alert .map-pin-leaf {
   fill: var(--status-danger);
 }
@@ -2292,7 +2301,7 @@ code {
   right: -6px;
   min-width: 18px;
   padding: 0 5px;
-  border: 2px solid #ffffff;
+  border: 2px solid var(--map-stroke);
   border-radius: var(--radius-pill);
   background: var(--text);
   color: var(--surface);
@@ -2302,7 +2311,6 @@ code {
   text-align: center;
 }
 
-/* Leaflet's own surfaces, in the theme's colours. */
 .leaflet-container {
   background: var(--surface-sunken);
   font-family: var(--font-body);
@@ -2368,18 +2376,11 @@ code {
   font-size: 1.4rem;
 }
 
-/* Only a running irrigation pulses: it is the one live state the page knows about. */
 .pump--running .pump-icon {
   background: var(--accent);
   color: var(--accent-contrast);
-  animation: soft-pulse 2.4s var(--ease-in-out) infinite;
 }
 
-@keyframes soft-pulse {
-  50% {
-    opacity: 0.6;
-  }
-}
 
 .sensor-grid {
   display: grid;
@@ -2482,8 +2483,6 @@ code {
   white-space: nowrap;
 }
 
-/* ---------- Skeleton, toast, modal ---------- */
-
 .skeleton {
   background: linear-gradient(90deg, var(--surface-sunken) 25%, var(--bg) 50%, var(--surface-sunken) 75%);
   background-size: 200% 100%;
@@ -2573,7 +2572,6 @@ code {
   outline-color: var(--panel-text);
 }
 
-/* The bar is the toast's clock: it pauses with the pointer or the focus on the toast, and ends it when done. */
 .toast-timer {
   position: absolute;
   left: 0;
@@ -2582,7 +2580,7 @@ code {
   height: 3px;
   background: var(--highlight);
   transform-origin: left;
-  animation: toast-timer 5s linear forwards;
+  animation: toast-timer var(--toast-duration) linear forwards;
 }
 
 .toast:hover .toast-timer,
@@ -2611,7 +2609,6 @@ code {
   box-shadow: var(--shadow-3);
 }
 
-/* Opens and closes with the same fade and scale. Browsers without @starting-style show and hide it at once. */
 .modal {
   opacity: 0;
   transform: scale(0.97);
@@ -2661,8 +2658,6 @@ code {
   margin-top: var(--space-3);
 }
 
-/* ---------- Sign-in and sign-up ---------- */
-
 .auth {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -2683,7 +2678,6 @@ code {
   color: var(--panel-text);
 }
 
-/* Shown at once, before and instead of the photograph: brand gradient plus a slow, faint shimmer. */
 .auth-hero-placeholder {
   position: absolute;
   inset: 0;
@@ -2717,7 +2711,7 @@ code {
   height: 100%;
   object-fit: cover;
   filter: var(--photo-filter);
-  transition: opacity 600ms var(--ease-out), transform 900ms var(--ease-out);
+  transition: opacity var(--motion-slow) var(--ease-out), transform var(--motion-slow) var(--ease-out);
 }
 
 .js .auth-hero[data-state='loading'] .auth-hero-photo {
@@ -2742,7 +2736,6 @@ code {
   );
 }
 
-/* Dot grid, static, under 8% opacity. */
 .auth-hero::after {
   content: '';
   position: absolute;
@@ -2838,7 +2831,6 @@ code {
   transition: opacity var(--motion-slow) var(--ease-in), transform var(--motion-slow) var(--ease-in);
 }
 
-/* The card's children fade in one after another; they are focusable and clickable from the first frame. */
 .auth-card > * {
   animation: fade-in var(--motion-slow) var(--ease-out) both;
 }
@@ -2906,7 +2898,6 @@ code {
   }
 }
 
-/* Confirmed sign-in: the card leaves and the photograph moves 3% closer while the next page loads. */
 .auth[data-auth='success'] .auth-card {
   opacity: 0;
   transform: translateY(calc(var(--distance-sm) * -1));
@@ -2922,13 +2913,63 @@ code {
   text-align: center;
 }
 
+@media (max-width: 767px) {
+  .auth {
+    grid-template-rows: 1fr;
+  }
+
+  .auth-hero {
+    display: none;
+  }
+
+  .auth-panel {
+    padding: calc(var(--space-3) + var(--safe-top)) var(--space-4) calc(var(--space-6) + var(--safe-bottom));
+  }
+}
+
+@media (max-width: 479px) {
+  .auth-card {
+    padding: var(--space-4) 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .auth-hero {
+    min-height: 220px;
+    justify-content: flex-end;
+    padding: var(--space-6);
+  }
+
+  .auth-hero-content--bottom {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .auth-hero-title {
+    max-width: none;
+    font-size: var(--text-h1);
+    line-height: var(--leading-h1);
+  }
+
+  .auth-hero-content--bottom > :not(.auth-hero-title):not(.auth-hero-lead) {
+    display: none;
+  }
+
+  .auth-panel {
+    padding: var(--space-5) var(--space-6) var(--space-7);
+  }
+}
+
 @media (min-width: 1024px) {
   .auth {
     grid-template-columns: minmax(0, 55fr) minmax(0, 45fr);
     grid-template-rows: auto;
   }
 
-  /* The photograph stays in view while a long form (sign-up) scrolls beside it. */
   .auth-hero {
     position: sticky;
     top: 0;
@@ -2964,8 +3005,6 @@ code {
   }
 }
 
-/* ---------- Error page ---------- */
-
 .error-page {
   display: grid;
   place-items: center;
@@ -2992,8 +3031,6 @@ code {
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------- Trend line and range bar of an indicator ---------- */
-
 .sparkline {
   width: 100%;
   height: 40px;
@@ -3008,7 +3045,7 @@ code {
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
-  /* The box is stretched to the card's width; the stroke keeps its thickness. */
+
   vector-effect: non-scaling-stroke;
 }
 
@@ -3050,8 +3087,6 @@ code {
   color: var(--text);
 }
 
-/* ---------- Estates as cards ---------- */
-
 .estate-card {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
@@ -3090,7 +3125,7 @@ code {
 
 .estate-thumb-pin {
   fill: var(--accent);
-  stroke: #ffffff;
+  stroke: var(--map-stroke);
   stroke-width: 3;
 }
 
@@ -3158,8 +3193,6 @@ code {
   color: var(--text-muted);
 }
 
-/* ---------- Sensors as cards ---------- */
-
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -3186,7 +3219,7 @@ code {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 36px;
+  min-height: var(--control-height-sm);
   padding: 0 var(--space-3);
   border: 0;
   border-radius: var(--radius-sm);
@@ -3308,8 +3341,6 @@ code {
   color: var(--text-muted);
 }
 
-/* ---------- Alerts as a timeline ---------- */
-
 .timeline {
   display: flex;
   flex-direction: column;
@@ -3334,7 +3365,6 @@ code {
   list-style: none;
 }
 
-/* The left stripe carries the severity; in the black-and-white theme its width and style do. */
 .timeline-item {
   display: grid;
   grid-template-columns: 56px minmax(0, 1fr) auto;
@@ -3408,13 +3438,9 @@ code {
   padding-left: var(--space-5);
 }
 
-/* ---------- Bottom navigation (phones) ---------- */
-
 .bottom-nav {
   display: none;
 }
-
-/* ---------- Two-column pages: dashboard and estate ---------- */
 
 .dash-grid,
 .dash-main,
@@ -3425,7 +3451,6 @@ code {
   min-width: 0;
 }
 
-/* The map section sizes its own layout by the room it gets, not by the window. */
 .map-section {
   container-type: inline-size;
 }
@@ -3488,15 +3513,11 @@ code {
   stroke-linejoin: round;
 }
 
-/* In the narrow side column an alert stacks: severity, then the text, then when. */
 .dash-side .alert-list li {
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-1);
 }
 
-/* ---------- Crops ---------- */
-
-/* A crop's badge: its initial on the colour it keeps everywhere. */
 .crop-dot {
   display: inline-grid;
   place-items: center;
@@ -3620,8 +3641,6 @@ code {
   margin-top: var(--space-2);
 }
 
-/* ---------- Guided first set-up ---------- */
-
 .stepper {
   display: flex;
   gap: var(--space-2);
@@ -3641,7 +3660,6 @@ code {
   font-weight: 550;
 }
 
-/* The line to the next step. */
 .stepper-step:not(:last-child)::after {
   content: '';
   flex: 1;
@@ -3693,8 +3711,6 @@ code {
   background: var(--accent-soft);
 }
 
-/* ---------- Irrigation in progress and its history ---------- */
-
 progress {
   appearance: none;
   width: 100%;
@@ -3742,7 +3758,6 @@ progress::-moz-progress-bar {
 .running-item .pump-icon {
   background: var(--accent);
   color: var(--accent-contrast);
-  animation: soft-pulse 2.4s var(--ease-in-out) infinite;
 }
 
 .running-body {
@@ -3791,8 +3806,6 @@ progress::-moz-progress-bar {
   border-left-color: var(--accent);
 }
 
-/* ---------- Reports ---------- */
-
 .report-block {
   display: flex;
   flex-direction: column;
@@ -3828,7 +3841,6 @@ progress::-moz-progress-bar {
   height: 240px;
 }
 
-/* The period selector: links that look like the other segmented controls. */
 a.segmented-option {
   text-decoration: none;
 }
@@ -3853,8 +3865,6 @@ a.segmented-option {
   gap: var(--space-5);
 }
 
-/* ---------- Sortable tables with a fixed header ---------- */
-
 .table-scroll--sticky {
   max-height: 70vh;
   overflow: auto;
@@ -3872,6 +3882,7 @@ a.segmented-option {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-height: var(--control-height-sm);
   padding: 0;
   border: 0;
   background: transparent;
@@ -3901,8 +3912,6 @@ a.segmented-option {
 [aria-sort='descending'] .table-sort {
   color: var(--text);
 }
-
-/* ---------- Public front page ---------- */
 
 .landing {
   background: var(--bg);
@@ -4064,9 +4073,6 @@ a.segmented-option {
   font-size: var(--text-small);
 }
 
-/* ---------- Waiting for the server ---------- */
-
-/* A navigation that takes a moment: an indeterminate bar along the top edge (feedback.ts). */
 .nav-progress {
   position: fixed;
   inset: 0 0 auto;
@@ -4099,7 +4105,6 @@ a.segmented-option {
   cursor: progress;
 }
 
-/* A small spinner in front of a hint that is waiting for an answer, such as the e-mail check. */
 .field-hint.is-checking {
   display: flex;
   align-items: center;
@@ -4122,13 +4127,10 @@ a.segmented-option {
   cursor: progress;
 }
 
-/* ---------- Sign-up form ---------- */
-
 .auth-card--wide {
   max-width: 520px;
 }
 
-/* A titled group of fields, without the box a .fieldset draws. */
 .form-section {
   display: flex;
   flex-direction: column;
@@ -4153,7 +4155,6 @@ a.segmented-option {
   border-top: 1px solid var(--border);
 }
 
-/* A field that was checked and is fine: a mark beside its label and a calmer border. */
 .field.is-valid input {
   border-color: var(--status-success);
 }
@@ -4170,11 +4171,10 @@ a.segmented-option {
   border-width: 2px;
 }
 
-/* The password checklist: an empty ring while pending, a filled mark once met. */
 .rule-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 4px var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-1) var(--space-4);
   padding: 0;
   color: var(--text-muted);
   font-size: var(--text-small);
@@ -4227,7 +4227,6 @@ a.segmented-option {
   color: var(--text);
 }
 
-/* The steps that follow signing up, on the photograph. */
 .auth-next {
   display: flex;
   flex-direction: column;
@@ -4248,8 +4247,6 @@ a.segmented-option {
   color: var(--highlight);
 }
 
-/* ---------- Character counters and password meter ---------- */
-
 .field-label-row {
   display: flex;
   align-items: baseline;
@@ -4268,7 +4265,6 @@ a.segmented-option {
   color: var(--status-warning-text);
 }
 
-/* At the limit the field accepts nothing more: the counter says so with weight, not only with colour. */
 .field-counter.is-limit {
   color: var(--status-danger-text);
   font-weight: 700;
@@ -4310,8 +4306,6 @@ a.segmented-option {
 .strength[data-level='4'] i {
   background: var(--status-success);
 }
-
-/* ---------- Command palette ---------- */
 
 .topbar-command {
   display: inline-flex;
@@ -4435,8 +4429,6 @@ kbd {
   line-height: var(--leading-small);
 }
 
-/* ---------- Design system gallery (demo profile only) ---------- */
-
 .ds-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -4533,9 +4525,7 @@ kbd {
   border-radius: var(--radius-md);
 }
 
-/* ---------- Responsive ---------- */
-
-@media (min-width: 640px) {
+@media (min-width: 480px) {
   .kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -4564,7 +4554,7 @@ kbd {
   }
 }
 
-@media (min-width: 1000px) {
+@media (min-width: 1024px) {
   .report-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -4574,7 +4564,6 @@ kbd {
   }
 }
 
-/* Wide screens: the main column and, beside it, what needs attention. */
 @media (min-width: 1280px) {
   .dash-grid {
     display: grid;
@@ -4583,7 +4572,7 @@ kbd {
   }
 }
 
-@media (min-width: 1200px) {
+@media (min-width: 1280px) {
   .kpi-grid {
     grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr));
   }
@@ -4593,7 +4582,6 @@ kbd {
   }
 }
 
-/* Between tablet and wide desktop the top bar keeps its controls and drops what is only informative. */
 @media (max-width: 1279px) {
   .topbar-clock,
   .topbar-user-text,
@@ -4625,7 +4613,6 @@ kbd {
     visibility: hidden;
     transform: translateX(-100%);
     transition: transform var(--motion-slow) var(--ease-out), visibility 0s var(--motion-slow);
-    view-transition-name: none;
   }
 
   .app-shell.is-open .sidebar {
@@ -4651,7 +4638,6 @@ kbd {
     pointer-events: auto;
   }
 
-  /* On small screens the sidebar is a drawer, so it always shows its labels. */
   .is-collapsed .sidebar-brand-text,
   .is-collapsed .sidebar-link-label {
     display: flex;
@@ -4772,7 +4758,6 @@ kbd {
     padding-bottom: env(safe-area-inset-bottom);
     border-top: 1px solid var(--panel-border);
     background: var(--panel);
-    view-transition-name: bottom-nav;
   }
 
   .bottom-nav-link {
@@ -4841,7 +4826,6 @@ kbd {
     text-align: center;
   }
 
-  /* The bar's "Más" opens the menu here, so the top bar button is not repeated. */
   #sidebarToggle {
     display: none;
   }
@@ -4891,7 +4875,6 @@ kbd {
     display: none;
   }
 
-  /* Under the map instead of over it: there is no room on top of a narrow map. */
   .map-legend {
     position: static;
     flex-direction: row;
@@ -4929,14 +4912,7 @@ kbd {
   }
 }
 
-/* ---------- Reduced motion, high contrast ---------- */
-
-/* Token durations already collapse to 1 ms; here the decorative loops stop and page changes stop cross-fading. */
 @media (prefers-reduced-motion: reduce) {
-  @view-transition {
-    navigation: none;
-  }
-
   .skeleton,
   .pump--running .pump-icon,
   .auth-hero-placeholder::after {
@@ -4948,7 +4924,7 @@ kbd {
   }
 
   .auth-hero-photo {
-    transition: opacity 200ms linear;
+    transition: opacity 120ms linear;
     transform: none !important;
   }
 
@@ -4969,7 +4945,6 @@ kbd {
   opacity: 0;
 }
 
-/* Printing, which is also how a report is saved as a PDF: the content alone, on white. */
 @media print {
   .sidebar,
   .sidebar-backdrop,
@@ -4995,7 +4970,7 @@ kbd {
 
   body,
   .app-content {
-    background: #ffffff;
+    background: var(--print-surface);
   }
 
   .app-content {
@@ -5037,5 +5012,1035 @@ kbd {
   .sidebar-marker,
   .toast-timer {
     background: Highlight;
+  }
+}
+
+@media (pointer: coarse) {
+  .button--small,
+  .segmented-option,
+  .table-sort,
+  .theme-toggle-option {
+    min-height: var(--touch-target);
+  }
+
+  .theme-toggle-thumb {
+    height: var(--touch-target);
+  }
+}
+
+.status-pill--critical {
+  border-color: transparent;
+  background: var(--status-critical-bg);
+  color: var(--status-critical-text);
+  font-weight: var(--weight-semibold);
+}
+
+.timeline-item--critical {
+  border-left-color: var(--status-critical-bg);
+  border-left-width: 6px;
+}
+
+.timeline-item--info {
+  border-left-color: var(--status-info);
+}
+
+[data-theme='mono'] .timeline-item--critical {
+  border-left-width: 10px;
+}
+
+.alert-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.alert-filters .tabs {
+  margin-bottom: 0;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chip-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height-sm);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+  transition: background-color var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+.chip-link::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+
+.chip-link--info::before {
+  background: var(--status-info);
+}
+
+.chip-link--warning::before {
+  background: var(--status-warning);
+}
+
+.chip-link--danger::before {
+  background: var(--status-danger);
+}
+
+.chip-link--critical::before {
+  background: var(--status-critical-bg);
+}
+
+.chip-link:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.chip-link[aria-current='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.alert-recommendation {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.alert-recommendation .bi {
+  color: var(--accent);
+}
+
+.timeline-meta .link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.filter-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: end;
+  gap: var(--space-3) var(--space-4);
+}
+
+.filter-bar .field {
+  margin: 0;
+}
+
+.field-with-icon {
+  position: relative;
+  display: block;
+}
+
+.field-with-icon > .bi {
+  position: absolute;
+  top: 50%;
+  left: var(--space-3);
+  color: var(--text-muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.field-with-icon input {
+  padding-left: calc(var(--space-3) * 2 + var(--icon-sm));
+}
+
+.filter-bar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.result-count {
+  margin-top: calc(var(--space-3) * -1);
+  color: var(--text-muted);
+  font-size: var(--text-small);
+}
+
+.crop-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+
+.crop-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  height: 100%;
+  transition: box-shadow var(--motion-base) var(--ease-out), transform var(--motion-base) var(--ease-out),
+    border-color var(--motion-base) var(--ease-out);
+}
+
+.crop-card:hover,
+.crop-card:focus-within {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-2);
+  transform: translateY(-2px);
+}
+
+.crop-card--attention {
+  border-top: 3px solid var(--status-warning);
+}
+
+.crop-card--inactive {
+  border-style: dashed;
+  box-shadow: none;
+}
+
+.crop-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-2) var(--space-3);
+}
+
+.crop-card-title {
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+.crop-card-title h2 {
+  font-size: var(--text-h3);
+  line-height: var(--leading-h3);
+  overflow-wrap: anywhere;
+}
+
+.crop-card-head > .status-pill {
+  flex: none;
+}
+
+@media (max-width: 479px) {
+  .crop-card-title {
+    flex-basis: calc(100% - var(--touch-target) - var(--space-3));
+  }
+
+  .crop-card-head > .status-pill {
+    margin-left: calc(var(--touch-target) + var(--space-3));
+  }
+}
+
+.crop-card-title p {
+  font-size: var(--text-small);
+}
+
+.stretched-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.stretched-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+.stretched-link:focus-visible {
+  outline: none;
+}
+
+.stretched-link:focus-visible::after {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.crop-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border-radius: var(--radius-md);
+  background: var(--crop-colour, var(--crop-1));
+  color: var(--crop-contrast);
+  font-size: var(--text-h3);
+  font-weight: var(--weight-bold);
+}
+
+.crop-avatar--large {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-h2);
+}
+
+.crop-card-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.crop-card-meta dt {
+  color: var(--text-muted);
+  font-size: var(--text-micro);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.crop-card-meta dd {
+  margin: 0;
+  font-weight: var(--weight-medium);
+  overflow-wrap: anywhere;
+}
+
+.crop-card-meta-wide {
+  grid-column: 1 / -1;
+}
+
+.crop-card-readings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  list-style: none;
+}
+
+.crop-card-readings li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-small);
+}
+
+.crop-card-readings .bi {
+  color: var(--accent);
+}
+
+.crop-card-reading-label {
+  flex: 1;
+  color: var(--text-muted);
+}
+
+.crop-card-readings strong {
+  font-variant-numeric: tabular-nums;
+  border-radius: var(--radius-sm);
+}
+
+.crop-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  color: var(--accent);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+}
+
+.crop-card:hover .crop-card-foot .bi {
+  transform: translateX(3px);
+}
+
+.crop-card-foot .bi {
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: calc(var(--space-3) * -1);
+  color: var(--text-muted);
+  font-size: var(--text-small);
+}
+
+.breadcrumbs .bi {
+  font-size: var(--text-micro);
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.device-status {
+  margin-top: var(--space-2);
+}
+
+.detail-header .stat-icon {
+  position: static;
+  flex: none;
+  width: 56px;
+  height: 56px;
+  font-size: var(--icon-lg);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+}
+
+/* The connected ESP32 at the end of the Sensors page. */
+/* The ESP32's humidity, laid out like the sensor list: a header, result cards, then the chart, the crop and the log. */
+.esp32-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.esp32-head .stat-icon {
+  position: static;
+  flex: none;
+}
+
+.esp32-card h3 {
+  font-size: var(--text-h3);
+  line-height: var(--leading-h3);
+}
+
+.esp32-card-advice {
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.esp32-section .detail-grid {
+  align-items: start;
+}
+
+.esp32-plant {
+  margin-top: var(--space-2);
+  padding-top: 0;
+  border-top: 0;
+}
+
+.humidity-log {
+  display: grid;
+  max-height: 26rem;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.humidity-log li {
+  display: grid;
+  grid-template-columns: 3.25rem minmax(0, 1fr) auto auto;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.humidity-log li:last-child {
+  border-bottom: 0;
+}
+
+.humidity-log time {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.humidity-log-value {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* The irrigation page's day of humidity: one block per measure with now, the day's figures and time out of range. */
+.humidity-day {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.humidity-day-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.humidity-day-item {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.humidity-day-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.humidity-day-head h3 {
+  font-size: var(--text-h3);
+  line-height: var(--leading-h3);
+}
+
+.humidity-day-now {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.humidity-day-now strong {
+  font-size: 2.25rem;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.humidity-day-figures {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.humidity-day-figures dt {
+  color: var(--text-muted);
+  font-size: var(--text-small);
+}
+
+.humidity-day-figures dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.humidity-day-time {
+  font-weight: 600;
+}
+
+.humidity-day-advice,
+.humidity-day-ideal {
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+/* Said only while the ESP32 stopped sending: warning tones from the tokens, the icon before the sentence. */
+.esp32-silence {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
+}
+
+.esp32-silence[hidden] {
+  display: none;
+}
+
+.esp32-section {
+  display: grid;
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+  scroll-margin-top: var(--space-6);
+}
+
+.range-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+
+.range-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.range-list li span {
+  flex: 1;
+  color: var(--text-muted);
+}
+
+.range-list .bi {
+  color: var(--accent);
+  font-size: var(--icon-md);
+}
+
+.reading-list,
+.compact-list,
+.activity-list,
+.attention-list {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  list-style: none;
+}
+
+.reading-list li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.reading-list li > .status-pill {
+  grid-column: 2 / -1;
+  justify-self: start;
+}
+
+.reading-list li:last-child,
+.compact-list li:last-child,
+.activity-list li:last-child,
+.attention-list li:last-child {
+  border-bottom: 0;
+}
+
+.reading-list .stat-icon {
+  position: static;
+}
+
+.reading-list-body,
+.reading-list-value {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.reading-list-body strong {
+  font-size: var(--text-body);
+}
+
+.reading-list-value {
+  align-items: flex-end;
+  gap: var(--space-1);
+  text-align: right;
+}
+
+.reading-list-value strong {
+  font-size: var(--text-h3);
+  font-variant-numeric: tabular-nums;
+}
+
+.reading-list--compact li {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.reading-list--compact .status-pill {
+  font-size: var(--text-micro);
+}
+
+.compact-list li,
+.activity-list li,
+.attention-list li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.compact-list li > time,
+.activity-list li > time,
+.attention-list li > time {
+  grid-column: 2;
+  font-size: var(--text-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.compact-list .stat-icon {
+  position: static;
+  width: 32px;
+  height: 32px;
+  font-size: var(--icon-sm);
+}
+
+.compact-list li.is-done {
+  opacity: 0.72;
+}
+
+.compact-list p {
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.hero--dashboard {
+  min-height: 0;
+  padding: var(--space-6);
+}
+
+.hero--dashboard h1 {
+  font-size: var(--text-h1);
+  line-height: var(--leading-h1);
+}
+
+.hero-summary {
+  margin-top: var(--space-2);
+  color: var(--panel-text-muted);
+  font-size: var(--text-lead);
+  line-height: var(--leading-lead);
+}
+
+.hero-fact-link {
+  border-radius: var(--radius-pill);
+  text-decoration: none;
+}
+
+.attention-card {
+  border-left: 4px solid var(--status-warning);
+}
+
+.attention-list li {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.attention-item-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.attention-item-body:hover strong {
+  text-decoration: underline;
+}
+
+.attention-item-body .text-muted {
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.quick-action {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 56px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+  color: var(--text);
+  font: inherit;
+  font-weight: var(--weight-semibold);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color var(--motion-fast) var(--ease-out), box-shadow var(--motion-fast) var(--ease-out),
+    transform var(--motion-instant) var(--ease-out);
+}
+
+.quick-action .bi {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: var(--icon-md);
+}
+
+.quick-action:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-2);
+}
+
+.quick-action:active {
+  transform: scale(0.98);
+}
+
+.card-header-figure {
+  color: var(--text-muted);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.activity-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--status-neutral-bg);
+  color: var(--status-neutral-text);
+}
+
+.activity-item--success .activity-icon {
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
+}
+
+.activity-item--info .activity-icon {
+  background: var(--status-info-bg);
+  color: var(--status-info-text);
+}
+
+.activity-item--warning .activity-icon {
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
+}
+
+.activity-item--danger .activity-icon,
+.activity-item--critical .activity-icon {
+  background: var(--status-danger-bg);
+  color: var(--status-danger-text);
+}
+
+.activity-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  color: inherit;
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+  text-decoration: none;
+}
+
+.activity-body strong {
+  font-size: var(--text-body);
+}
+
+.activity-body:hover strong {
+  text-decoration: underline;
+}
+
+.setting-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-5);
+  margin-bottom: var(--space-4);
+}
+
+.setting-row > span {
+  display: flex;
+  flex-direction: column;
+}
+
+.running-empty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.sensor-card--no_data,
+.sensor-card--inactive,
+.sensor-card--unknown {
+  border-style: dashed;
+  box-shadow: none;
+}
+
+.sensor-card--stale {
+  border-top: 3px solid var(--status-warning);
+}
+
+.sensor-card--offline,
+.sensor-card--error {
+  border-top: 3px solid var(--status-danger);
+}
+
+.sensor-card--inactive .stat-icon,
+.sensor-card--no_data .stat-icon {
+  background: var(--status-neutral-bg);
+  color: var(--text-muted);
+}
+
+.sensor-card-hint {
+  color: var(--text-muted);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+@media (min-width: 480px) {
+  .quick-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 768px) {
+  .filter-bar {
+    grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr));
+  }
+
+  .filter-bar-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+
+  .crop-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .detail-wide {
+    grid-column: 1 / -1;
+  }
+
+  .range-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .quick-actions {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .compact-list li,
+  .activity-list li,
+  .attention-list li {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .compact-list li > time,
+  .activity-list li > time,
+  .attention-list li > time {
+    grid-column: auto;
+  }
+}
+
+@media (min-width: 1024px) {
+  .filter-bar {
+    grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)) auto;
+  }
+
+  .filter-bar-actions {
+    grid-column: auto;
+  }
+}
+
+@media (min-width: 1280px) {
+  .crop-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .hero--dashboard {
+    padding: var(--space-5) var(--space-4);
+  }
+
+  .hero--dashboard h1 {
+    font-size: var(--text-h2);
+    line-height: var(--leading-h2);
+  }
+
+  .hero-summary {
+    font-size: var(--text-body);
+    line-height: var(--leading-body);
+  }
+
+  .quick-action {
+    min-height: var(--touch-target);
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-small);
+  }
+
+  .quick-action .bi {
+    width: 32px;
+    height: 32px;
+  }
+
+  .page-toolbar > .button,
+  .page-toolbar > .row-actions {
+    width: 100%;
+  }
+
+  .page-toolbar > .row-actions > .button {
+    flex: 1 1 auto;
+  }
+}
+
+.kpi-grid > .stat-card--featured {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 1279px) {
+  .kpi-grid > .stat-card:nth-child(4):last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 479px) {
+  .kpi-grid {
+    gap: var(--space-3);
+  }
+
+  .kpi-grid .stat-card:not(.stat-card--featured) .stat-value {
+    font-size: var(--text-h1);
+    line-height: var(--leading-h1);
+  }
+
+  .kpi-grid .stat-card:not(.stat-card--featured) .stat-icon {
+    display: none;
+  }
+
+  .kpi-grid .stat-label {
+    padding-right: 0;
+  }
+}
+
+.sensor-card-value--empty {
+  color: var(--text-muted);
+  font-size: var(--text-h3);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-h3);
+}
+
+@media (min-width: 768px) {
+  .app-content {
+    padding-bottom: calc(var(--space-8) + var(--space-6));
   }
 }

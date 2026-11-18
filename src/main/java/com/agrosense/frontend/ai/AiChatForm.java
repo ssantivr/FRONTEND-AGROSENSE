@@ -7,7 +7,6 @@ import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
-/** A question for the assistant with the turns that came before it. The backend applies the same limits. */
 public record AiChatForm(
         @NotBlank(message = "Escribe tu pregunta.")
         @Size(max = MAX_MESSAGE_LENGTH, message = "La pregunta no puede superar los 1000 caracteres.")

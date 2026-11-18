@@ -11,10 +11,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * The demo data lives in /database/seed_demo.sql, which creates the demo user without a usable password.
- * With the "demo" profile this gives that user the configured demo password.
- */
 @Slf4j
 @Component
 @Profile("demo")

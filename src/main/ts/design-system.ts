@@ -1,4 +1,3 @@
-// Design system gallery: buttons that trigger the live components, and the reduced-motion preview.
 import { confirmAction, showToast, type ToastType } from './app.js';
 import { all, find } from './core/dom.js';
 
@@ -17,13 +16,11 @@ find('demoConfirm', HTMLButtonElement)?.addEventListener('click', () => {
   );
 });
 
-// Same token overrides as the prefers-reduced-motion media query, switched from the page.
 const reduceMotion = find('demoReduceMotion', HTMLInputElement);
 reduceMotion?.addEventListener('change', () => {
   document.documentElement.classList.toggle('reduce-motion', reduceMotion.checked);
 });
 
-// Replays the entrance animations by re-inserting the sample.
 find('demoReplay', HTMLButtonElement)?.addEventListener('click', () => {
   const sample = find('demoMotionSample', HTMLElement);
   sample?.replaceWith(sample.cloneNode(true));

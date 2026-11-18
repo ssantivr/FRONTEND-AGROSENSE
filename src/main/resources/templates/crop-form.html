@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{fragments/layout :: layout(${formTitle}, ~{::main}, null)}">
+      th:replace="~{fragments/layout :: layout(${formTitle}, ~{::main}, 'crop-form')}">
 <body>
 <main id="main" class="app-content" tabindex="-1" data-motion-stagger>
     <header th:replace="~{fragments/page-header :: page-header(${formTitle}, 'Datos del cultivo y rangos aceptables para las alertas.')}"></header>
@@ -41,6 +41,16 @@
                 </label>
             </div>
 
+            <label class="field" th:if="${cropTemplates != null and !cropTemplates.isEmpty()}">
+                <span class="field-label">Plantilla de cultivo</span>
+                <select id="cropTemplate">
+                    <option value="">Sin plantilla</option>
+                    <option th:each="template : ${cropTemplates}" th:value="${template.key}" th:text="${template.label}"
+                            th:attr="data-humidity-min=${template.humidityMin},data-humidity-max=${template.humidityMax},data-temp-min=${template.tempMin},data-temp-max=${template.tempMax}">Tomate</option>
+                </select>
+                <span class="field-hint">Rellena los rangos de abajo con valores de partida, no validados agronómicamente. Puedes cambiarlos antes de guardar.</span>
+            </label>
+
             <fieldset class="fieldset">
                 <legend>Humedad del suelo (%)</legend>
                 <div class="field-row">
@@ -80,22 +90,23 @@
             </fieldset>
 
             <fieldset class="fieldset">
-                <legend>pH</legend>
+                <legend>Humedad del aire (%) · opcional</legend>
+                <p class="field-hint">La lee el ESP32. Déjala vacía si aún no conoces el rango del cultivo.</p>
                 <div class="field-row">
                     <label class="field">
-                        <span class="field-label">Mínimo</span>
-                        <input type="number" th:field="*{phMin}" min="0" max="14" step="0.1" required
-                               th:attr="aria-invalid=${#fields.hasErrors('phMin')}">
-                        <span class="field-error" th:if="${#fields.hasErrors('phMin')}" th:errors="*{phMin}">Error</span>
+                        <span class="field-label">Mínima</span>
+                        <input type="number" th:field="*{airHumidityMin}" min="0" max="100" step="0.1"
+                               th:attr="aria-invalid=${#fields.hasErrors('airHumidityMin')}">
+                        <span class="field-error" th:if="${#fields.hasErrors('airHumidityMin')}" th:errors="*{airHumidityMin}">Error</span>
                     </label>
                     <label class="field">
-                        <span class="field-label">Máximo</span>
-                        <input type="number" th:field="*{phMax}" min="0" max="14" step="0.1" required
-                               th:attr="aria-invalid=${#fields.hasErrors('phMax')}">
-                        <span class="field-error" th:if="${#fields.hasErrors('phMax')}" th:errors="*{phMax}">Error</span>
+                        <span class="field-label">Máxima</span>
+                        <input type="number" th:field="*{airHumidityMax}" min="0" max="100" step="0.1"
+                               th:attr="aria-invalid=${#fields.hasErrors('airHumidityMax')}">
+                        <span class="field-error" th:if="${#fields.hasErrors('airHumidityMax')}" th:errors="*{airHumidityMax}">Error</span>
                     </label>
                 </div>
-                <span class="field-error" th:if="${#fields.hasErrors('phRangeValid')}" th:errors="*{phRangeValid}">Error</span>
+                <span class="field-error" th:if="${#fields.hasErrors('airHumidityRangeValid')}" th:errors="*{airHumidityRangeValid}">Error</span>
             </fieldset>
 
             <label class="switch-row">

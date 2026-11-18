@@ -1,0 +1,207 @@
+import { showToast } from '../app.js';
+import { ApiError, isArrayOf, isRecord, requestJson } from '../api/client.js';
+import { all, find } from '../core/dom.js';
+import { LatestStream } from './latest-stream.js';
+const isAccess = (value) => isRecord(value) &&
+    typeof value['enabled'] === 'boolean' &&
+    (value['enabled'] === false ||
+        (typeof value['token'] === 'string' &&
+            typeof value['streamUrl'] === 'string' &&
+            typeof value['expiresInSeconds'] === 'number'));
+const isReading = (value) => isRecord(value) && typeof value['sensorCode'] === 'string' && typeof value['value'] === 'number';
+const isAlert = (value) => isRecord(value) && typeof value['alertType'] === 'string' && typeof value['message'] === 'string';
+const isEvent = (value) => isRecord(value) && isArrayOf(isReading)(value['readings']) && isArrayOf(isAlert)(value['alerts']);
+const STATE_LABELS = {
+    live: 'En vivo',
+    reconnecting: 'Reconectando…',
+    offline: 'Sin conexión',
+};
+const FIRST_WAIT_MS = 1_000;
+const LONGEST_WAIT_MS = 60_000;
+const RENEW_BEFORE_MS = 30_000;
+const OFFLINE_AFTER_FAILURES = 3;
+const decimal = new Intl.NumberFormat('es-CO', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const shortDate = new Intl.DateTimeFormat('es-CO', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+});
+class LiveEvents {
+    tokenUrl;
+    status;
+    stream = new LatestStream();
+    wait = FIRST_WAIT_MS;
+    failures = 0;
+    timer;
+    constructor(tokenUrl, status) {
+        this.tokenUrl = tokenUrl;
+        this.status = status;
+    }
+    async connect() {
+        this.close();
+        try {
+            await this.stream.open(() => requestJson(this.tokenUrl, isAccess, { timeoutMs: 20_000 }), (access) => this.listen(access));
+        }
+        catch (error) {
+            if (error instanceof ApiError && error.kind === 'unauthorized')
+                return;
+            this.retryLater();
+        }
+    }
+    listen(access) {
+        if (!access.enabled || !access.token || !access.streamUrl) {
+            this.hide();
+            return null;
+        }
+        const url = new URL(access.streamUrl);
+        url.searchParams.set('token', access.token);
+        const source = new EventSource(url.toString());
+        source.addEventListener('ready', () => {
+            this.wait = FIRST_WAIT_MS;
+            this.failures = 0;
+            this.show('live');
+            const lifetimeMs = (access.expiresInSeconds ?? 300) * 1000;
+            this.schedule(Math.max(lifetimeMs - RENEW_BEFORE_MS, 5_000));
+        });
+        source.addEventListener('reading', (message) => this.deliver(message));
+        source.addEventListener('alert', (message) => this.deliver(message));
+        source.addEventListener('expired', () => void this.connect());
+        source.addEventListener('error', () => {
+            this.close();
+            this.retryLater();
+        });
+        return source;
+    }
+    deliver(message) {
+        if (!(message instanceof MessageEvent) || typeof message.data !== 'string')
+            return;
+        let event;
+        try {
+            event = JSON.parse(message.data);
+        }
+        catch {
+            return;
+        }
+        if (!isEvent(event))
+            return;
+        event.readings.forEach(showReading);
+        event.alerts.forEach(showAlert);
+    }
+    retryLater() {
+        this.failures += 1;
+        this.show(this.failures >= OFFLINE_AFTER_FAILURES || !navigator.onLine ? 'offline' : 'reconnecting');
+        this.schedule(this.wait);
+        this.wait = Math.min(this.wait * 2, LONGEST_WAIT_MS);
+    }
+    wentOffline() {
+        this.close();
+        this.show('offline');
+    }
+    cameBack() {
+        this.wait = FIRST_WAIT_MS;
+        this.show('reconnecting');
+        void this.connect();
+    }
+    indicators() {
+        return [this.status, ...all('[data-live-indicator]', HTMLElement)];
+    }
+    show(state) {
+        for (const indicator of this.indicators()) {
+            indicator.hidden = false;
+            indicator.dataset['state'] = state;
+            indicator.title = STATE_LABELS[state];
+            const label = indicator.querySelector('[data-live-label]');
+            if (label)
+                label.textContent = STATE_LABELS[state];
+        }
+    }
+    hide() {
+        for (const indicator of this.indicators())
+            indicator.hidden = true;
+    }
+    schedule(delayMs) {
+        window.clearTimeout(this.timer);
+        this.timer = window.setTimeout(() => void this.connect(), delayMs);
+    }
+    close() {
+        window.clearTimeout(this.timer);
+        this.stream.close();
+    }
+}
+/** Paints one reading on every element of the page marked with its sensor code; crop-live.ts uses it too. */
+export function showReading(reading) {
+    const when = reading.recordedAt ? new Date(reading.recordedAt) : new Date();
+    for (const holder of all('[data-sensor-code]', HTMLElement)) {
+        if (holder.dataset['sensorCode'] !== reading.sensorCode)
+            continue;
+        for (const value of all('[data-live-value]', HTMLElement, holder)) {
+            const unit = value.dataset['unit'] || reading.unit;
+            value.textContent = decimal.format(reading.value) + (unit ? ` ${unit}` : '');
+            value.classList.remove('text-muted');
+        }
+        for (const pill of all('[data-sensor-status]', HTMLElement, holder))
+            markOnline(pill);
+        for (const hint of all('[data-live-hint]', HTMLElement, holder))
+            hint.hidden = true;
+        for (const time of all('[data-live-time]', HTMLElement, holder)) {
+            time.textContent = time.dataset['liveTime'] === 'ago' ? 'Última lectura hace un momento' : shortDate.format(when);
+            if (time instanceof HTMLTimeElement)
+                time.dateTime = when.toISOString();
+        }
+        holder.classList.remove('is-live-updated');
+        void holder.offsetWidth;
+        holder.classList.add('is-live-updated');
+    }
+}
+function markOnline(pill) {
+    if (pill.dataset['sensorStatus'] === 'INACTIVE')
+        return;
+    pill.dataset['sensorStatus'] = 'ONLINE';
+    pill.className = 'status-pill status-pill--success';
+    pill.title = 'Lectura recibida en vivo.';
+    const icon = pill.querySelector('i');
+    if (icon)
+        icon.className = 'bi bi-check-circle-fill';
+    const label = pill.querySelector('span');
+    if (label)
+        label.textContent = 'En línea';
+}
+function showAlert(alert) {
+    showToast(`Nueva alerta${alert.cropName ? ` en ${alert.cropName}` : ''}: ${alert.message}`, 'error');
+    const badge = document.querySelector('.sidebar-badge');
+    if (badge) {
+        const count = (Number(badge.textContent) || 0) + 1;
+        badge.textContent = String(count);
+        badge.setAttribute('aria-label', `${count} alertas sin atender`);
+    }
+    const bell = find('topbarAlerts', HTMLAnchorElement);
+    if (bell && !bell.querySelector('.topbar-dot')) {
+        const dot = document.createElement('span');
+        dot.className = 'topbar-dot';
+        dot.setAttribute('aria-hidden', 'true');
+        bell.append(dot);
+        bell.setAttribute('aria-label', 'Hay alertas sin atender');
+    }
+}
+function start() {
+    const status = find('liveStatus', HTMLElement);
+    const tokenUrl = status?.dataset['tokenUrl'];
+    if (!status || !tokenUrl || typeof EventSource === 'undefined')
+        return;
+    const live = new LiveEvents(tokenUrl, status);
+    void live.connect();
+    window.addEventListener('offline', () => live.wentOffline());
+    window.addEventListener('online', () => live.cameBack());
+    window.addEventListener('pagehide', () => {
+        live.close();
+        live.hide();
+    });
+    // Going back restores the page from memory, and start() does not run again.
+    window.addEventListener('pageshow', (event) => {
+        if (event.persisted)
+            void live.connect();
+    });
+}
+start();

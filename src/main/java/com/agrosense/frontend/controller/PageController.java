@@ -3,6 +3,8 @@ package com.agrosense.frontend.controller;
 import com.agrosense.frontend.dto.IrrigationForm;
 import com.agrosense.frontend.dto.Views;
 import com.agrosense.frontend.dto.Views.AlertView;
+import com.agrosense.frontend.dto.Views.ConnectedSensor;
+import com.agrosense.frontend.dto.Views.Esp32Silence;
 import com.agrosense.frontend.dto.Views.DashboardView;
 import com.agrosense.frontend.dto.Views.EstateView;
 import com.agrosense.frontend.dto.Views.ReportView;
@@ -15,19 +17,21 @@ import org.springframework.web.bind.annotation.PathVariable;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import com.agrosense.frontend.service.DashboardService;
+import com.agrosense.frontend.service.Esp32SilencePolicy;
 import com.agrosense.frontend.service.EstateService;
 import com.agrosense.frontend.service.IrrigationService;
 import com.agrosense.frontend.service.SensorService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import tools.jackson.databind.ObjectMapper;
 
 import java.security.Principal;
+import java.time.LocalDateTime;
 import java.util.List;
 
-/** Read-only pages. Pages that accept form posts have their own controllers. */
 @Controller
 @RequiredArgsConstructor
 public class PageController {
@@ -39,6 +43,11 @@ public class PageController {
     private final ObjectMapper objectMapper;
     private final AlertService alertService;
     private final ReportService reportService;
+    private final Esp32SilencePolicy esp32SilencePolicy;
+
+    /** The same device the backend reads over TCP (ESP32_DEVICE_ID). */
+    @Value("${agrosense.esp32.device-id:ESP32-PLANTICAS}")
+    private String esp32DeviceId;
 
     private static final int ESTATE_ALERTS = 10;
     private static final int ESTATE_IRRIGATIONS = 10;
@@ -51,7 +60,6 @@ public class PageController {
         return "login";
     }
 
-    /** The dashboard for a signed-in user; the public front page for everybody else. */
     @GetMapping("/")
     public String dashboard(Principal principal, Model model) {
         if (principal == null) {
@@ -59,7 +67,6 @@ public class PageController {
         }
         DashboardView dashboard = dashboardService.build(principal.getName());
         model.addAttribute("dashboard", dashboard);
-        // The map and the water chart draw from these, in the shape /api/ui sends, without asking again.
         model.addAttribute("markersJson", objectMapper.writeValueAsString(dashboard.markers()));
         model.addAttribute("waterUsageJson", objectMapper.writeValueAsString(dashboard.waterUsage()));
         model.addAttribute("irrigationForm", new IrrigationForm());
@@ -68,11 +75,20 @@ public class PageController {
 
     @GetMapping("/parcelas")
     public String estates(Principal principal, Model model) {
-        model.addAttribute("estates", estateService.findEstates(principal.getName()));
+        List<EstateView> estates = estateService.findEstates(principal.getName());
+        model.addAttribute("estates", estates);
+        model.addAttribute("readingsByCrop", readingsByCrop(estates, sensorService.findSensors(principal.getName())));
         return "estates";
     }
 
-    /** Everything about one estate in one place: its map, crops, sensors, irrigations and open alerts. */
+    /** What each crop's activated sensors measure, so a crop shows only its own sensors' data. */
+    private static Map<Integer, List<SensorView>> readingsByCrop(List<EstateView> estates, List<SensorView> sensors) {
+        Map<Integer, List<SensorView>> readings = new LinkedHashMap<>();
+        estates.forEach(estate -> estate.crops()
+                .forEach(crop -> readings.put(crop.id(), SensorView.readingsOf(crop.id(), sensors))));
+        return readings;
+    }
+
     @GetMapping("/parcelas/{estateId}")
     public String estate(@PathVariable Integer estateId, Principal principal, Model model) {
         String email = principal.getName();
@@ -87,9 +103,9 @@ public class PageController {
         List<AlertView> alerts = alertService.findOpenByEstate(email, estateId, ESTATE_ALERTS);
         model.addAttribute("estate", estate);
         model.addAttribute("sensors", sensors);
+        model.addAttribute("readingsByCrop", readingsByCrop(List.of(estate), sensors));
         model.addAttribute("alerts", alerts);
         model.addAttribute("irrigations", irrigationService.findByEstate(email, estateId, ESTATE_IRRIGATIONS));
-        // One marker, in the shape the dashboard map uses, so the same drawing code serves both pages.
         model.addAttribute("estateJson", objectMapper.writeValueAsString(
                 estateService.cardsOf(List.of(estate), sensors, Map.of(estateId, alerts.size())).get(0)));
         return "estate";
@@ -97,7 +113,14 @@ public class PageController {
 
     @GetMapping("/sensores")
     public String sensors(Principal principal, Model model) {
-        model.addAttribute("sensors", sensorService.findSensors(principal.getName()));
+        List<SensorView> sensors = sensorService.findSensors(principal.getName());
+        model.addAttribute("sensors", sensors);
+        // The connected ESP32: its plant and only its humidity, shown in the same page.
+        model.addAttribute("deviceCode", esp32DeviceId);
+        ConnectedSensor connected = sensorService.findConnected(principal.getName(), esp32DeviceId, sensors).orElse(null);
+        model.addAttribute("connected", connected);
+        model.addAttribute("esp32Silence", connected == null ? Esp32Silence.LISTENING : esp32SilencePolicy.of(
+                connected.readings().isEmpty() ? null : connected.readings().get(0).recordedAt(), LocalDateTime.now()));
         return "sensors";
     }
 
@@ -107,7 +130,6 @@ public class PageController {
         ReportView report = reportService.build(principal.getName(), days == null ? ReportService.DEFAULT_PERIOD : days);
         model.addAttribute("report", report);
         model.addAttribute("periods", ReportService.PERIODS);
-        // The same figures the tables show, for the charts.
         Map<String, Object> charts = new LinkedHashMap<>();
         charts.put("byCrop", report.byCrop().stream()
                 .map(row -> Map.of("label", row.cropName(), "estate", row.estateName(), "liters", row.totalLiters(),

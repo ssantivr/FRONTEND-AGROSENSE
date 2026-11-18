@@ -1,18 +1,16 @@
-// The one place that talks HTTP: CSRF header, timeout, and every failure turned into an ApiError with a
-// kind the interface can explain. Answers are checked with a type guard before they are trusted.
 import type { ApiMessage } from '../types/api.js';
 
 export type ApiErrorKind =
-  | 'validation' // 400: the server refused the data
-  | 'unauthorized' // 401, or the session ended and the request was sent to the sign-in page
-  | 'forbidden' // 403
-  | 'not-found' // 404
-  | 'conflict' // 409: a business rule, with a message meant for the user
-  | 'rate-limited' // 429
-  | 'server' // 5xx
-  | 'network' // no answer at all
+  | 'validation'
+  | 'unauthorized'
+  | 'forbidden'
+  | 'not-found'
+  | 'conflict'
+  | 'rate-limited'
+  | 'server'
+  | 'network'
   | 'timeout'
-  | 'unexpected'; // an answer that is not what the endpoint promises
+  | 'unexpected';
 
 const FALLBACK_MESSAGES: Record<ApiErrorKind, string> = {
   validation: 'Revisa los datos enviados.',
@@ -40,7 +38,6 @@ const KIND_BY_STATUS: Readonly<Record<number, ApiErrorKind>> = {
 export class ApiError extends Error {
   readonly kind: ApiErrorKind;
   readonly status: number | null;
-  /** Seconds the server asked to wait, when it said so (429). */
   readonly retryAfterSec: number | null;
 
   constructor(kind: ApiErrorKind, options: { status?: number; message?: string; retryAfterSec?: number } = {}) {
@@ -52,7 +49,6 @@ export class ApiError extends Error {
   }
 }
 
-/** The text to show for any thrown value. */
 export function messageOf(error: unknown): string {
   return error instanceof ApiError ? error.message : FALLBACK_MESSAGES.unexpected;
 }
@@ -69,7 +65,6 @@ export const isArrayOf =
 
 const isApiMessage = (value: unknown): value is ApiMessage => isRecord(value) && typeof value['message'] === 'string';
 
-/** Headers that authorise a same-origin request that changes data. */
 export function csrfHeaders(): Record<string, string> {
   const token = document.querySelector<HTMLMetaElement>('meta[name="_csrf"]')?.content;
   const header = document.querySelector<HTMLMetaElement>('meta[name="_csrf_header"]')?.content;
@@ -78,29 +73,31 @@ export function csrfHeaders(): Record<string, string> {
 
 export interface RequestOptions {
   method?: 'GET' | 'POST';
-  /** Sent as JSON. */
   body?: unknown;
   timeoutMs?: number;
-  /** Aborts the request from outside, for example when a newer one replaces it. */
   signal?: AbortSignal;
 }
 
 const DEFAULT_TIMEOUT_MS = 15_000;
+const MAX_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 600;
+const RETRIABLE_STATUS = new Set([502, 503, 504]);
 
-/**
- * Sends the request and resolves with a body the guard accepted; every other outcome rejects with an ApiError.
- * A GET that got no answer is tried once more; requests that change data never are.
- */
+// Reads that failed for lack of an answer are tried again, up to MAX_ATTEMPTS times, waiting longer each time
+// (0.6 s, then 1.2 s). Writes are never repeated: the first one may have been applied.
 export async function requestJson<T>(url: string, guard: Guard<T>, options: RequestOptions = {}): Promise<T> {
   const method = options.method ?? 'GET';
-  try {
-    return await attempt(url, guard, options);
-  } catch (error) {
-    const retriable = error instanceof ApiError && error.kind === 'network' && method === 'GET';
-    if (!retriable || options.signal?.aborted) throw error;
-    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
-    return attempt(url, guard, options);
+  for (let attemptNumber = 1; ; attemptNumber++) {
+    try {
+      return await attempt(url, guard, options);
+    } catch (error) {
+      const retriable =
+        error instanceof ApiError &&
+        (error.kind === 'network' || error.kind === 'timeout' || RETRIABLE_STATUS.has(error.status ?? 0)) &&
+        method === 'GET';
+      if (!retriable || attemptNumber >= MAX_ATTEMPTS || options.signal?.aborted) throw error;
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * 2 ** (attemptNumber - 1)));
+    }
   }
 }
 
@@ -129,7 +126,6 @@ async function attempt<T>(url: string, guard: Guard<T>, options: RequestOptions)
       ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
     });
   } catch (error) {
-    // The caller cancelled: let it see the abort instead of a made-up network failure.
     if (options.signal?.aborted && error instanceof DOMException) throw error;
     throw new ApiError(timedOut ? 'timeout' : 'network');
   } finally {
@@ -137,7 +133,6 @@ async function attempt<T>(url: string, guard: Guard<T>, options: RequestOptions)
     options.signal?.removeEventListener('abort', abortFromOutside);
   }
 
-  // An expired session answers JSON requests with a redirect to the sign-in page, which fetch follows.
   if (response.redirected && new URL(response.url).pathname.endsWith('/login')) {
     throw new ApiError('unauthorized', { status: 401 });
   }
@@ -147,7 +142,6 @@ async function attempt<T>(url: string, guard: Guard<T>, options: RequestOptions)
     const retryAfter = Number(response.headers.get('Retry-After'));
     throw new ApiError(kind, {
       status: response.status,
-      // 5xx bodies are not written for users; the client's own wording is used for those.
       ...(isApiMessage(body) && response.status < 500 ? { message: body.message } : {}),
       ...(Number.isFinite(retryAfter) && retryAfter > 0 ? { retryAfterSec: retryAfter } : {}),
     });

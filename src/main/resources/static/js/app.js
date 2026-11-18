@@ -1,5 +1,4 @@
-// Behaviour shared by every authenticated page: theme, sidebar, clock, toasts, confirmations, table tools
-// and the command palette.
+import { initConnectionStatus, onBackendState } from './connection.js';
 import { all, el, find, icon } from './core/dom.js';
 import { initFeedback } from './feedback.js';
 import { initCommandPalette } from './palette.js';
@@ -28,7 +27,6 @@ export function showToast(message, type = 'info') {
     region.append(toast);
     scheduleDismiss(toast);
 }
-/** Resolves to true when the user accepts the question in the shared modal. */
 export function confirmAction(question) {
     const modal = find('confirmModal', HTMLDialogElement);
     const text = find('confirmModalText', HTMLElement);
@@ -41,7 +39,6 @@ export function confirmAction(question) {
         modal.addEventListener('close', () => resolve(modal.returnValue === 'confirm'), { once: true });
     });
 }
-/** The toast leaves when its timer bar finishes (CSS pauses it under the pointer or focus) or when it is closed. */
 function scheduleDismiss(toast) {
     const dismiss = () => {
         toast.classList.add('is-leaving');
@@ -58,14 +55,12 @@ export function isSidebarCollapsed() {
         return false;
     }
 }
-/** Applies and remembers the desktop sidebar preference for this browser. */
 export function setSidebarCollapsed(collapsed) {
     find('appShell', HTMLElement)?.classList.toggle('is-collapsed', collapsed);
     try {
         localStorage.setItem(SIDEBAR_KEY, String(collapsed));
     }
     catch {
-        // The preference is optional; ignore storage failures.
     }
 }
 function initSidebar() {
@@ -103,7 +98,6 @@ function initSidebar() {
             syncExpanded();
         }
     });
-    // The phone's bottom bar opens the same drawer.
     all('[data-open-menu]', HTMLButtonElement).forEach((button) => button.addEventListener('click', () => {
         shell.classList.add('is-open');
         syncExpanded();
@@ -131,7 +125,6 @@ function initClock() {
     tick();
     setInterval(tick, 30_000);
 }
-/** <form data-confirm="question"> asks before it is sent, and cannot be sent twice. */
 function initConfirmForms() {
     all('form[data-confirm]', HTMLFormElement).forEach((form) => {
         form.addEventListener('submit', (event) => {
@@ -148,6 +141,36 @@ function initConfirmForms() {
         });
     });
 }
+// Seed, leaf, name: about one second, once per session (theme-init.ts decides before the first paint). It never
+// takes clicks away from the page, and Escape, a click on «Saltar» or any key ends it at once.
+function initBrandIntro() {
+    const root = document.documentElement;
+    const intro = find('brandIntro', HTMLElement);
+    if (!intro || !root.classList.contains('intro-pending')) {
+        intro?.remove();
+        return;
+    }
+    try {
+        sessionStorage.setItem('agrosense.introShown', '1');
+    }
+    catch {
+        // Without session storage it shows on every page of this tab only until the class is gone.
+    }
+    const finish = () => {
+        root.classList.remove('intro-pending');
+        intro.remove();
+        document.removeEventListener('keydown', finish);
+    };
+    document.addEventListener('keydown', finish);
+    find('brandIntroSkip', HTMLButtonElement)?.addEventListener('click', finish);
+    intro.addEventListener('animationend', (event) => {
+        if (event.target === intro)
+            finish();
+    });
+    window.setTimeout(finish, INTRO_MAX_MS);
+}
+const INTRO_MAX_MS = 1300;
+initBrandIntro();
 initThemeToggles();
 initSidebar();
 initClock();
@@ -155,4 +178,9 @@ initConfirmForms();
 initTableTools();
 initCommandPalette();
 initFeedback();
+onBackendState((state) => {
+    if (state === 'up')
+        showToast('El servidor ya respondió. Las próximas operaciones pasan por él.', 'success');
+});
+initConnectionStatus();
 all('#toastRegion .toast', HTMLElement).forEach(scheduleDismiss);

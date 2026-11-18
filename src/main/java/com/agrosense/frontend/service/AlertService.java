@@ -3,6 +3,7 @@ package com.agrosense.frontend.service;
 import com.agrosense.frontend.backend.BackendClient;
 import com.agrosense.frontend.dto.Views.AlertView;
 import com.agrosense.frontend.entity.Alert;
+import com.agrosense.frontend.entity.enums.Severity;
 import com.agrosense.frontend.exception.NotFoundException;
 import com.agrosense.frontend.repository.AlertRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,11 +30,32 @@ public class AlertService {
     private final BackendClient backendClient;
 
     public Page<AlertView> findAlerts(String email, boolean onlyOpen, int page) {
+        return findAlerts(email, onlyOpen, null, page);
+    }
+
+    public Page<AlertView> findAlerts(String email, boolean onlyOpen, Severity severity, int page) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), PAGE_SIZE, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<Alert> alerts = onlyOpen
-                ? alertRepository.findByCropEstateUserEmailAndAcknowledgedFalse(email, pageable)
-                : alertRepository.findByCropEstateUserEmail(email, pageable);
+        Page<Alert> alerts;
+        if (severity == null) {
+            alerts = onlyOpen
+                    ? alertRepository.findByCropEstateUserEmailAndAcknowledgedFalse(email, pageable)
+                    : alertRepository.findByCropEstateUserEmail(email, pageable);
+        } else {
+            alerts = onlyOpen
+                    ? alertRepository.findByCropEstateUserEmailAndAcknowledgedFalseAndSeverity(email, severity, pageable)
+                    : alertRepository.findByCropEstateUserEmailAndSeverity(email, severity, pageable);
+        }
         return alerts.map(AlertService::toView);
+    }
+
+    public List<AlertView> findByCrop(String email, Integer cropId, int limit) {
+        return alertRepository.findByCropIdCropAndCropEstateUserEmailOrderByCreatedAtDesc(cropId, email, Limit.of(limit))
+                .stream().map(AlertService::toView).toList();
+    }
+
+    public Map<Integer, Integer> countOpenByCrop(String email) {
+        return alertRepository.countOpenByCrop(email).stream()
+                .collect(Collectors.toMap(row -> (Integer) row[0], row -> ((Number) row[1]).intValue()));
     }
 
     public List<AlertView> findRecentOpen(String email, int limit) {
@@ -43,7 +65,6 @@ public class AlertService {
                 .toList();
     }
 
-    /** The newest open alerts of one of the user's estates. */
     public List<AlertView> findOpenByEstate(String email, Integer estateId, int limit) {
         return alertRepository
                 .findByCropEstateIdEstateAndCropEstateUserEmailAndAcknowledgedFalseOrderByCreatedAtDesc(estateId, email,
@@ -51,7 +72,6 @@ public class AlertService {
                 .stream().map(AlertService::toView).toList();
     }
 
-    /** Open alerts by estate id; estates without any are absent. */
     public Map<Integer, Integer> countOpenByEstate(String email) {
         return alertRepository.countOpenByEstate(email).stream()
                 .collect(Collectors.toMap(row -> (Integer) row[0], row -> ((Number) row[1]).intValue()));
@@ -65,7 +85,6 @@ public class AlertService {
     public void acknowledge(String email, Integer alertId) {
         Alert alert = alertRepository.findByIdAlertAndCropEstateUserEmail(alertId, email)
                 .orElseThrow(() -> new NotFoundException("Alert not found"));
-        // Acknowledging twice changes nothing, so the database can take over if the backend does not answer.
         if (backendClient.attempt(() -> backendClient.acknowledgeAlert(email, alertId)).isEmpty()) {
             alert.setAcknowledged(true);
         }
@@ -77,6 +96,7 @@ public class AlertService {
                 alert.getAlertType(),
                 alert.getSeverity(),
                 alert.getMessage(),
+                alert.getCrop().getIdCrop(),
                 alert.getCrop().getName(),
                 alert.getCrop().getEstate().getName(),
                 alert.getDetectedValue(),

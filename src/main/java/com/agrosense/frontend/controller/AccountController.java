@@ -22,7 +22,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.security.Principal;
 import java.util.Map;
 
-/** Sign-up, account settings and account deletion. */
 @Controller
 @RequiredArgsConstructor
 public class AccountController {
@@ -44,7 +43,6 @@ public class AccountController {
         if (!result.hasErrors()) {
             try {
                 accountService.register(form);
-                // The sign-in form opens with the e-mail already typed; only the password is left.
                 redirect.addFlashAttribute("registeredEmail", form.getEmail().trim().toLowerCase(java.util.Locale.ROOT));
                 return "redirect:/login?registered";
             } catch (BusinessRuleException exception) {
@@ -54,7 +52,6 @@ public class AccountController {
         return "register";
     }
 
-    /** Live check behind the e-mail field of the sign-up form. */
     @GetMapping("/registro/disponibilidad")
     @ResponseBody
     public Map<String, Boolean> emailAvailability(@RequestParam String email) {

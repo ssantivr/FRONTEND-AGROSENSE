@@ -24,10 +24,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * A login is stored in the spring_session tables of database/schema.sql and read back from them. Unlike
- * WebFlowTests, requests go through the Spring Session filter, so nothing is kept in a mock session.
- */
 @SpringBootTest
 @ActiveProfiles("demo")
 class SessionStorageTests {
@@ -62,7 +58,6 @@ class SessionStorageTests {
         assertThat(jdbc.queryForObject(SESSIONS_OF_DEMO_USER, Integer.class, DEMO_EMAIL)).isEqualTo(1);
         assertThat(jdbc.queryForObject("select count(*) from spring_session_attributes", Integer.class)).isPositive();
 
-        // Only the cookie travels: the signed-in user comes from the stored session.
         mvc.perform(get("/configuracion").cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString(DEMO_EMAIL)));

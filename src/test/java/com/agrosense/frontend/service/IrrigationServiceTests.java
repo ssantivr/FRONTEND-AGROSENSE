@@ -50,7 +50,6 @@ class IrrigationServiceTests {
     private CropRepository cropRepository;
     @Mock
     private UserRepository userRepository;
-    /** Not stubbed: an unavailable backend, so every irrigation goes to the database. */
     @Mock
     private BackendClient backendClient;
     @InjectMocks

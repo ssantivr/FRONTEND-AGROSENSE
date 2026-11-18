@@ -1,0 +1,414 @@
+/*
+ * Components added with the 2026 redesign. Loaded after styles.css; every value comes from design-tokens.css.
+ * Motion: transform and opacity only, 120–180 ms for small interactions, 180–240 ms for components, and
+ * nothing decorative under prefers-reduced-motion or the «Reducir animaciones» setting (.reduce-motion).
+ */
+
+/* Brand intro: seed → leaf → name, about one second, once per session. */
+.brand-intro {
+  display: none;
+}
+
+.intro-pending .brand-intro {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-toast);
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-3);
+  background: var(--panel);
+  color: var(--panel-text);
+  pointer-events: none;
+  animation: intro-out 220ms var(--ease-in) 900ms both;
+}
+
+.brand-intro-mark {
+  overflow: visible;
+}
+
+.brand-intro-seed {
+  fill: var(--brand-200);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: intro-seed 260ms var(--ease-out) both;
+}
+
+.brand-intro-leaf,
+.brand-intro-leaf-2 {
+  transform-box: view-box;
+  transform-origin: 9px 39px;
+  animation: intro-leaf 360ms var(--ease-spring) both;
+}
+
+.brand-intro-leaf {
+  fill: var(--mark-leaf-on-panel);
+  animation-delay: 300ms;
+}
+
+.brand-intro-leaf-2 {
+  fill: var(--mark-leaf-2-on-panel);
+  animation-delay: 220ms;
+}
+
+.brand-intro-name {
+  font-size: var(--text-h2);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.01em;
+  animation: intro-name 260ms var(--ease-out) 560ms both;
+}
+
+.brand-intro-name span {
+  color: var(--brand-200);
+}
+
+.brand-intro-skip {
+  position: absolute;
+  right: var(--space-5);
+  bottom: calc(var(--space-5) + var(--safe-bottom));
+  min-height: var(--touch-target);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--panel-text-muted);
+  font: inherit;
+  font-size: var(--text-small);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+@keyframes intro-seed {
+  from { opacity: 0; transform: scale(0.2); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes intro-leaf {
+  from { opacity: 0; transform: scale(0.1); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes intro-name {
+  from { opacity: 0; transform: translateY(var(--distance-md)); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes intro-out {
+  to { opacity: 0; visibility: hidden; }
+}
+
+/* No more than twelve elements enter at a time; the rest are simply there. */
+[data-motion-stagger] > :nth-child(n + 13) {
+  animation: none;
+}
+
+/* Connection to the backend, in the header. */
+.connection-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 32px;
+  max-width: 22rem;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  font-size: var(--text-small);
+  white-space: nowrap;
+  transition: background-color var(--motion-base) var(--ease-out), color var(--motion-base) var(--ease-out);
+}
+
+.connection-status-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.connection-status-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.connection-status[data-state='up'] .connection-status-dot {
+  background: var(--status-success);
+}
+
+.connection-status[data-state='waking'] {
+  border-color: transparent;
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
+  white-space: normal;
+}
+
+.connection-status[data-state='waking'] .connection-status-dot {
+  background: var(--status-warning);
+  animation: connection-pulse 1.2s var(--ease-in-out) infinite;
+}
+
+.connection-status[data-state='down'],
+.connection-status[data-state='off'] {
+  border-style: dashed;
+}
+
+.connection-status[data-state='down'] .connection-status-dot {
+  background: var(--status-danger);
+}
+
+@keyframes connection-pulse {
+  50% { opacity: 0.35; transform: scale(0.8); }
+}
+
+@media (max-width: 1439px) {
+  /* Only the dot (its title and the hidden label still say which state), unless the server is waking up. */
+  .connection-status:not([data-state='waking']) {
+    padding: 0;
+    border: 0;
+    min-width: 24px;
+    justify-content: center;
+  }
+
+  .connection-status:not([data-state='waking']) .connection-status-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 479px) {
+  /* The theme can still be changed in Configuración; the header keeps what is needed on a phone. */
+  .topbar .theme-toggle {
+    display: none;
+  }
+}
+
+@media (max-width: 1023px) {
+  .connection-status[data-state='waking'] {
+    position: fixed;
+    top: calc(var(--topbar-height) + var(--safe-top) + var(--space-2));
+    left: var(--space-4);
+    right: var(--space-4);
+    z-index: var(--z-sticky);
+    max-width: none;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-2);
+  }
+}
+
+/* Where a chart's data came from, and when. */
+.data-source {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--text-small);
+}
+
+.data-source::before {
+  content: '';
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--status-success);
+}
+
+.data-source[data-source='database'] {
+  color: var(--status-warning-text);
+}
+
+.data-source[data-source='database']::before {
+  border-radius: 2px;
+  background: var(--status-warning);
+}
+
+.card-header .row-actions {
+  flex-wrap: wrap;
+}
+
+/* KPI cards: the time of the latest reading. */
+.kpi-time {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--text-micro);
+}
+
+/* Character counters past the server's limit. */
+.field-counter.is-over {
+  color: var(--status-danger-text);
+  font-weight: var(--weight-semibold);
+}
+
+/* Rows hidden by a status filter (the page search uses `hidden`). */
+[data-filtered-out] {
+  display: none !important;
+}
+
+button.chip-link {
+  min-height: var(--touch-target);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-small);
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out);
+}
+
+button.chip-link[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  font-weight: var(--weight-semibold);
+}
+
+.chip-row-count {
+  align-self: center;
+  font-size: var(--text-small);
+}
+
+/* A reading that arrived while the page is open is live; the rest are the last known value. */
+.is-live-updated [data-live-time]::after {
+  content: ' · en vivo';
+  color: var(--status-success-text);
+  font-weight: var(--weight-semibold);
+}
+
+/* Alerts: state of attention next to the action. */
+.alert-state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--status-warning-text);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+}
+
+.timeline-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Irrigation: drops only while a registered irrigation is running. */
+.pump-icon {
+  position: relative;
+}
+
+.pump-drops {
+  display: none;
+}
+
+.pump--running .pump-drops,
+.running-item .pump-drops {
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+}
+
+.pump-drops i {
+  position: absolute;
+  top: 58%;
+  width: 4px;
+  height: 6px;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: currentColor;
+  opacity: 0;
+  animation: drop-fall 1.4s var(--ease-in) infinite;
+}
+
+.pump-drops i:nth-child(1) { left: 30%; }
+.pump-drops i:nth-child(2) { left: 48%; animation-delay: 0.45s; }
+.pump-drops i:nth-child(3) { left: 66%; animation-delay: 0.9s; }
+
+@keyframes drop-fall {
+  0% { opacity: 0; transform: translateY(0); }
+  20% { opacity: 0.9; }
+  100% { opacity: 0; transform: translateY(14px); }
+}
+
+/* Sign-in: decorative signals, no figures. */
+.auth-signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.auth-signal {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--radius-md);
+  background: rgba(6, 46, 39, 0.55);
+  backdrop-filter: blur(6px);
+  color: var(--panel-text);
+  font-size: var(--text-small);
+}
+
+.auth-signal .bi {
+  color: var(--brand-200);
+}
+
+.auth-signal svg {
+  width: 48px;
+  height: 14px;
+  fill: none;
+  stroke: var(--brand-200);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (max-width: 1023px) {
+  .auth-signals {
+    display: none;
+  }
+}
+
+/* Dialogs: fade with a minimal scale. */
+dialog[open] {
+  animation: dialog-in var(--motion-slow) var(--ease-out);
+}
+
+dialog[open]::backdrop {
+  animation: fade-in var(--motion-slow) var(--ease-out);
+}
+
+@keyframes dialog-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Everything decorative stops for people who ask for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  .connection-status[data-state='waking'] .connection-status-dot,
+  .pump-drops i,
+  dialog[open],
+  dialog[open]::backdrop {
+    animation: none;
+  }
+}
+
+.reduce-motion .connection-status[data-state='waking'] .connection-status-dot,
+.reduce-motion .pump-drops i,
+.reduce-motion dialog[open],
+.reduce-motion dialog[open]::backdrop,
+.reduce-motion [data-motion-stagger] > * {
+  animation: none !important;
+}

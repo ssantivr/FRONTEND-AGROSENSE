@@ -15,17 +15,14 @@ const isReportData = (value) => isRecord(value) &&
     isArrayOf(isEstateWater)(value['byEstate']) &&
     isArrayOf(isTypeWater)(value['byType']) &&
     isArrayOf(isDayWater)(value['daily']);
-// A live declaration: token() always returns the value of the theme that is active right now.
 const styles = getComputedStyle(document.documentElement);
 const token = (name) => styles.getPropertyValue(name).trim();
-// Chart.js draws its own text: give it the interface's typeface.
 if (typeof Chart !== 'undefined')
     Chart.defaults.font.family = token('--font-body');
 const numberFormat = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 1 });
 const dayFormat = new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'short' });
 const TYPE_LABELS = { MANUAL: 'Manual', AUTOMATIC: 'Automático' };
 let charts = [];
-/** Hides a chart's box and says why in the paragraph meant for it. */
 function explain(boxId, messageId, text) {
     const box = find(boxId, HTMLElement);
     const message = find(messageId, HTMLElement);
@@ -36,7 +33,6 @@ function explain(boxId, messageId, text) {
     message.textContent = text;
     message.hidden = false;
 }
-/** One bar chart. `colours` gives each bar its own colour; without it they share the first chart colour. */
 function bars(canvasId, boxId, labels, values, unit, colours) {
     const canvas = find(canvasId, HTMLCanvasElement);
     find(boxId, HTMLElement)?.classList.remove('skeleton');
@@ -51,7 +47,6 @@ function bars(canvasId, boxId, labels, values, unit, colours) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            // Draw the final state at once: entry animations stall in background tabs and add nothing here.
             animation: false,
             plugins: {
                 legend: { display: false },
@@ -64,7 +59,6 @@ function bars(canvasId, boxId, labels, values, unit, colours) {
         },
     }));
 }
-/** How the litres split between irrigations started by hand and automatic ones. */
 function split(types) {
     const canvas = find('typeChart', HTMLCanvasElement);
     find('typeChartBox', HTMLElement)?.classList.remove('skeleton');
@@ -102,16 +96,9 @@ function render(data) {
         explain('dailyChartBox', 'dailyMessage', 'No hay riegos con litros registrados en estos días.');
     }
     else {
-        bars('dailyChart', 'dailyChartBox', 
-        // The server sends plain dates; appending a time keeps them in the local day.
-        data.daily.map((day) => dayFormat.format(new Date(`${day.date}T12:00:00`))), data.daily.map((day) => day.liters), 'L');
+        bars('dailyChart', 'dailyChartBox', data.daily.map((day) => dayFormat.format(new Date(`${day.date}T12:00:00`))), data.daily.map((day) => day.liters), 'L');
     }
-    bars('cropChart', 'cropChartBox', 
-    // The estate tells apart crops of the same name grown in two places.
-    data.byCrop.map((crop) => (data.byEstate.length > 1 ? [crop.label, crop.estate].join(' · ') : crop.label)), data.byCrop.map((crop) => crop.liters), 'L', 
-    // Each crop keeps the colour it has on its badges.
-    data.byCrop.map((crop) => token(`--crop-${crop.tone}`)));
-    // Per hectare is the fair comparison between estates of different sizes; it needs their area.
+    bars('cropChart', 'cropChartBox', data.byCrop.map((crop) => (data.byEstate.length > 1 ? [crop.label, crop.estate].join(' · ') : crop.label)), data.byCrop.map((crop) => crop.liters), 'L', data.byCrop.map((crop) => token(`--crop-${crop.tone}`)));
     const measured = data.byEstate.flatMap((estate) => estate.litersPerHa === null ? [] : [{ label: estate.label, litersPerHa: estate.litersPerHa }]);
     if (measured.length === 0) {
         explain('estateChartBox', 'estateMessage', 'Registra el área de tus parcelas para comparar los litros por hectárea.');
@@ -130,7 +117,6 @@ function init() {
         data = JSON.parse(container.dataset['charts'] ?? 'null');
     }
     catch {
-        // Handled below with everything else that is not the promised shape.
     }
     if (!isReportData(data)) {
         container.hidden = true;
@@ -138,7 +124,6 @@ function init() {
     }
     const report = data;
     render(report);
-    // Colours come from the theme: draw again when it changes.
     document.addEventListener(THEME_EVENT, () => render(report));
 }
 init();

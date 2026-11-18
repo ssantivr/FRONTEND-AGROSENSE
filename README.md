@@ -25,9 +25,10 @@ La contraseña de la demo se puede cambiar con la variable `DEMO_PASSWORD`.
 | `DATABASE_PASSWORD`     | Contraseña                                              |
 | `PORT`                  | Puerto HTTP (por defecto 8080)                          |
 | `SESSION_COOKIE_SECURE` | `false` solo si se sirve sin HTTPS (por defecto `true`) |
-| `BACKEND_URL`           | Dirección de la API del backend, por ejemplo `https://backend-agrosense-oyhq.onrender.com`. Opcional |
+| `BACKEND_URL`           | Dirección de la API del backend, por ejemplo `https://backend-agrosense-u5mz.onrender.com`. Opcional |
 | `BACKEND_JWT_SECRET`    | El mismo valor que `JWT_SECRET` del backend. Opcional   |
 | `BACKEND_SIGN_IN`       | `false` para que el inicio de sesión no pase por el backend (por defecto `true`) |
+| `EVENTS_PUBLIC_URL`     | Dirección pública del manejador de eventos (`event-service/`), tal como la alcanza el navegador, por ejemplo `http://localhost:8100`. Opcional: sin ella no hay datos en vivo |
 
 Con `BACKEND_URL` y `BACKEND_JWT_SECRET` definidas, iniciar sesión, crear cuentas, atender alertas, registrar sensores y riegos y la
 gráfica de lecturas pasan por la API del backend; sin ellas, o mientras el backend no responda, todo se
@@ -35,14 +36,39 @@ hace contra la base de datos.
 
 El asistente de IA (la ventana de chat de las páginas con sesión, por texto y por voz) solo funciona con
 el backend: sus scripts están en `src/main/ts/ai`, llaman a `/api/ui/ai/chat` y `/api/ui/ai/voice`, y el
-servidor reenvía la pregunta al backend, que es quien guarda la llave de Gemini (`GEMINI_API_KEY`).
+servidor reenvía la pregunta al backend, que la responde (o la pasa al servicio de IA) con las llaves que
+solo él conoce. Para el usuario no cambia nada.
 
-Las tablas se crean con `../database/schema.sql` (ver [`database/README.md`](../database/README.md));
-con `SQL_INIT_MODE=always` la aplicación lo ejecuta al arrancar.
+**Lecturas y alertas en vivo.** Con `EVENTS_PUBLIC_URL`, `src/main/ts/events/live.ts` pide a
+`/api/ui/events/token` un token de 5 minutos (lo firma el backend), abre el canal del manejador de eventos
+(`EventSource`) y, a medida que llegan eventos de los dispositivos, actualiza la última lectura de cada sensor
+(tarjetas y tabla de Sensores, marcadas con `data-sensor-code`) y avisa de cada alerta nueva, sumándola a
+los contadores del menú y de la barra superior. Renueva el token antes de que venza y, si se corta, vuelve
+a conectar con una espera creciente (1 s, 2 s, 4 s… hasta 1 min). «En vivo», junto al reloj, indica que el
+canal está abierto. Sin la variable, o si el manejador de eventos o el backend fallan, las páginas muestran
+lo que cargaron, como siempre. La CSP solo añade a `connect-src` el origen de esa dirección, y el navegador
+nunca recibe una llave de servicio.
+
+Las tablas se crean con `../database/schema.sql`, del repositorio
+[BASE-DE-DATOS-AGROSENSE](https://github.com/ssantivr/BASE-DE-DATOS-AGROSENSE#readme), que se clona como
+carpeta hermana `database/`; con `SQL_INIT_MODE=always` la aplicación lo ejecuta al arrancar.
 
 Al iniciar sesión por el backend todas las peticiones le llegan desde la dirección de este servidor:
 configura en el backend `LOGIN_MAX_ATTEMPTS_PER_ADDRESS=0` para que los fallos de un visitante no bloqueen
-a los demás (el límite por cuenta sigue activo).
+a los demás (el límite por cuenta sigue activo). Enviar la IP del visitante en `X-Forwarded-For` no sirve
+todavía: el backend usa `getRemoteAddr()` sin `server.forward-headers-strategy` (ver
+[`docs/PENDIENTES.md`](docs/PENDIENTES.md)).
+
+**Servidor dormido.** El plan gratuito de Render duerme el backend tras 15 minutos sin uso. Si no responde a
+la comprobación rápida (3 s), el frontend lo despierta en segundo plano (hasta 3 intentos de 60 s con pausas
+crecientes) y mientras tanto lee y escribe directamente en la base de datos compartida. La cabecera lo
+indica: «Servidor conectado», «Despertando el servidor, puede tardar hasta un minuto…» o «Respaldo: base de
+datos directa»; la gráfica de lecturas dice de dónde salieron los datos y la hora de la última lectura.
+`GET /api/ui/backend-status` devuelve ese estado.
+
+**Humedad del ESP32.** La página Sensores termina con la planta del ESP32 (`ESP32_DEVICE_ID`) y solo sus lecturas de
+humedad, calificadas contra los rangos del cultivo. `src/main/ts/esp32-humidity.ts` consulta `/api/ui/esp32/humidity`
+cada 30 s. Detalle en [docs/SENSOR-ESP32.md](../docs/SENSOR-ESP32.md).
 
 ## Scripts (TypeScript)
 
@@ -57,13 +83,29 @@ npm run typecheck
 
 No edites `static/js` a mano: la siguiente compilación lo sobrescribe.
 
+Las transiciones de vista entre páginas (`@view-transition`) están desactivadas: Chromium abortaba la
+transición en casi cada navegación y lo anotaba en la consola como error («Transition was aborted because of
+invalid state»). Quitarla solo al ir al inicio no lo evitaba. Una prueba de `WebFlowTests` impide que la regla
+vuelva a `styles.css`.
+
 ## Pruebas
 
 ```bash
 ./mvnw clean verify
 ```
 
+### En cada pull request
+
+`.github/workflows/neon-pull-request.yml` crea una copia de la base de datos en Neon para el pull
+request (`preview/pr-<número>`), ejecuta todas las pruebas contra ella, incluidas las de PostgreSQL, y la
+borra cuando el pull request se cierra. Necesita el secreto `NEON_API_KEY` y la variable
+`NEON_PROJECT_ID`, que crea la integración de GitHub de Neon (consola de Neon → Integrations → GitHub).
+
 ## Más información
 
-La arquitectura, las decisiones y la tabla de qué es real y qué es demostración están en
-[`docs/ARQUITECTURA.md`](../docs/ARQUITECTURA.md).
+- [`docs/PENDIENTES.md`](docs/PENDIENTES.md): cambios que dependen del backend o de la base de datos.
+- [`docs/CREDITOS.md`](docs/CREDITOS.md): autores y licencias de las fotografías.
+- La arquitectura, las decisiones y la tabla de qué es real y qué es demostración están en
+  `docs/ARQUITECTURA.md` del espacio de trabajo del proyecto; ese documento no se publica en este repositorio.
+- Integración continua: `.github/workflows/ci.yml` ejecuta `./mvnw -q -B verify`, `npm run typecheck` y
+  comprueba que `src/main/resources/static/js` corresponde a `npm run build`.

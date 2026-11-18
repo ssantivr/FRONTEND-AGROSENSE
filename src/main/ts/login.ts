@@ -1,8 +1,6 @@
-// Sign-in and sign-up pages: theme switch, hero photograph, password toggles, counters, e-mail availability
-// and the two forms. Without JavaScript both forms still post normally and the server renders the outcome.
 import { forgetConversation } from './ai/storage.js';
 import { messageOf } from './api/client.js';
-import { checkEmail } from './api/ui.js';
+import { api } from './api/facade.js';
 import { all, find, icon, need, prefersReducedMotion } from './core/dom.js';
 import {
   type FieldRule,
@@ -11,21 +9,19 @@ import {
   initPasswordMeters,
   initPasswordRules,
   LIMITS,
+  normalizedText,
   setFieldError,
   validateField,
   validateFields,
 } from './forms.js';
 import { initThemeToggles } from './theme.js';
 
-// These pages are only shown without a session: whatever the last user asked the assistant goes.
 forgetConversation();
 initThemeToggles();
 initCounters();
 initPasswordMeters();
 initPasswordRules();
 initCapsWarnings();
-
-// ---------- Hero photograph: loading -> loaded | error ----------
 
 type PhotoState = 'loading' | 'loaded' | 'error';
 
@@ -37,7 +33,6 @@ function initHeroPhoto(): void {
     hero.dataset['state'] = state;
   };
   const reveal = (): void => {
-    // decode() resolves once the image can be painted without a flash of half-decoded rows.
     photo.decode().then(
       () => settle('loaded'),
       () => settle('loaded'),
@@ -52,8 +47,6 @@ function initHeroPhoto(): void {
   }
 }
 
-// ---------- Show/hide toggles for password fields: <button data-toggle-password="inputId"> ----------
-
 function initPasswordToggles(): void {
   all('[data-toggle-password]', HTMLButtonElement).forEach((toggle) => {
     const input = find(toggle.dataset['togglePassword'] ?? '', HTMLInputElement);
@@ -63,17 +56,13 @@ function initPasswordToggles(): void {
       input.type = reveal ? 'text' : 'password';
       toggle.setAttribute('aria-pressed', String(reveal));
       toggle.setAttribute('aria-label', reveal ? 'Ocultar contraseña' : 'Mostrar contraseña');
-      // Replacing the icon element restarts its CSS fade-in, which gives the cross-fade.
       toggle.replaceChildren(icon(reveal ? 'bi-eye-slash' : 'bi-eye'));
     });
   });
 }
 
-// ---------- Live e-mail availability on the sign-up form: <input data-email-availability="url"> ----------
-
 type Availability = 'unknown' | 'checking' | 'available' | 'taken' | 'failed';
 
-/** Returns a reader of the latest known answer, so the form can refuse an address it knows is taken. */
 function initEmailAvailability(): () => Availability {
   const input = document.querySelector<HTMLInputElement>('input[data-email-availability]');
   const status = find('emailAvailability', HTMLElement);
@@ -101,11 +90,10 @@ function initEmailAvailability(): () => Availability {
     request = new AbortController();
     show('checking', 'Comprobando…');
     try {
-      const { available } = await checkEmail(url, input.value.trim(), request.signal);
+      const { available } = await api.checkEmail(url, input.value.trim(), request.signal);
       if (available) show('available', 'Correo disponible.');
       else show('taken', 'Este correo ya está registrado. Inicia sesión o usa otro.');
     } catch (error) {
-      // A newer keystroke aborted this request: its own check will report.
       if (error instanceof DOMException) return;
       show('failed', `No pudimos comprobar el correo. ${messageOf(error)}`);
     }
@@ -120,9 +108,6 @@ function initEmailAvailability(): () => Availability {
   return () => availability;
 }
 
-// ---------- Sign-in ----------
-
-/** Where the sign-in attempt stands. Only the server's answer moves it to `success` or to an error. */
 type AuthStatus =
   | { kind: 'idle' }
   | { kind: 'validating' }
@@ -140,7 +125,6 @@ type ProblemKind = Exclude<AuthStatus['kind'], 'idle' | 'validating' | 'submitti
 const REQUEST_TIMEOUT_MS = 15_000;
 const SUCCESS_PAUSE_MS = 350;
 
-/** Message, and whether "Reintentar" makes sense, for every state that reports a problem. */
 const PROBLEMS: Record<ProblemKind, { text: string; retry: boolean }> = {
   'invalid-credentials': { text: 'No se pudo iniciar sesión. Comprueba tus credenciales.', retry: false },
   'rate-limited': { text: 'Demasiados intentos fallidos. Espera unos minutos antes de volver a intentarlo.', retry: false },
@@ -196,7 +180,6 @@ function initSignIn(form: HTMLFormElement): void {
     submit.classList.toggle('is-loading', busy);
     submit.classList.toggle('is-success', done);
     label.textContent = busy ? 'Verificando credenciales…' : done ? 'Acceso autorizado' : idleLabel;
-    // Read-only, not disabled: the values must stay in the request and nothing may be edited meanwhile.
     email.readOnly = busy || done;
     password.readOnly = busy || done;
     if (shell) shell.dataset['auth'] = next.kind;
@@ -211,7 +194,6 @@ function initSignIn(form: HTMLFormElement): void {
     retry.hidden = !problem.retry;
   };
 
-  /** Sends the form and reads the outcome from where Spring Security redirects, or from the status code. */
   const request = async (): Promise<AuthStatus> => {
     const loginPath = new URL(form.action).pathname;
     const controller = new AbortController();
@@ -238,13 +220,11 @@ function initSignIn(form: HTMLFormElement): void {
       if (response.status === 401 || (backAtLogin && landed.searchParams.has('error'))) {
         return { kind: 'invalid-credentials' };
       }
-      // 403 is a stale CSRF token; 400 is a form the server could not read. Both need a fresh page.
       if (response.status === 403 || response.status === 400) return { kind: 'expired' };
       if (response.status === 404) return { kind: 'not-found' };
       if (response.ok && !backAtLogin) return { kind: 'success', redirectTo: response.url };
       return { kind: 'server-error' };
     } catch {
-      // A timeout aborts the request and is reported like any other failure to reach the server.
       return { kind: 'network-error' };
     } finally {
       clearTimeout(timeout);
@@ -258,16 +238,15 @@ function initSignIn(form: HTMLFormElement): void {
       render({ kind: 'idle' });
       return;
     }
-    // Messages the server rendered for the previous page load no longer describe this attempt.
     all('[data-server-message]', HTMLElement).forEach((message) => message.remove());
     render({ kind: 'submitting' });
     const outcome = await request();
     render(outcome);
 
     if (outcome.kind === 'success') {
-      // A short beat for the confirmation, then the page the server chose. Never longer than this.
       setTimeout(() => window.location.assign(outcome.redirectTo), SUCCESS_PAUSE_MS);
     } else if (outcome.kind === 'invalid-credentials') {
+      all('.field.is-valid', HTMLElement, form).forEach((field) => field.classList.remove('is-valid'));
       password.value = '';
       email.focus();
       if (!prefersReducedMotion()) {
@@ -287,20 +266,28 @@ function initSignIn(form: HTMLFormElement): void {
   });
   retry.addEventListener('click', () => void signIn());
   rules.forEach(({ input }) => input.addEventListener('input', () => setFieldError(input, null)));
-  // Returning with the back button restores the page as it was left: make it usable again.
   window.addEventListener('pageshow', (event) => {
     if (event.persisted) render({ kind: 'idle' });
   });
 }
 
-// ---------- Sign-up ----------
-
-/** Same wording as the server's validation, so a message does not change when the server repeats it. */
-function lengthRule(input: HTMLInputElement, missing: string, outOfRange: string, min: number, max: number): FieldRule {
+function nameRule(input: HTMLInputElement, missing: string, what: string): FieldRule {
+  const { min, max } = LIMITS.name;
+  // Extra spaces are removed when leaving the field, so they never count against the limit.
+  input.addEventListener('change', () => {
+    input.value = normalizedText(input.value);
+  });
   return {
     input,
-    // The length is checked on the text as typed: spaces count.
-    check: (value) => required(missing)(value) ?? (value.length < min || value.length > max ? outOfRange : null),
+    check: (value) => {
+      const length = normalizedText(value).length;
+      if (required(missing)(value)) return missing;
+      if (length < min) return `${what} debe tener al menos ${min} caracteres.`;
+      if (length > max) {
+        return `${what} tiene ${length} caracteres y el servidor admite ${max} por ahora (espacios incluidos). Abrevia una parte, por ejemplo la última palabra.`;
+      }
+      return null;
+    },
   };
 }
 
@@ -311,24 +298,30 @@ function initSignUp(form: HTMLFormElement, emailAvailability: () => Availability
   const email = namedInput(form, 'email');
   const password = namedInput(form, 'password');
   const confirmation = namedInput(form, 'confirmPassword');
-  const { name, password: passwordLimits } = LIMITS;
+  const availabilityHint = find('emailAvailability', HTMLElement);
+  const { password: passwordLimits } = LIMITS;
+  const takenEmail = (): string | null => {
+    if (emailAvailability() !== 'taken') return null;
+    if (availabilityHint) availabilityHint.hidden = true;
+    return 'Este correo ya está registrado. Inicia sesión o usa otro.';
+  };
   const rules: FieldRule[] = [
-    lengthRule(namedInput(form, 'name'), 'Ingresa tu nombre.', `El nombre debe tener entre ${name.min} y ${name.max} caracteres.`, name.min, name.max),
-    lengthRule(namedInput(form, 'lastName'), 'Ingresa tu apellido.', `El apellido debe tener entre ${name.min} y ${name.max} caracteres.`, name.min, name.max),
+    nameRule(namedInput(form, 'name'), 'Ingresa tu nombre.', 'El nombre'),
+    nameRule(namedInput(form, 'lastName'), 'Ingresa tu apellido.', 'El apellido'),
     {
       input: email,
-      check: (value) =>
-        emailRule(email).check(value) ??
-        (emailAvailability() === 'taken' ? 'Este correo ya está registrado. Inicia sesión o usa otro.' : null),
+      check: (value) => emailRule(email).check(value) ?? takenEmail(),
     },
     {
       input: password,
       check: (value) =>
         value === ''
           ? 'Ingresa una contraseña.'
-          : value.length < passwordLimits.min || value.length > passwordLimits.max
-            ? `La contraseña debe tener entre ${passwordLimits.min} y ${passwordLimits.max} caracteres.`
-            : null,
+          : value.length < passwordLimits.min
+            ? `La contraseña debe tener al menos ${passwordLimits.min} caracteres.`
+            : value.length > passwordLimits.max
+              ? `La contraseña tiene ${value.length} caracteres y el servidor admite ${passwordLimits.max} por ahora. Acórtala; no se recorta sola.`
+              : null,
     },
     { input: confirmation, check: (value) => (value === password.value ? null : 'Las contraseñas no coinciden.') },
   ];
@@ -345,30 +338,25 @@ function initSignUp(form: HTMLFormElement, emailAvailability: () => Availability
       event.preventDefault();
       return;
     }
-    // The form posts normally from here; the button is locked so it cannot be sent twice.
     setBusy(true);
   });
   const matchHint = find('confirmPasswordMatch', HTMLElement);
-  /** "Las contraseñas coinciden", only once both are typed and equal. */
   const showMatch = (): void => {
     if (matchHint) matchHint.hidden = !(confirmation.value !== '' && confirmation.value === password.value);
   };
   rules.forEach((rule) => {
     const { input } = rule;
-    // While typing, an error goes away; the verdict comes when the field is left.
     input.addEventListener('input', () => {
       setFieldError(input, null);
       input.closest('.field')?.classList.remove('is-valid');
     });
     input.addEventListener('blur', () => validateField(rule, { quietWhenEmpty: true }));
   });
-  // Tell the mismatch as soon as the confirmation is complete enough to compare.
   confirmation.addEventListener('input', () => {
     const differs = confirmation.value.length >= password.value.length && confirmation.value !== password.value;
     setFieldError(confirmation, differs ? 'Las contraseñas no coinciden.' : null);
     showMatch();
   });
-  // Changing the password after confirming it makes the confirmation stale.
   password.addEventListener('input', () => {
     showMatch();
     if (confirmation.value !== '') validateField({ input: confirmation, check: (value) => (value === password.value ? null : 'Las contraseñas no coinciden.') });

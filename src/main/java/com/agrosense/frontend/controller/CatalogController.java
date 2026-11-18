@@ -1,5 +1,6 @@
 package com.agrosense.frontend.controller;
 
+import com.agrosense.frontend.backend.BackendClient;
 import com.agrosense.frontend.dto.CropForm;
 import com.agrosense.frontend.dto.EstateForm;
 import com.agrosense.frontend.dto.SensorForm;
@@ -31,17 +32,15 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
 
-/** Forms to create, edit and remove estates, crops and sensors. */
 @Controller
 @RequiredArgsConstructor
 public class CatalogController {
 
+    private final BackendClient backendClient;
     private final CatalogService catalogService;
     private final EstateService estateService;
     private final SensorService sensorService;
     private final ObjectMapper objectMapper;
-
-    // ---------- Estates ----------
 
     @GetMapping("/parcelas/nueva")
     public String newEstate(@RequestParam(name = GUIDE, required = false) String guide, Model model) {
@@ -74,7 +73,6 @@ public class CatalogController {
             @Valid @ModelAttribute("estateForm") EstateForm form, BindingResult result, Principal principal,
             Model model, RedirectAttributes redirect) {
         if (result.hasErrors()) {
-            // Still confirm ownership, so the form of someone else's estate is never rendered.
             catalogService.findEstateName(principal.getName(), estateId);
             return estateFormView(model, "Editar parcela", "/parcelas/" + estateId);
         }
@@ -88,14 +86,13 @@ public class CatalogController {
         return saved(redirect, "Parcela eliminada.", "/parcelas");
     }
 
-    // ---------- Crops ----------
-
     @GetMapping("/parcelas/{estateId}/cultivos/nuevo")
     public String newCrop(@PathVariable Integer estateId,
             @RequestParam(name = GUIDE, required = false) String guide, Principal principal, Model model) {
         guide(model, guide, 2);
         String estateName = catalogService.findEstateName(principal.getName(), estateId);
         model.addAttribute("cropForm", new CropForm());
+        model.addAttribute("cropTemplates", backendClient.cropTemplates(principal.getName()));
         return cropFormView(model, "Nuevo cultivo en " + estateName, "/parcelas/" + estateId + "/cultivos");
     }
 
@@ -106,6 +103,7 @@ public class CatalogController {
         String estateName = catalogService.findEstateName(principal.getName(), estateId);
         if (result.hasErrors()) {
             guide(model, guide, 2);
+            model.addAttribute("cropTemplates", backendClient.cropTemplates(principal.getName()));
             return cropFormView(model, "Nuevo cultivo en " + estateName, "/parcelas/" + estateId + "/cultivos");
         }
         Integer cropId = catalogService.createCrop(principal.getName(), estateId, form);
@@ -136,14 +134,11 @@ public class CatalogController {
         return saved(redirect, "Cultivo eliminado.", "/parcelas");
     }
 
-    // ---------- Sensors ----------
-
     @GetMapping("/sensores/nuevo")
     public String newSensor(@RequestParam(name = GUIDE, required = false) String guide,
             @RequestParam(name = "cultivo", required = false) Integer cropId, Principal principal, Model model) {
         guide(model, guide, 3);
         SensorForm form = new SensorForm();
-        // Coming from the crop that was just created, or from its estate's page.
         form.setCropId(cropId);
         model.addAttribute("sensorForm", form);
         return sensorFormView(principal, model);
@@ -191,12 +186,6 @@ public class CatalogController {
         return saved(redirect, "Sensor eliminado.", "/sensores");
     }
 
-    // ---------- Helpers ----------
-
-    /**
-     * The guided first set-up (estate, then crop, then sensor) is carried from page to page by this
-     * parameter. With it, each form shows the steps and a successful save leads to the next one.
-     */
     private static final String GUIDE = "guia";
 
     private static void guide(Model model, String guide, int step) {
@@ -224,7 +213,6 @@ public class CatalogController {
                 .findFirst()
                 .orElseThrow(() -> new NotFoundException("Sensor not found"));
         model.addAttribute("sensor", sensor);
-        // The estate the sensor belongs to: the map opens on it and draws its approximate area.
         model.addAttribute("siteJson", objectMapper.writeValueAsString(
                 estateService.findEstates(principal.getName()).stream()
                         .filter(estate -> estate.id().equals(sensor.estateId()))
@@ -233,7 +221,6 @@ public class CatalogController {
         return "sensor-position";
     }
 
-    /** What the position picker needs to know about an estate. */
     private static Map<String, Object> toSite(EstateView estate) {
         Map<String, Object> site = new LinkedHashMap<>();
         site.put("name", estate.name());
@@ -245,14 +232,13 @@ public class CatalogController {
     }
 
     private String sensorFormView(Principal principal, Model model) {
-        // The estate of each crop, by crop id: choosing a crop moves the position picker to its estate.
         Map<String, Object> sites = new LinkedHashMap<>();
         estateService.findEstates(principal.getName()).forEach(estate -> estate.crops().stream()
                 .filter(CropView::active)
                 .forEach(crop -> sites.put(String.valueOf(crop.id()), toSite(estate))));
         model.addAttribute("sitesJson", objectMapper.writeValueAsString(sites));
         model.addAttribute("cropOptions", estateService.findActiveCropOptions(principal.getName()));
-        model.addAttribute("sensorTypes", SensorType.values());
+        model.addAttribute("sensorTypes", SensorType.ESP32);
         return "sensor-form";
     }
 

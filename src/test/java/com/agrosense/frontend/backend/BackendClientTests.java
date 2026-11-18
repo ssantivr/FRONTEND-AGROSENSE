@@ -31,7 +31,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** The client against a local HTTP server that answers like the backend API. */
 class BackendClientTests {
 
     private static final String SECRET = "test-secret-that-is-at-least-64-bytes-long-for-hs512-signatures-0123456789";
@@ -173,7 +172,6 @@ class BackendClientTests {
         assertThatThrownBy(() -> client.signIn(EMAIL, "wrong")).isInstanceOf(LockedException.class)
                 .hasMessageContaining("15 minutos");
 
-        // An older backend without the endpoint, or one that fails, lets the caller fall back to the database.
         status = 404;
         assertThat(client.attempt(() -> client.register("Ana", "Pérez", "ana@agrosense.test", "a-long-password")))
                 .isEmpty();
@@ -192,7 +190,6 @@ class BackendClientTests {
         delayMs = 1500;
         Optional<List<ReadingResponse>> slow = client.attempt(() -> client.latestReadings(EMAIL, 1, 500));
         assertThat(slow).isEmpty();
-        // After a timeout the client stops trying for a while instead of making every page wait.
         delayMs = 0;
         int callsSoFar = requests.size();
         assertThat(client.attempt(() -> client.latestReadings(EMAIL, 1, 500))).isEmpty();
@@ -209,12 +206,13 @@ class BackendClientTests {
 
     @Test
     void theAssistantIsAskedThroughTheBackendInWritingAndByVoice() {
-        responseBody = "{\"reply\":\"Riega hoy.\"}";
+        responseBody = "{\"reply\":\"Riega hoy.\",\"source\":\"local\"}";
         AiReply written = client.askAssistant(EMAIL,
                 new AiChatForm("¿Riego hoy?", List.of(new AiChatForm.Turn("assistant", "Hola"))));
 
         assertThat(written.reply()).isEqualTo("Riega hoy.");
         assertThat(written.transcript()).isNull();
+        assertThat(written.source()).isEqualTo("local");
         assertThat(requests).containsExactly("POST /api/ai/chat");
         assertThat(authorizations.get(0)).startsWith("Bearer ");
         assertThat(bodies.get(0)).contains("\"message\":\"¿Riego hoy?\"")
@@ -225,7 +223,6 @@ class BackendClientTests {
 
         assertThat(spoken.transcript()).isEqualTo("¿Cómo está el suelo?");
         assertThat(requests).last().isEqualTo("POST /api/ai/voice");
-        // The recording travels as a file part with its type; without text there is no transcript part.
         assertThat(bodies.get(1)).contains("name=\"audio\"").contains("filename=\"voice\"").contains("audio/webm")
                 .doesNotContain("name=\"transcript\"");
 
@@ -237,7 +234,6 @@ class BackendClientTests {
     void whenTheAssistantCannotAnswerTheUserIsToldWhy() {
         AiChatForm question = new AiChatForm("Hola", null);
 
-        // The backend's own wording and status reach the user, including the ones it answers with 5xx.
         status = 429;
         responseBody = "{\"message\":\"Has hecho muchas consultas seguidas.\"}";
         assertThatThrownBy(() -> client.askAssistant(EMAIL, question))
@@ -253,7 +249,6 @@ class BackendClientTests {
                     assertThat(error.getMessage()).contains("no está configurado");
                 });
 
-        // A refused token or an older backend without the endpoint is not something the user can fix.
         for (int refused : new int[] {401, 403, 404}) {
             status = refused;
             responseBody = "{\"message\":\"Debes iniciar sesión para acceder a este recurso.\"}";
@@ -275,11 +270,25 @@ class BackendClientTests {
         assertThatThrownBy(() -> client.askAssistant(EMAIL, question))
                 .isInstanceOfSatisfying(AiAssistantException.class,
                         error -> assertThat(error.getStatus()).isEqualTo(HttpStatus.GATEWAY_TIMEOUT));
-        // A slow assistant says nothing about the rest of the backend: other calls go on using it.
-        // (The test server answers one request at a time, so it first finishes the slow one.)
         delayMs = 0;
         sleep(1300);
         assertThat(client.isAvailable()).isTrue();
+    }
+
+    @Test
+    void theLiveStreamsTokenIsAskedForTheSignedInUser() {
+        responseBody = "{\"token\":\"channel-token\",\"expiresInSeconds\":300}";
+
+        BackendClient.EventStreamToken token = client.eventStreamToken(EMAIL);
+
+        assertThat(requests).containsExactly("GET /api/events/token");
+        assertThat(authorizations.get(0)).startsWith("Bearer ");
+        assertThat(token.token()).isEqualTo("channel-token");
+        assertThat(token.expiresInSeconds()).isEqualTo(300);
+
+        status = 503;
+        responseBody = "{\"message\":\"Los eventos en vivo no están configurados.\"}";
+        assertThatThrownBy(() -> client.eventStreamToken(EMAIL)).isInstanceOf(BackendUnavailableException.class);
     }
 
     private static void respond(HttpExchange exchange, int status, String body) throws IOException {

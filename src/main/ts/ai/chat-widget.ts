@@ -1,6 +1,3 @@
-// The assistant's chat window, on every signed-in page: written questions, voice messages and answers read
-// aloud. The conversation lives in sessionStorage, so it survives moving between pages and ends with the tab;
-// it is kept under the account's name and erased on the sign-in page, so nobody who uses the tab next sees it.
 import { ApiError, csrfHeaders, isRecord, messageOf } from '../api/client.js';
 import { el, find, icon } from '../core/dom.js';
 import { plainText, renderMarkdown } from './markdown.js';
@@ -13,15 +10,17 @@ type Role = 'user' | 'assistant';
 interface Message {
   role: Role;
   text: string;
+  local?: boolean;
+  model?: boolean;
 }
 
 interface AiReply {
   reply: string;
   transcript?: string;
+  source?: string;
 }
 
 const SPEAK_KEY = 'agrosense.ai.speak';
-/** Messages kept in the tab, and how many of them travel with a question as context. */
 const MAX_STORED = 40;
 const MAX_CONTEXT = 8;
 const MAX_QUESTION = 1000;
@@ -29,8 +28,15 @@ const REQUEST_TIMEOUT_MS = 45_000;
 const MAX_RECORDING_MS = 45_000;
 const NEAR_BOTTOM_PX = 80;
 const VOICE_PLACEHOLDER = 'Mensaje de voz';
+const LOCAL_NOTE = 'Respuesta básica con los datos de tu finca: el modelo de IA no está disponible ahora.';
+const MODEL_NOTE = 'Respondió el modelo de IA con los datos de tu finca. Confírmalo antes de actuar.';
 
-const SUGGESTIONS = ['¿Cómo están mis cultivos hoy?', '¿Cuándo conviene regar?', '¿Qué hago con mis alertas?'];
+const SUGGESTIONS = [
+  '¿Cómo están mis cultivos hoy?',
+  '¿Qué significa la última lectura de humedad?',
+  'Explícame mis alertas pendientes',
+  '¿Cómo va el riego esta semana?',
+];
 
 const RECORDING_MESSAGES: Record<RecordingFailure, string> = {
   unsupported: 'Este navegador no puede grabar audio. Escribe tu pregunta.',
@@ -43,10 +49,15 @@ const RECORDING_MESSAGES: Record<RecordingFailure, string> = {
 const isAiReply = (value: unknown): value is AiReply =>
   isRecord(value) &&
   typeof value['reply'] === 'string' &&
-  (value['transcript'] === undefined || value['transcript'] === null || typeof value['transcript'] === 'string');
+  (value['transcript'] === undefined || value['transcript'] === null || typeof value['transcript'] === 'string') &&
+  (value['source'] === undefined || value['source'] === null || typeof value['source'] === 'string');
 
 const isMessage = (value: unknown): value is Message =>
-  isRecord(value) && (value['role'] === 'user' || value['role'] === 'assistant') && typeof value['text'] === 'string';
+  isRecord(value) &&
+  (value['role'] === 'user' || value['role'] === 'assistant') &&
+  typeof value['text'] === 'string' &&
+  (value['local'] === undefined || typeof value['local'] === 'boolean') &&
+  (value['model'] === undefined || typeof value['model'] === 'boolean');
 
 function loadMessages(owner: string): Message[] {
   try {
@@ -62,7 +73,6 @@ function saveMessages(owner: string, messages: Message[]): void {
   try {
     sessionStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify({ owner, messages: messages.slice(-MAX_STORED) }));
   } catch {
-    // Storage is full or disabled: the conversation simply lasts until the page is left.
   }
 }
 
@@ -78,11 +88,9 @@ function writeFlag(key: string, value: boolean): void {
   try {
     localStorage.setItem(key, String(value));
   } catch {
-    // The preference is kept for this page only.
   }
 }
 
-/** Sends JSON or a form and resolves with the assistant's answer; every failure is an ApiError with a message. */
 async function ask(url: string, body: FormData | Record<string, unknown>): Promise<AiReply> {
   const controller = new AbortController();
   let timedOut = false;
@@ -97,7 +105,6 @@ async function ask(url: string, body: FormData | Record<string, unknown>): Promi
       method: 'POST',
       credentials: 'same-origin',
       signal: controller.signal,
-      // A form sets its own Content-Type, with the boundary of its parts.
       headers: { Accept: 'application/json', ...(form ? {} : { 'Content-Type': 'application/json' }), ...csrfHeaders() },
       body: form ? body : JSON.stringify(body),
     });
@@ -114,7 +121,6 @@ async function ask(url: string, body: FormData | Record<string, unknown>): Promi
     const status = response.status;
     const kind =
       status === 429 ? 'rate-limited' : status === 401 ? 'unauthorized' : status === 403 ? 'forbidden' : status >= 500 ? 'server' : 'validation';
-    // The assistant words its own failures for the user, including the ones answered with 5xx.
     const message = isRecord(answer) && typeof answer['message'] === 'string' ? answer['message'] : undefined;
     throw new ApiError(kind, { status, ...(message ? { message } : {}) });
   }
@@ -138,7 +144,6 @@ function init(): void {
   const speakToggle = find('aiChatSpeak', HTMLButtonElement);
   const clear = find('aiChatClear', HTMLButtonElement);
   const close = find('aiChatClose', HTMLButtonElement);
-  // The widget is only on signed-in pages; where any piece is missing it stays out of the way.
   if (!root || !launcher || !panel || !log || !status || !form || !input || !send || !clear || !close) return;
   const chatUrl = root.dataset['chatUrl'];
   const voiceUrl = root.dataset['voiceUrl'];
@@ -163,7 +168,6 @@ interface Parts {
   speakToggle: HTMLButtonElement | null;
   chatUrl: string;
   voiceUrl: string;
-  /** The account the conversation belongs to. */
   owner: string;
 }
 
@@ -172,7 +176,6 @@ function mount(parts: Parts): void {
   const { owner } = parts;
   let messages = loadMessages(owner);
   let pending = false;
-  /** True while the browser is asking for the microphone, before the recording begins. */
   let starting = false;
   let readAloud = canSpeak() && readFlag(SPEAK_KEY);
   let typing: HTMLElement | null = null;
@@ -187,6 +190,8 @@ function mount(parts: Parts): void {
     const item = el('div', `ai-chat-message ai-chat-message--${message.role}`);
     if (message.role === 'assistant') item.append(renderMarkdown(message.text));
     else item.textContent = message.text;
+    if (message.local) item.append(el('p', 'ai-chat-note', LOCAL_NOTE));
+    else if (message.model) item.append(el('p', 'ai-chat-source', MODEL_NOTE));
     return item;
   }
 
@@ -216,7 +221,6 @@ function mount(parts: Parts): void {
     scrollToEnd();
   }
 
-  /** Adds a node at the end, following the conversation only when the reader is already at its end. */
   function append(node: HTMLElement, follow: boolean): void {
     const stick = follow || nearBottom();
     log.querySelector('.ai-chat-empty')?.remove();
@@ -266,7 +270,6 @@ function mount(parts: Parts): void {
     refreshControls();
   }
 
-  /** Shows why there is no answer and, when trying again can help, a button that repeats the question. */
   function showError(error: unknown, retry: () => void): void {
     const note = el('div', 'ai-chat-message ai-chat-error');
     note.setAttribute('role', 'alert');
@@ -275,7 +278,6 @@ function mount(parts: Parts): void {
       const again = el('button', 'ai-chat-retry', 'Reintentar');
       again.type = 'button';
       again.addEventListener('click', () => {
-        // A recording in progress is sent when it ends; asking again now would leave it without an answer.
         if (pending || starting || recorder.recording) return;
         note.remove();
         retry();
@@ -285,20 +287,24 @@ function mount(parts: Parts): void {
     append(note, true);
   }
 
-  function showAnswer(reply: string, spoken: boolean): void {
-    addMessage({ role: 'assistant', text: reply });
+  function showAnswer(answer: AiReply, spoken: boolean): void {
+    const reply = answer.reply;
+    const origin = answer.source === 'local' ? { local: true } : answer.source === 'model' ? { model: true } : {};
+    addMessage({ role: 'assistant', text: reply, ...origin });
     if (readAloud || spoken) speak(plainText(reply));
   }
 
-  /** The question is already in the conversation: asks it, taking the turns before it as context. */
   async function requestAnswer(question: string): Promise<void> {
     if (pending) return;
-    const history = messages.slice(0, -1).slice(-MAX_CONTEXT);
+    const history = messages
+      .slice(0, -1)
+      .slice(-MAX_CONTEXT)
+      .map(({ role, text }) => ({ role, text }));
     setPending(true);
     try {
       const answer = await ask(chatUrl, { message: question, history });
       setPending(false);
-      showAnswer(answer.reply, false);
+      showAnswer(answer, false);
     } catch (error) {
       setPending(false);
       showError(error, () => void requestAnswer(question));
@@ -308,7 +314,6 @@ function mount(parts: Parts): void {
 
   async function sendText(text: string): Promise<void> {
     const question = text.trim().slice(0, MAX_QUESTION);
-    // The button is disabled while an answer is on its way; this also stops Enter and double clicks.
     if (pending || starting || recorder.recording || question === '') return;
     stopSpeaking();
     setStatus('');
@@ -328,7 +333,6 @@ function mount(parts: Parts): void {
       setPending(false);
       const heard = answer.transcript?.trim();
       if (heard) {
-        // The placeholder becomes what was actually said, here and in the stored conversation.
         placeholder.textContent = heard;
         let index = messages.length - 1;
         while (index >= 0 && !(messages[index]?.role === 'user' && messages[index]?.text === VOICE_PLACEHOLDER)) index--;
@@ -337,7 +341,7 @@ function mount(parts: Parts): void {
           saveMessages(owner, messages);
         }
       }
-      showAnswer(answer.reply, true);
+      showAnswer(answer, true);
     } catch (error) {
       setPending(false);
       showError(error, () => void requestVoiceAnswer(audio, placeholder));
@@ -368,7 +372,6 @@ function mount(parts: Parts): void {
     starting = true;
     refreshControls();
     try {
-      // false: the window was closed while the browser asked for permission, and the microphone was released.
       if (await recorder.start(MAX_RECORDING_MS, () => void finishRecording())) {
         setStatus('Grabando… pulsa de nuevo para enviar.');
       }
@@ -404,6 +407,12 @@ function mount(parts: Parts): void {
   }
 
   launcher.addEventListener('click', () => (panel.hidden ? open() : shut()));
+  document.querySelectorAll<HTMLButtonElement>('[data-open-chat]').forEach((button) =>
+    button.addEventListener('click', () => {
+      if (panel.hidden) open();
+      else input.focus();
+    }),
+  );
   close.addEventListener('click', shut);
   panel.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
@@ -420,7 +429,6 @@ function mount(parts: Parts): void {
     refreshControls();
   });
   input.addEventListener('keydown', (event) => {
-    // Enter sends and Shift+Enter starts a new line; Enter while composing an accent or emoji is left alone.
     if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
       event.preventDefault();
       void sendText(input.value);
@@ -453,7 +461,6 @@ function mount(parts: Parts): void {
       paint();
     });
   }
-  // Leaving the page must not leave the microphone open or a voice talking.
   window.addEventListener('pagehide', () => {
     recorder.cancel();
     stopSpeaking();

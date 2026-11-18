@@ -1,5 +1,6 @@
 package com.agrosense.frontend.controller;
 
+import com.agrosense.frontend.dto.Views.HumidityDayReport;
 import com.agrosense.frontend.dto.Views.IrrigationDay;
 import com.agrosense.frontend.dto.Views.IrrigationView;
 import java.math.BigDecimal;
@@ -10,6 +11,11 @@ import com.agrosense.frontend.dto.IrrigationForm;
 import com.agrosense.frontend.exception.BusinessRuleException;
 import com.agrosense.frontend.service.EstateService;
 import com.agrosense.frontend.service.IrrigationService;
+import com.agrosense.frontend.service.SensorService;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
+import java.util.stream.IntStream;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -30,6 +36,12 @@ public class IrrigationController {
 
     private final IrrigationService irrigationService;
     private final EstateService estateService;
+    private final SensorService sensorService;
+    private final MessageSource messages;
+
+    /** The same device the backend reads over TCP (ESP32_DEVICE_ID). */
+    @Value("${agrosense.esp32.device-id:ESP32-PLANTICAS}")
+    private String esp32DeviceId;
 
     @GetMapping
     public String irrigation(Principal principal, Model model) {
@@ -40,7 +52,6 @@ public class IrrigationController {
         List<IrrigationView> history = irrigationService.findHistory(principal.getName());
         model.addAttribute("irrigations", history);
         model.addAttribute("running", history.stream().filter(IrrigationView::running).toList());
-        // The history is newest first, so the days come out in that order too.
         List<IrrigationDay> days = history.stream()
                 .filter(irrigation -> irrigation.startedAt() != null)
                 .collect(Collectors.groupingBy(irrigation -> irrigation.startedAt().toLocalDate(), LinkedHashMap::new,
@@ -51,7 +62,16 @@ public class IrrigationController {
                         .reduce(BigDecimal.ZERO, BigDecimal::add)))
                 .toList();
         model.addAttribute("irrigationDays", days);
-        // The longest bar of the timeline: the day with the most litres.
+        // The day's humidity of the ESP32's crop: what tells whether irrigating is needed.
+        HumidityDayReport humidity = sensorService.findHumidityDayReport(principal.getName(), esp32DeviceId,
+                type -> messages.getMessage("sensorType." + type, null, type.name(), LocaleContextHolder.getLocale()))
+                .orElse(null);
+        model.addAttribute("humidityDay", humidity);
+        model.addAttribute("humidityDaySummaries", humidity == null ? List.of()
+                : IntStream.range(0, humidity.series().size())
+                        .mapToObj(index -> SensorService.summarize(humidity.types().get(index),
+                                humidity.series().get(index), SensorService.DAY_BUCKET_MINUTES))
+                        .toList());
         model.addAttribute("maxDayLiters", days.stream().map(IrrigationDay::liters).max(BigDecimal::compareTo)
                 .filter(liters -> liters.signum() > 0).orElse(BigDecimal.ONE));
         return "irrigation";
