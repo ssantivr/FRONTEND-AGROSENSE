@@ -1,5 +1,6 @@
 package com.agrosense.frontend.entity;
 
+import com.agrosense.frontend.entity.enums.ReadingSource;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
@@ -36,10 +37,18 @@ public class SensorReading {
     @Column(name = "recorded_at", nullable = false)
     private LocalDateTime recordedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source", nullable = false, length = 16)
+    @Builder.Default
+    private ReadingSource source = ReadingSource.DEVICE;
+
     @PrePersist
     public void prePersist() {
         if (this.recordedAt == null) {
             this.recordedAt = LocalDateTime.now();
+        }
+        if (this.source == null) {
+            this.source = ReadingSource.DEVICE;
         }
     }
 }
