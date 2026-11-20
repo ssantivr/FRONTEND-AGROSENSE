@@ -18,8 +18,8 @@
                     <i class="bi" th:classappend="${item.icon}" aria-hidden="true"></i>
                     <span class="sidebar-link-label" th:text="${item.label}">Inicio</span>
                     <span class="sidebar-badge" th:if="${item.path == '/alertas' and openAlertCount != null and openAlertCount > 0}"
-                          th:text="${openAlertCount}"
-                          th:attr="aria-label=|${openAlertCount} alertas sin atender|">3</span>
+                          th:text="${openAlertCount > 99 ? '99+' : openAlertCount}"
+                          th:attr="aria-label=|${openAlertCount} alertas sin atender|,data-count=${openAlertCount}">3</span>
                 </a>
             </li>
         </ul>
