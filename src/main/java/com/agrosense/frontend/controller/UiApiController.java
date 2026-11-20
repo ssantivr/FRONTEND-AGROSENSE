@@ -14,9 +14,13 @@ import com.agrosense.frontend.dto.Views.HumidityRow;
 import com.agrosense.frontend.dto.Views.IrrigationView;
 import com.agrosense.frontend.dto.Views.ReadingSeries;
 import com.agrosense.frontend.service.CropService;
+import com.agrosense.frontend.service.DataSourceCatalog;
+import com.agrosense.frontend.service.DataSourceCatalog.DataSources;
 import com.agrosense.frontend.service.DashboardService;
 import com.agrosense.frontend.service.Esp32SilencePolicy;
 import com.agrosense.frontend.service.EstateService;
+import com.agrosense.frontend.service.LatestReadingsService;
+import com.agrosense.frontend.service.LatestReadingsService.LatestReading;
 import com.agrosense.frontend.service.IrrigationService;
 import com.agrosense.frontend.service.SensorService;
 import jakarta.validation.Valid;
@@ -52,6 +56,8 @@ public class UiApiController {
     private final CropService cropService;
     private final MessageSource messages;
     private final Esp32SilencePolicy silencePolicy;
+    private final DataSourceCatalog dataSourceCatalog;
+    private final LatestReadingsService latestReadingsService;
 
     /** The same device the backend reads over TCP (ESP32_DEVICE_ID). */
     @Value("${agrosense.esp32.device-id:ESP32-PLANTICAS}")
@@ -97,6 +103,21 @@ public class UiApiController {
     @GetMapping("/crops/{cropId}/latest")
     public CropLatest latest(@PathVariable Integer cropId, Principal principal) {
         return cropService.findLatest(principal.getName(), cropId);
+    }
+
+    /**
+     * Polled by events/live.ts when the live stream is off or failing: the user's readings recorded after {@code since}
+     * (ISO-8601), with their source, painted like the stream's `reading` events.
+     */
+    @GetMapping("/readings/latest")
+    public List<LatestReading> latestReadings(@RequestParam(required = false) String since, Principal principal) {
+        return latestReadingsService.since(principal.getName(), since);
+    }
+
+    /** The «Origen de datos» drawer (data-sources.ts): the backend's catalogue plus what paints each figure. */
+    @GetMapping("/data-sources")
+    public DataSources dataSources(Principal principal) {
+        return dataSourceCatalog.describe(principal.getName());
     }
 
     @GetMapping("/backend-status")
