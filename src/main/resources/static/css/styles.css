@@ -570,6 +570,10 @@ code {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
   color: var(--text-muted);
   font-size: var(--text-small);
   white-space: nowrap;
@@ -580,27 +584,63 @@ code {
 }
 
 .live-status-dot {
+  flex: none;
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: var(--status-success);
 }
 
-.live-status[data-state='reconnecting'] .live-status-dot {
-  background: var(--status-warning);
+.live-status-icon {
+  flex: none;
+  font-size: var(--text-small);
+}
+
+/* B1: every state has its own icon (set by live.ts), its own text and its own border, so color is never alone. */
+.live-status[data-state='live'] {
+  border-color: transparent;
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
+}
+
+.live-status[data-state='live'] .live-status-icon,
+.live-status:not([data-state='live']) .live-status-dot {
+  display: none;
+}
+
+.live-status[data-state='reconnecting'] {
+  border-style: dashed;
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
 }
 
 .live-status[data-state='offline'] {
+  border-style: dotted;
+  border-width: 2px;
   color: var(--status-danger-text);
 }
 
-.live-status[data-state='offline'] .live-status-dot {
-  background: var(--status-danger);
+.live-status[data-state='simulated'] {
+  border-style: dashed;
+  background: var(--status-info-bg);
+  color: var(--status-info-text);
+}
+
+.live-status[data-state='ai'] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.live-status[data-state='unavailable'] {
+  border-style: dotted;
 }
 
 @media (max-width: 479px) {
+  /* Only the icon, which differs per state (B7); the label stays for screen readers. */
   .topbar .live-status {
-    padding: var(--space-2);
+    min-width: 32px;
+    padding: 0 var(--space-2);
+    justify-content: center;
   }
 
   .topbar .live-status [data-live-label] {
@@ -611,6 +651,22 @@ code {
     clip-path: inset(50%);
     white-space: nowrap;
   }
+
+  .topbar .live-status[data-state='live'] .live-status-icon {
+    display: inline-block;
+  }
+
+  .topbar .live-status[data-state='live'] .live-status-dot {
+    display: none;
+  }
+}
+
+[data-theme='mono'] .live-status .live-status-icon {
+  display: inline-block;
+}
+
+[data-theme='mono'] .live-status .live-status-dot {
+  display: none;
 }
 
 .is-live-updated {
@@ -1564,12 +1620,12 @@ code {
 }
 
 .table .cell-wrap {
-  min-width: 260px;
+  min-width: min(260px, 70vw);
   white-space: normal;
 }
 
 .table .cell-soft {
-  min-width: 120px;
+  min-width: min(120px, 40vw);
   white-space: normal;
 }
 
@@ -3240,7 +3296,7 @@ code {
 
 .sensor-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(270px, 100%), 1fr));
   gap: var(--space-4);
   padding: 0;
   list-style: none;
@@ -3852,7 +3908,7 @@ a.segmented-option {
 }
 
 .share-bar {
-  min-width: 120px;
+  min-width: min(120px, 30vw);
 }
 
 .print-only {
