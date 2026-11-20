@@ -58,10 +58,11 @@
         </ul>
     </section>
 
-    <section class="kpi-grid" aria-label="Indicadores" data-motion-stagger>
+    <section class="kpi-grid" aria-label="Indicadores" data-motion-stagger th:with="statUpdatedAt=${now}">
         <th:block th:each="summary : ${dashboard.sensorSummaries}" th:if="${summary.measured()}">
             <article th:replace="~{fragments/stat-card :: kpi-card(${summary},
-                ${summary.type.name() == 'SOIL_MOISTURE' ? dashboard.humidityRange : null})}"></article>
+                ${summary.type.name() == 'SOIL_MOISTURE' ? dashboard.humidityRange : null},
+                ${dashboard.measuredSensorsOf(summary.type)})}"></article>
         </th:block>
         <article th:replace="~{fragments/stat-card :: stat-card('Sensores enviando datos',
             ${dashboard.reportingSensorCount()}, ${'de ' + dashboard.sensors.size()},
@@ -124,10 +125,15 @@
                 </div>
                 <div th:if="${!dashboard.chartSensors.isEmpty()}">
                     <p class="data-source" id="readingsSource" role="status" hidden></p>
-                    <div class="chart skeleton" id="readingsChartBox">
+                    <div class="chart skeleton" id="readingsChartBox" aria-busy="true">
                         <canvas id="readingsChart" role="img" aria-label="Gráfica de lecturas del sensor seleccionado"></canvas>
                     </div>
                     <p class="chart-message" id="readingsMessage" role="status" hidden></p>
+                    <p class="chart-actions" id="readingsActions" hidden>
+                        <button type="button" class="button button--ghost button--small" id="readingsRetry">
+                            <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+                        </button>
+                    </p>
                     <details class="chart-table">
                         <summary>Ver datos en tabla</summary>
                         <div class="table-scroll">
@@ -150,10 +156,18 @@
                     <h2 id="waterTitle">Agua aplicada por día</h2>
                     <span class="card-header-figure" th:text="|${#numbers.formatDecimal(dashboard.waterLitersLast7Days, 1, 'POINT', 0, 'COMMA')} L en 7 días|">1.750 L en 7 días</span>
                 </div>
-                <div class="chart skeleton" id="waterChartBox" th:attr="data-days=${waterUsageJson}">
+                <div class="chart skeleton" id="waterChartBox" aria-busy="true" th:attr="data-days=${waterUsageJson}">
                     <canvas id="waterChart" role="img" aria-label="Gráfica de litros de agua aplicados por día en la última semana"></canvas>
                 </div>
                 <p class="chart-message" id="waterMessage" role="status" hidden></p>
+                <p class="chart-actions" id="waterActions" hidden>
+                    <button type="button" class="button button--ghost button--small" id="waterRetry" hidden>
+                        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+                    </button>
+                    <a class="button button--ghost button--small" id="waterEmptyLink" th:href="@{/riego}" hidden>
+                        <i class="bi bi-journal-plus" aria-hidden="true"></i> Registrar un riego
+                    </a>
+                </p>
             </section>
 
             <section class="card map-section" id="mapSection" aria-labelledby="mapTitle">

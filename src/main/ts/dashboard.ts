@@ -25,10 +25,22 @@ const dayFormat = new Intl.DateTimeFormat('es-CO', { weekday: 'short', day: 'num
 function showMessage(boxId: string, messageId: string, text: string): void {
   const box = find(boxId, HTMLElement);
   const message = find(messageId, HTMLElement);
-  if (box) box.hidden = true;
+  if (box) {
+    box.hidden = true;
+    box.setAttribute('aria-busy', 'false');
+  }
   if (!message) return;
   message.textContent = text;
   message.hidden = false;
+}
+
+/** B2/B3: under a chart's message, the one action that helps: retry after an error, or go and add data when empty. */
+function showActions(actionsId: string, visibleIds: readonly string[]): void {
+  const actions = find(actionsId, HTMLElement);
+  if (!actions) return;
+  const buttons = [...actions.children].filter((child): child is HTMLElement => child instanceof HTMLElement);
+  buttons.forEach((child) => (child.hidden = child.id !== '' && !visibleIds.includes(child.id)));
+  actions.hidden = visibleIds.length === 0;
 }
 
 const thresholdPlugin: Plugin<'line', { lines: ThresholdLine[] }> = {
@@ -178,7 +190,9 @@ async function loadReadings(sensorId: string): Promise<void> {
   if (!box || !message) return;
   box.hidden = false;
   box.classList.add('skeleton');
+  box.setAttribute('aria-busy', 'true');
   message.hidden = true;
+  showActions('readingsActions', []);
   readingsRequest?.abort();
   readingsRequest = new AbortController();
 
@@ -189,9 +203,11 @@ async function loadReadings(sensorId: string): Promise<void> {
     if (error instanceof DOMException) return;
     renderSource(null);
     showMessage('readingsChartBox', 'readingsMessage', `No se pudieron cargar las lecturas. ${messageOf(error)}`);
+    showActions('readingsActions', ['readingsRetry']);
     return;
   }
   box.classList.remove('skeleton');
+  box.setAttribute('aria-busy', 'false');
   readingsChart?.destroy();
   readingsChart = undefined;
   readingsSeries = undefined;
@@ -215,6 +231,7 @@ function initReadings(): void {
   const select = find('chartSensor', HTMLSelectElement);
   if (!select) return;
   select.addEventListener('change', () => void loadReadings(select.value));
+  find('readingsRetry', HTMLButtonElement)?.addEventListener('click', () => void loadReadings(select.value));
   const windows = all('#readingsWindow [data-hours]', HTMLButtonElement);
   windows.forEach((button) =>
     button.addEventListener('click', () => {
@@ -263,19 +280,27 @@ function renderWater(days: DailyWater[]): void {
   });
 }
 
-async function initWater(): Promise<void> {
+async function initWater(retrying = false): Promise<void> {
   const box = find('waterChartBox', HTMLElement);
   if (!box) return;
+  box.hidden = false;
+  box.setAttribute('aria-busy', 'true');
+  const message = find('waterMessage', HTMLElement);
+  if (message) message.hidden = true;
+  showActions('waterActions', []);
   let days: DailyWater[];
   try {
-    days = embeddedWaterUsage(box.dataset['days']) ?? (await api.waterUsage());
+    days = (retrying ? null : embeddedWaterUsage(box.dataset['days'])) ?? (await api.waterUsage());
   } catch (error) {
     showMessage('waterChartBox', 'waterMessage', `No se pudo cargar el consumo de agua. ${messageOf(error)}`);
+    showActions('waterActions', ['waterRetry']);
     return;
   }
   box.classList.remove('skeleton');
+  box.setAttribute('aria-busy', 'false');
   if (days.every((day) => day.liters === 0)) {
     showMessage('waterChartBox', 'waterMessage', 'No hay riegos con litros registrados en los últimos 7 días.');
+    showActions('waterActions', ['waterEmptyLink']);
     return;
   }
   waterDays = days;
@@ -518,5 +543,6 @@ document.addEventListener(THEME_EVENT, applyTheme);
 
 initReadings();
 void initWater();
+find('waterRetry', HTMLButtonElement)?.addEventListener('click', () => void initWater(true));
 void initMap();
 initQuickIrrigation();
