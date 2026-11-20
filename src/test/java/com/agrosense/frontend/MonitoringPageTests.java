@@ -84,6 +84,27 @@ class MonitoringPageTests {
 
     @Test
     void withoutTheBackendThePageSaysSoInsteadOfFailing() throws Exception {
-        assertThat(pageWith(Optional.empty())).contains("El servidor no responde").doesNotContain("Regla de riego");
+        doReturn(true).when(backendClient).isConfigured();
+        assertThat(pageWith(Optional.empty())).contains("El servidor no responde").doesNotContain("Regla de riego")
+                .doesNotContain("no está configurado");
+    }
+
+    @Test
+    void withoutABackendConfiguredThePageSaysSoAndNotThatItIsDown_A7() throws Exception {
+        doReturn(false).when(backendClient).isConfigured();
+        assertThat(pageWith(Optional.empty())).contains("El servidor no está configurado", "BACKEND_URL")
+                .doesNotContain("El servidor no responde");
+    }
+
+    @Test
+    void theRefreshStatusLivesOutsideTheRefreshedPart_B5() throws Exception {
+        OffsetDateTime now = OffsetDateTime.now();
+        String page = pageWith(Optional.of(new MonitoringResponse(
+                new Esp32Status(true, true, "ESP32-PLANTICAS", 60, now, now, 1, 1, 0, "mean", "RECEIVING", "Recibiendo"),
+                null, List.of())));
+
+        assertThat(page.indexOf("data-monitoring-updated")).isPositive()
+                .isLessThan(page.indexOf("data-monitoring aria-busy"));
+        assertThat(page).contains("Actualizado a las", "data-monitoring-retry");
     }
 }

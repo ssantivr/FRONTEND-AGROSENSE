@@ -22,6 +22,8 @@ public class MonitoringController {
         model.addAttribute("monitoring", backendClient.monitoring(principal.getName())
                 .map(response -> MonitoringView.of(response, ZoneId.systemDefault()))
                 .orElse(null));
+        // A7: an installation without a backend is told apart from a backend that does not answer.
+        model.addAttribute("backendConfigured", backendClient.isConfigured());
         return "monitoring";
     }
 }
