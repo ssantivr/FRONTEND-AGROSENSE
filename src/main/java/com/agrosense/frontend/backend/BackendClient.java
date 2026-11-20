@@ -88,6 +88,11 @@ public class BackendClient {
         log.info("Backend API configured at {}", baseUrl);
     }
 
+    /** False when BACKEND_URL or BACKEND_JWT_SECRET is empty: there is no backend to ask, not one that is down. */
+    public boolean isConfigured() {
+        return api != null;
+    }
+
     /**
      * The one place that decides between the backend API and the database: every operation that can use the
      * API asks here first.
@@ -223,6 +228,13 @@ public class BackendClient {
         return attempt(() -> executeRead(() -> api.get().uri("/api/devices/monitoring")
                 .header(HttpHeaders.AUTHORIZATION, token.bearerFor(email))
                 .retrieve().onStatus(HttpStatusCode::isError, BackendClient::fail).body(MonitoringResponse.class)));
+    }
+
+    /** Where each figure of the pages comes from (GET /api/data-sources); empty while the backend does not answer. */
+    public Optional<DataSourcesResponse> dataSources(String email) {
+        return attempt(() -> executeRead(() -> api.get().uri("/api/data-sources")
+                .header(HttpHeaders.AUTHORIZATION, token.bearerFor(email))
+                .retrieve().onStatus(HttpStatusCode::isError, BackendClient::fail).body(DataSourcesResponse.class)));
     }
 
     public EventStreamToken eventStreamToken(String email) {
@@ -458,5 +470,15 @@ public class BackendClient {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record EventStreamToken(String token, long expiresInSeconds) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record DataSourcesResponse(Boolean simulatorEnabled, java.util.Map<String, Long> readingCountsBySource,
+            @com.fasterxml.jackson.annotation.JsonAlias("sources") List<DataSourceItem> items) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record DataSourceItem(String key, String label, String origin, String producer, String storage,
+            String endpoint, String file) {
     }
 }

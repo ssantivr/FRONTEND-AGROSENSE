@@ -783,6 +783,13 @@ public final class Views {
             return estates.size();
         }
 
+        /** The sensors a KPI card averages (SensorService.summarize): activated, of that type, with a value. */
+        public List<SensorView> measuredSensorsOf(SensorType type) {
+            return sensors.stream()
+                    .filter(sensor -> sensor.type() == type && sensor.active() && sensor.lastValue() != null)
+                    .toList();
+        }
+
         public SensorSummary summary(String type) {
             return sensorSummaries.stream()
                     .filter(summary -> summary.type().name().equals(type))
