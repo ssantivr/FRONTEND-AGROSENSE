@@ -4,6 +4,7 @@
 import type { Chart as ChartInstance, Plugin } from 'chart.js';
 import { isArrayOf, isRecord, requestJson } from './api/client.js';
 import { el, icon } from './core/dom.js';
+import { clockTime } from './core/time.js';
 
 export interface HumidityRow {
   recordedAt: string;
@@ -160,6 +161,9 @@ interface RangeLine {
   left: boolean;
 }
 
+/** A9: what a self-refreshing list says when a round failed; it keeps showing the last data it got. */
+export const staleText = (at: Date): string => `No se pudo actualizar a las ${clockTime(at)}; se reintentará solo.`;
+
 /** "Suelo" or "Aire": the short name of a humidity measure for the range labels. */
 export const shortMeasure = (measure: string): string => (/suelo/i.test(measure) ? 'Suelo' : 'Aire');
 
@@ -205,9 +209,17 @@ class HumidityDayChart {
   async load(): Promise<void> {
     try {
       this.day = await requestJson(this.url, isHumidityDay, { timeoutMs: 15_000 });
+      delete this.box.dataset['stale'];
+      this.box.removeAttribute('title');
       this.render();
     } catch {
-      if (!this.day) this.show('No se pudo cargar la gráfica. Se intentará de nuevo con la próxima lectura.');
+      if (!this.day) {
+        this.show('No se pudo cargar la gráfica. Se intentará de nuevo con la próxima lectura.');
+        return;
+      }
+      // A9: the chart keeps what it drew, marked as stale, instead of failing in silence.
+      this.box.dataset['stale'] = 'true';
+      this.box.title = staleText(new Date());
     }
   }
 
@@ -328,12 +340,19 @@ class Esp32Humidity {
         }
       }
       this.showSilence(feed.silence);
-      const updated = this.section.querySelector<HTMLElement>('[data-humidity-updated]');
-      if (updated) updated.textContent = `Actualizado a las ${new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false })}`;
+      delete this.section.dataset['stale'];
+      this.say(`Actualizado a las ${clockTime(new Date())}`);
     } catch {
-      // The page keeps what it shows and the next poll tries again.
+      // A9: the page keeps what it shows, says so, and the next poll tries again.
+      this.section.dataset['stale'] = 'true';
+      this.say(staleText(new Date()));
     }
     this.schedule();
+  }
+
+  private say(text: string): void {
+    const updated = this.section.querySelector<HTMLElement>('[data-humidity-updated]');
+    if (updated && updated.textContent !== text) updated.textContent = text;
   }
 
   private showSilence(silence: Esp32Silence): void {

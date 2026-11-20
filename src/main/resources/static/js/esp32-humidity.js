@@ -1,5 +1,6 @@
 import { isArrayOf, isRecord, requestJson } from './api/client.js';
 import { el, icon } from './core/dom.js';
+import { clockTime } from './core/time.js';
 const POLL_MS = 30_000;
 const ROW_FIELDS = ['recordedAt', 'recordedAtText', 'sensorCode', 'measure', 'valueText', 'level', 'tone', 'icon', 'label', 'advice'];
 const TONES = new Set(['success', 'warning', 'danger', 'neutral', 'info', 'critical']);
@@ -88,6 +89,8 @@ function paintCard(card, reading) {
 const SERIES_COLORS = ['--chart-1', '--chart-2', '--chart-3', '--chart-4'];
 const timeFormat = new Intl.DateTimeFormat('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false });
 const numberFormat = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 1 });
+/** A9: what a self-refreshing list says when a round failed; it keeps showing the last data it got. */
+export const staleText = (at) => `No se pudo actualizar a las ${clockTime(at)}; se reintentará solo.`;
 /** "Suelo" or "Aire": the short name of a humidity measure for the range labels. */
 export const shortMeasure = (measure) => (/suelo/i.test(measure) ? 'Suelo' : 'Aire');
 const token = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -134,11 +137,18 @@ class HumidityDayChart {
     async load() {
         try {
             this.day = await requestJson(this.url, isHumidityDay, { timeoutMs: 15_000 });
+            delete this.box.dataset['stale'];
+            this.box.removeAttribute('title');
             this.render();
         }
         catch {
-            if (!this.day)
+            if (!this.day) {
                 this.show('No se pudo cargar la gráfica. Se intentará de nuevo con la próxima lectura.');
+                return;
+            }
+            // A9: the chart keeps what it drew, marked as stale, instead of failing in silence.
+            this.box.dataset['stale'] = 'true';
+            this.box.title = staleText(new Date());
         }
     }
     render() {
@@ -259,14 +269,20 @@ class Esp32Humidity {
                 }
             }
             this.showSilence(feed.silence);
-            const updated = this.section.querySelector('[data-humidity-updated]');
-            if (updated)
-                updated.textContent = `Actualizado a las ${new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false })}`;
+            delete this.section.dataset['stale'];
+            this.say(`Actualizado a las ${clockTime(new Date())}`);
         }
         catch {
-            // The page keeps what it shows and the next poll tries again.
+            // A9: the page keeps what it shows, says so, and the next poll tries again.
+            this.section.dataset['stale'] = 'true';
+            this.say(staleText(new Date()));
         }
         this.schedule();
+    }
+    say(text) {
+        const updated = this.section.querySelector('[data-humidity-updated]');
+        if (updated && updated.textContent !== text)
+            updated.textContent = text;
     }
     showSilence(silence) {
         const banner = this.section.querySelector('[data-esp32-silence]');
