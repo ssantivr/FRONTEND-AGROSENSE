@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout('Monitoreo', ~{::main}, 'monitoring')}">
+<body>
+<main id="main" class="app-content" tabindex="-1" data-motion-stagger data-monitoring>
+    <header th:replace="~{fragments/page-header :: page-header('Monitoreo', 'Lo que el sistema hace con el ESP32 mientras nadie mira: la conexión, cómo junta las lecturas, la regla de riego y las vigilancias del campo.')}"></header>
+
+    <th:block th:if="${monitoring == null}">
+        <section class="card">
+            <div th:replace="~{fragments/empty-state :: empty-state('bi-cloud-slash', 'El servidor no responde',
+                'El monitoreo lo calcula el backend y ahora no está disponible. Las demás páginas siguen funcionando con la base de datos.')}"></div>
+        </section>
+    </th:block>
+
+    <div class="detail-grid" th:if="${monitoring != null}">
+        <section class="card" aria-labelledby="esp32Title" data-monitoring-link>
+            <h2 id="esp32Title">Conexión con el ESP32</h2>
+            <dl class="definition-list">
+                <dt>Estado</dt>
+                <dd><span th:replace="~{fragments/status-pill :: status-pill(${monitoring.linkTone}, ${monitoring.linkIcon}, ${monitoring.linkLabel})}"></span></dd>
+                <dt>Dispositivo</dt>
+                <dd th:text="${monitoring.deviceId ?: 'Sin configurar'}">ESP32-PLANTICAS</dd>
+                <dt>Último bloque</dt>
+                <dd th:text="${monitoring.lastBlockAt != null} ? ${#temporals.format(monitoring.lastBlockAt, 'd MMM, HH:mm:ss')} : 'Todavía ninguno'">19 nov, 20:30:01</dd>
+                <dt>Bloques recibidos</dt>
+                <dd th:text="${monitoring.receivedBlocks}">304</dd>
+                <dt>Bloques descartados</dt>
+                <dd th:text="${monitoring.discardedBlocks}">0</dd>
+            </dl>
+        </section>
+
+        <section class="card" aria-labelledby="aggregationTitle">
+            <h2 id="aggregationTitle">Lecturas guardadas</h2>
+            <dl class="definition-list">
+                <dt>Cómo se juntan</dt>
+                <dd th:text="|${monitoring.aggregation} de los bloques de cada ${monitoring.aggregateSeconds} s|">Promedio de los bloques de cada 60 s</dd>
+                <dt>Lecturas guardadas</dt>
+                <dd th:text="${monitoring.storedReadings}">5</dd>
+                <dt>Última guardada</dt>
+                <dd th:text="${monitoring.lastStoredAt != null} ? ${#temporals.format(monitoring.lastStoredAt, 'd MMM, HH:mm:ss')} : 'Todavía ninguna'">19 nov, 20:28:34</dd>
+            </dl>
+        </section>
+
+        <section class="card" aria-labelledby="ruleTitle">
+            <h2 id="ruleTitle">Regla de riego</h2>
+            <th:block th:if="${monitoring.wateringRule != null}">
+                <p><code th:text="${monitoring.wateringRule}">suelo &lt; 40 y aire &lt; 60</code></p>
+                <p class="text-muted">Cada lectura del ESP32 se compara con esta regla. Cuando se cumple, el cultivo recibe la alerta «Conviene regar».</p>
+            </th:block>
+            <p class="text-muted" th:if="${monitoring.wateringRule == null}">Apagada: no hay regla de riego configurada.</p>
+        </section>
+
+        <section class="card" aria-labelledby="watchesTitle">
+            <h2 id="watchesTitle">Vigilancias del campo</h2>
+            <p class="text-muted" th:if="${monitoring.watches.isEmpty()}">Todavía no ha corrido ninguna. La primera corre a los 5 minutos de arrancar el servidor.</p>
+            <div class="table-scroll" th:if="${!monitoring.watches.isEmpty()}">
+                <table class="table">
+                    <thead>
+                    <tr><th scope="col">Vigilancia</th><th scope="col">Corrió</th><th scope="col">Duración</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="watch : ${monitoring.watches}">
+                        <td><strong th:text="${watch.name}">Riesgo de helada</strong><br><span class="text-muted" th:text="${watch.purpose}">Qué hace</span></td>
+                        <td th:text="${#temporals.format(watch.startedAt, 'd MMM, HH:mm:ss')}">19 nov, 20:30</td>
+                        <td th:text="|${watch.tookMillis} ms|">12 ms</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+    <p class="text-muted" th:if="${monitoring != null}">La página se actualiza sola cada 15 segundos.</p>
+</main>
+</body>
+</html>

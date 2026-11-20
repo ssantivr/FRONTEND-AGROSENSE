@@ -33,6 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -215,6 +216,13 @@ public class BackendClient {
                 .retrieve().onStatus(HttpStatusCode::isError, BackendClient::fail)
                 .body(new ParameterizedTypeReference<List<PredictionResponse>>() {
                 }))).flatMap(predictions -> predictions.stream().findFirst());
+    }
+
+    /** The ESP32 receiver, the watering rule and the last field watches; empty while the backend does not answer. */
+    public Optional<MonitoringResponse> monitoring(String email) {
+        return attempt(() -> executeRead(() -> api.get().uri("/api/devices/monitoring")
+                .header(HttpHeaders.AUTHORIZATION, token.bearerFor(email))
+                .retrieve().onStatus(HttpStatusCode::isError, BackendClient::fail).body(MonitoringResponse.class)));
     }
 
     public EventStreamToken eventStreamToken(String email) {
@@ -432,6 +440,20 @@ public class BackendClient {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record CropTemplateResponse(String key, String label, BigDecimal humidityMin, BigDecimal humidityMax,
             BigDecimal tempMin, BigDecimal tempMax, BigDecimal phMin, BigDecimal phMax) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record MonitoringResponse(Esp32Status esp32, String wateringRule, List<WatchRun> watches) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Esp32Status(boolean enabled, boolean connected, String deviceId, int aggregateSeconds,
+            OffsetDateTime lastBlockAt, OffsetDateTime lastStoredAt, long receivedBlocks, long storedReadings,
+            long discardedBlocks, String aggregation, String link, String linkLabel) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record WatchRun(String command, Instant startedAt, long tookMillis) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
