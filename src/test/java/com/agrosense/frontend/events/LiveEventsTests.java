@@ -32,6 +32,17 @@ class LiveEventsTests {
     }
 
     @Test
+    void anAddressThatIsNotHttpTurnsLiveEventsOffInsteadOfReachingTheBrowser_A5() {
+        for (String broken : new String[] {"javascript:alert(1)", "ftp://events.example", "events.example/stream",
+                "http://"}) {
+            ResponseEntity<Map<String, Object>> answer = new LiveEventsController(backend, broken).token(USER);
+
+            assertThat(answer.getBody()).as(broken).isEqualTo(Map.of("enabled", false));
+        }
+        verify(backend, never()).eventStreamToken(EMAIL);
+    }
+
+    @Test
     void theBrowserGetsTheStreamsAddressAndTheBackendsTokenForItsOwnUser() {
         when(backend.isAvailable()).thenReturn(true);
         when(backend.eventStreamToken(EMAIL)).thenReturn(new EventStreamToken("signed-token", 300));

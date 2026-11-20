@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.URI;
 import java.security.Principal;
 import java.util.Map;
 
@@ -25,7 +26,24 @@ public class LiveEventsController {
 
     public LiveEventsController(BackendClient backend, @Value("${agrosense.events.public-url:}") String publicUrl) {
         this.backend = backend;
-        this.streamUrl = publicUrl.strip().replaceAll("/+$", "");
+        this.streamUrl = validated(publicUrl.strip().replaceAll("/+$", ""));
+    }
+
+    /** A5: only an absolute http(s) address reaches the browser; anything else turns live events off, with a warning. */
+    static String validated(String url) {
+        if (url.isEmpty()) {
+            return url;
+        }
+        try {
+            URI uri = URI.create(url);
+            if (uri.getHost() != null && ("http".equals(uri.getScheme()) || "https".equals(uri.getScheme()))) {
+                return url;
+            }
+        } catch (IllegalArgumentException notAUrl) {
+            // Falls through to the warning below.
+        }
+        log.warn("Live events off: EVENTS_PUBLIC_URL is not an http(s) address");
+        return "";
     }
 
     @GetMapping("/token")
