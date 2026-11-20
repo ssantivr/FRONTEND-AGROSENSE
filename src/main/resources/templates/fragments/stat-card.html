@@ -10,6 +10,8 @@
         <span class="stat-unit" th:if="${value != null and unit != null}" th:text="${unit}">%</span>
     </span>
     <span class="stat-hint" th:text="${hint}">Detalle</span>
+    <time class="stat-updated" th:if="${statUpdatedAt != null}" th:datetime="${statUpdatedAt}"
+          th:text="|Actualizado a las ${#temporals.format(statUpdatedAt, 'HH:mm')}|">Actualizado a las 10:00</time>
     <svg class="sparkline" th:if="${spark != null}" viewBox="0 0 100 28" preserveAspectRatio="none"
          aria-hidden="true" focusable="false">
         <polyline th:points="${spark}" points="0,14 100,14"/>
@@ -27,25 +29,34 @@
     </span>
 </article>
 
-<article class="card stat-card kpi-card" th:fragment="kpi-card(summary, range)"
+<article class="card stat-card kpi-card" th:fragment="kpi-card(summary, range, members)" data-kpi
+         th:data-kpi-type="${summary.type}"
          th:with="label=#{${'sensorType.' + summary.type}},
                   value=${#numbers.formatDecimal(summary.value, 1, 1, 'COMMA')}">
     <span class="stat-icon" aria-hidden="true"><i class="bi" th:classappend="${summary.icon()}"></i></span>
     <span class="stat-label" th:text="${label}">Humedad del suelo</span>
-    <span class="stat-value">
-        <span th:text="${value}" th:attr="data-countup=${label}">55,0</span>
+    <span class="stat-value" aria-live="polite">
+        <span data-kpi-value th:text="${value}" th:attr="data-countup=${label}">55,0</span>
         <span class="stat-unit" th:if="${summary.unit != null}" th:text="${summary.unit}">%</span>
+    </span>
+    <span class="kpi-status">
+        <span class="kpi-trend" data-live-trend hidden>
+            <i class="bi" aria-hidden="true"></i><span data-live-trend-label></span>
+        </span>
+        <span class="source-chip" data-live-source hidden>
+            <i class="bi" aria-hidden="true"></i><span data-live-source-label></span>
+        </span>
     </span>
     <span class="stat-hint"
           th:text="${summary.sensorCount == 1} ? 'Última lectura de 1 sensor' : |Promedio de la última lectura de ${summary.sensorCount} sensores|">
         Promedio de la última lectura de 2 sensores</span>
-    <time class="kpi-time" th:if="${summary.lastReadingAt != null}" th:datetime="${summary.lastReadingAt}">
+    <time class="kpi-time" data-kpi-time th:if="${summary.lastReadingAt != null}" th:datetime="${summary.lastReadingAt}">
         <i class="bi bi-clock" aria-hidden="true"></i>
-        <span th:text="|Última lectura: ${#temporals.format(summary.lastReadingAt, 'd MMM, HH:mm')}|">Última lectura: 17 oct, 10:00</span>
+        <span data-kpi-time-label th:text="|Última lectura: ${#temporals.format(summary.lastReadingAt, 'd MMM, HH:mm')}|">Última lectura: 17 oct, 10:00</span>
     </time>
-    <svg class="sparkline" th:if="${summary.sparkline != null}" viewBox="0 0 100 28" preserveAspectRatio="none"
-         role="img" th:attr="aria-label=|Tendencia de ${label} en las últimas 24 horas|" focusable="false">
-        <polyline th:points="${summary.sparkline}" points="0,14 100,14"/>
+    <svg class="sparkline" data-live-spark viewBox="0 0 100 28" preserveAspectRatio="none" role="img" focusable="false"
+         th:attr="aria-label=|Tendencia de ${label} en las últimas 24 horas|,hidden=${summary.sparkline == null ? 'hidden' : null}">
+        <polyline th:points="${summary.sparkline ?: ''}" points="0,14 100,14"/>
     </svg>
     <span class="range" th:if="${range != null}">
         <svg class="range-bar" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true" focusable="false">
@@ -58,6 +69,10 @@
             <strong th:text="${range.within} ? 'Dentro del rango' : 'Fuera del rango'">Dentro del rango</strong>
         </span>
     </span>
+    <time class="stat-updated" data-live-updated th:if="${statUpdatedAt != null}"
+          th:datetime="${statUpdatedAt}" th:text="|Actualizado a las ${#temporals.format(statUpdatedAt, 'HH:mm')}|">Actualizado a las 10:00</time>
+    <data hidden th:each="member : ${members}" th:value="${member.lastValue}"
+          th:attr="data-kpi-member=${member.code}"></data>
 </article>
 </body>
 </html>
