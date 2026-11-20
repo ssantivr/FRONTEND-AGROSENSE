@@ -114,3 +114,34 @@ async function attempt(url, guard, options) {
         throw new ApiError('unexpected', { status: response.status });
     return body;
 }
+/**
+ * GETs a page of this same site as HTML text (monitoring.ts refreshes itself this way), with the same timeout and
+ * error kinds as requestJson. A redirect to the login page means the session expired: 'unauthorized'.
+ */
+export async function requestHtml(url, options = {}) {
+    const controller = new AbortController();
+    let timedOut = false;
+    const timer = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+    }, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+    let response;
+    try {
+        response = await fetch(url, { credentials: 'same-origin', signal: controller.signal, headers: { Accept: 'text/html' } });
+    }
+    catch {
+        throw new ApiError(timedOut ? 'timeout' : 'network');
+    }
+    finally {
+        clearTimeout(timer);
+    }
+    if (response.redirected && new URL(response.url).pathname.endsWith('/login')) {
+        throw new ApiError('unauthorized', { status: 401 });
+    }
+    if (!response.ok) {
+        throw new ApiError(KIND_BY_STATUS[response.status] ?? (response.status >= 500 ? 'server' : 'unexpected'), {
+            status: response.status,
+        });
+    }
+    return response.text();
+}
