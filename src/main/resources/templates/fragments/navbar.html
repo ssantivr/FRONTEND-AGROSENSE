@@ -24,11 +24,19 @@
 
     <time class="topbar-clock" id="clock" aria-label="Fecha y hora actuales"></time>
 
-    <span class="live-status" id="liveStatus" th:data-token-url="@{/api/ui/events/token}" role="status"
-          data-state="live" title="En vivo" hidden>
+    <span class="live-status" id="liveStatus" th:data-token-url="@{/api/ui/events/token}" th:data-latest-url="@{/api/ui/readings/latest}" role="status"
+          data-state="live" title="En vivo" aria-live="polite" th:data-demo-mode="${demoMode == true}" hidden>
         <span class="live-status-dot" aria-hidden="true"></span>
+        <i class="bi bi-broadcast live-status-icon" data-live-icon aria-hidden="true"></i>
         <span data-live-label>En vivo</span>
     </span>
+
+    <button type="button" class="icon-button topbar-sources" id="dataSourcesOpen" aria-haspopup="dialog"
+            aria-controls="dataSourcesDrawer" aria-expanded="false" th:data-sources-url="@{/api/ui/data-sources}"
+            title="Origen de datos">
+        <i class="bi bi-info-circle" aria-hidden="true"></i>
+        <span class="topbar-sources-label">Origen de datos</span>
+    </button>
 
     <span class="connection-status" id="backendStatus" role="status" aria-live="polite"
           th:with="state=${backendStatus == null ? 'off' : backendStatus.state.name().toLowerCase()}"
