@@ -39,8 +39,8 @@
     </div>
     <p class="note" th:if="${!sensors.isEmpty()}">
         <i class="bi bi-info-circle" aria-hidden="true"></i>
-        Los valores son la <strong>última lectura conocida</strong> de cada sensor. Se marcan «en vivo» solo cuando llega
-        una lectura nueva mientras ves esta página.
+        <span>Los valores son la <strong>última lectura conocida</strong> de cada sensor. Se marcan «en vivo» solo cuando
+        llega una lectura nueva mientras ves esta página.</span>
     </p>
 
     <div id="sensorsView" data-view="cards" th:if="${!sensors.isEmpty()}">
@@ -56,17 +56,28 @@
                     </div>
                     <span th:replace="~{fragments/status-pill :: sensor-status(${sensor})}"></span>
                 </div>
-                <p class="sensor-card-value" th:if="${sensor.lastValue != null}">
+                <p class="sensor-card-value" th:if="${sensor.lastValue != null}" aria-live="polite">
                     <span data-live-value th:text="${#numbers.formatDecimal(sensor.lastValue, 1, 1, 'COMMA')}">52,0</span>
                     <span class="stat-unit" th:text="${sensor.unit}">%</span>
                 </p>
                 <p class="sensor-card-value sensor-card-value--empty" th:if="${sensor.lastValue == null}">Sin lecturas</p>
+                <p class="kpi-status">
+                    <span class="kpi-trend" data-live-trend hidden>
+                        <i class="bi" aria-hidden="true"></i><span data-live-trend-label></span>
+                    </span>
+                    <span class="source-chip" data-live-source hidden>
+                        <i class="bi" aria-hidden="true"></i><span data-live-source-label></span>
+                    </span>
+                </p>
                 <p class="sensor-card-hint" data-live-hint th:unless="${sensor.status().reporting()}" th:with="status=${sensor.status()}" th:text="#{${'sensorStatusHint.' + status}(${sensorThresholds.staleAfterText()},${sensorThresholds.offlineAfterText()})}">No envía datos desde hace más de 1 hora.</p>
                 <p class="sensor-card-age" th:if="${sensor.lastValue != null and sensor.lastReadingAt != null}">
                     <i class="bi bi-clock" aria-hidden="true"></i>
                     <time data-live-time="ago" th:datetime="${sensor.lastReadingAt}" th:title="${#temporals.format(sensor.lastReadingAt, 'd MMM yyyy, HH:mm')}"
                           th:text="|Última lectura ${sensor.lastReadingAgo()}|">Última lectura hace 3 h</time>
                 </p>
+                <svg class="sparkline" data-live-spark viewBox="0 0 100 28" preserveAspectRatio="none" role="img"
+                     focusable="false" aria-label="Lecturas recibidas en vivo" hidden></svg>
+                <time class="stat-updated" data-live-updated hidden></time>
                 <dl class="sensor-card-meta">
                     <dt><i class="bi bi-flower1" aria-hidden="true"></i><span class="visually-hidden">Cultivo</span></dt>
                     <dd><a class="link" th:href="@{/cultivos/{id}(id=${sensor.cropId})}" th:text="|${sensor.cropName} · ${sensor.estateName}|">Café · Finca</a></dd>
