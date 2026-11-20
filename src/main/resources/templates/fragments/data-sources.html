@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div class="drawer-host" th:fragment="data-sources">
+    <div class="drawer-backdrop" id="dataSourcesBackdrop" hidden></div>
+    <div class="drawer" id="dataSourcesDrawer" role="dialog" aria-modal="true" aria-labelledby="dataSourcesTitle"
+         aria-describedby="dataSourcesIntro" hidden>
+        <header class="drawer-header">
+            <h2 id="dataSourcesTitle"><i class="bi bi-info-circle" aria-hidden="true"></i> Origen de datos</h2>
+            <button type="button" class="icon-button" data-drawer-close aria-label="Cerrar el panel de origen de datos">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+        </header>
+        <p class="drawer-intro text-muted" id="dataSourcesIntro">
+            De dónde sale cada dato que ves (sensor físico o virtual, endpoint, IA, datos de ejemplo o cálculo) y dónde
+            se encuentra: archivo, tabla y columna, y la parte de la página que lo pinta.
+        </p>
+        <div class="drawer-body" id="dataSourcesBody" aria-live="polite" aria-busy="false"></div>
+    </div>
+</div>
+</body>
+</html>
