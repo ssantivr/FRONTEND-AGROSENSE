@@ -2,13 +2,29 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{fragments/layout :: layout('Monitoreo', ~{::main}, 'monitoring')}">
 <body>
-<main id="main" class="app-content" tabindex="-1" data-motion-stagger data-monitoring>
+<main id="main" class="app-content" tabindex="-1" data-motion-stagger>
     <header th:replace="~{fragments/page-header :: page-header('Monitoreo', 'Lo que el sistema hace con el ESP32 mientras nadie mira: la conexión, cómo junta las lecturas, la regla de riego y las vigilancias del campo.')}"></header>
 
+    <p class="refresh-status" th:if="${monitoring != null}">
+        <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+        <time data-monitoring-updated role="status" aria-live="polite"
+              th:datetime="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd''T''HH:mm:ss')}"
+              th:text="|Actualizado a las ${#temporals.format(#temporals.createNow(), 'HH:mm')} · se actualiza sola cada 15 segundos|">Actualizado a las 20:30</time>
+        <button type="button" class="button button--ghost button--small" data-monitoring-retry hidden>
+            <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+        </button>
+    </p>
+
+    <div class="monitoring-body" data-monitoring aria-busy="false">
     <th:block th:if="${monitoring == null}">
-        <section class="card">
-            <div th:replace="~{fragments/empty-state :: empty-state('bi-cloud-slash', 'El servidor no responde',
-                'El monitoreo lo calcula el backend y ahora no está disponible. Las demás páginas siguen funcionando con la base de datos.')}"></div>
+        <section class="card" th:if="${backendConfigured}">
+            <div th:replace="~{fragments/empty-state :: empty-state-action('bi-cloud-slash', 'El servidor no responde',
+                'El monitoreo lo calcula el backend y ahora no está disponible. Las demás páginas siguen funcionando con la base de datos.',
+                '/monitoreo', 'Reintentar')}"></div>
+        </section>
+        <section class="card" th:unless="${backendConfigured}">
+            <div th:replace="~{fragments/empty-state :: empty-state('bi-plug', 'El servidor no está configurado',
+                'Esta instalación no tiene BACKEND_URL ni BACKEND_JWT_SECRET, así que no hay backend que calcule el monitoreo. Las demás páginas funcionan con la base de datos.')}"></div>
         </section>
     </th:block>
 
@@ -69,7 +85,7 @@
             </div>
         </section>
     </div>
-    <p class="text-muted" th:if="${monitoring != null}">La página se actualiza sola cada 15 segundos.</p>
+    </div>
 </main>
 </body>
 </html>
