@@ -156,6 +156,18 @@
   background: var(--status-danger);
 }
 
+/* The page could not ask its own server (connection.ts): an outlined square instead of a dot, not only another color. */
+.connection-status[data-state='unreachable'] {
+  border-style: dotted;
+  color: var(--status-danger-text);
+}
+
+.connection-status[data-state='unreachable'] .connection-status-dot {
+  border: 2px solid var(--status-danger);
+  border-radius: 2px;
+  background: transparent;
+}
+
 @keyframes connection-pulse {
   50% { opacity: 0.35; transform: scale(0.8); }
 }
@@ -411,4 +423,338 @@ dialog[open]::backdrop {
 .reduce-motion dialog[open]::backdrop,
 .reduce-motion [data-motion-stagger] > * {
   animation: none !important;
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Live KPI cards (dashboard, sensors): trend, origin of the reading, last update and the recent sparkline.
+   --------------------------------------------------------------------------------------------------------------- */
+.kpi-card {
+  gap: var(--space-1);
+}
+
+.kpi-card .stat-value,
+.sensor-card-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 0;
+  margin: 0;
+}
+
+.kpi-status:not(:has(:not([hidden]))) {
+  display: none;
+}
+
+.kpi-trend,
+.source-chip,
+.origin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  font-size: var(--text-micro);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-small);
+  white-space: nowrap;
+}
+
+.kpi-trend[hidden],
+.source-chip[hidden],
+.sparkline[hidden],
+.stat-updated[hidden] {
+  display: none;
+}
+
+.kpi-trend[data-trend='up'] {
+  color: var(--status-info-text);
+}
+
+.kpi-trend[data-trend='down'] {
+  color: var(--status-warning-text);
+}
+
+/* The origin chip: shape and icon tell the origin apart, not only the color (mono theme). */
+.source-chip[data-source='ESP32_TCP'],
+.source-chip[data-source='DEVICE'] {
+  border-color: transparent;
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
+}
+
+.source-chip[data-source='SIMULATED'] {
+  border-style: dashed;
+  background: var(--status-info-bg);
+  color: var(--status-info-text);
+}
+
+.source-chip[data-source='SEED'] {
+  border-style: dotted;
+}
+
+.source-chip[data-source='MANUAL'] {
+  background: var(--status-neutral-bg);
+  color: var(--status-neutral-text);
+}
+
+.stat-updated {
+  color: var(--text-muted);
+  font-size: var(--text-micro);
+  line-height: var(--leading-small);
+}
+
+/* A widget that kept its data after a failed refresh (esp32-humidity.ts, monitoring.ts). */
+[data-stale='true'] {
+  outline: 1px dashed var(--status-warning);
+  outline-offset: var(--space-1);
+}
+
+[data-monitoring-updated][data-stale='true'] {
+  outline: 0;
+  color: var(--status-warning-text);
+}
+
+.chart-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+}
+
+.chart-actions[hidden],
+.chart-actions > [hidden] {
+  display: none;
+}
+
+.refresh-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  color: var(--text-muted);
+  font-size: var(--text-small);
+}
+
+.refresh-status [hidden] {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   «Origen de datos»: trigger in the top bar and side drawer (data-sources.ts).
+   --------------------------------------------------------------------------------------------------------------- */
+.topbar-sources {
+  display: inline-flex;
+  gap: var(--space-2);
+  width: auto;
+  padding: 0 var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--text-small);
+}
+
+.topbar-sources-label {
+  white-space: nowrap;
+}
+
+@media (max-width: 1279px) {
+  .topbar-sources-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  background: var(--scrim);
+}
+
+.drawer {
+  position: fixed;
+  inset: 0 0 0 auto;
+  z-index: var(--z-modal);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: min(28rem, 100vw);
+  padding: var(--space-5);
+  overflow-y: auto;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-3);
+  color: var(--text);
+}
+
+.drawer[hidden],
+.drawer-backdrop[hidden] {
+  display: none;
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.drawer-header h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-h3);
+}
+
+.drawer-intro {
+  margin: 0;
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.drawer-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.has-drawer body {
+  overflow: hidden;
+}
+
+.source-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  font-size: var(--text-small);
+}
+
+.source-summary h3 {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-small);
+}
+
+.source-simulator {
+  margin: 0;
+}
+
+.source-simulator[data-enabled='true'] {
+  color: var(--status-info-text);
+  font-weight: var(--weight-semibold);
+}
+
+.source-counts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+.source-counts dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-semibold);
+  text-align: right;
+}
+
+.source-fallback {
+  margin: 0;
+  color: var(--status-warning-text);
+}
+
+.source-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.source-item {
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.source-item-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.source-item-head h3 {
+  margin: 0;
+  font-size: var(--text-body);
+}
+
+.source-item-facts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.source-item-facts dt {
+  margin-top: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--text-micro);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.source-item-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.origin-chip[data-origin='SENSOR_FISICO'] {
+  border-color: transparent;
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
+}
+
+.origin-chip[data-origin='SENSOR_VIRTUAL'] {
+  border-style: dashed;
+  background: var(--status-info-bg);
+  color: var(--status-info-text);
+}
+
+.origin-chip[data-origin='IA'] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.origin-chip[data-origin='SEED'] {
+  border-style: dotted;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .drawer:not([hidden]) {
+    animation: drawer-in var(--motion-base) var(--ease-out);
+  }
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(var(--space-6));
+    opacity: 0;
+  }
 }
